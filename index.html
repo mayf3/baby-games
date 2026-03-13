@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>井字棋 - 儿童游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 井字棋游戏</h1>
+        <p class="subtitle">适合4岁+儿童的益智游戏</p>
+
+        <div class="game-info">
+            <div class="status" id="status">轮到玩家 X</div>
+            <button class="btn" id="restartBtn">🔄 重新开始</button>
+        </div>
+
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+
+        <div class="instructions">
+            <h3>📖 怎么玩？</h3>
+            <ul>
+                <li>点击格子放置你的符号（X 或 O）</li>
+                <li>三个相同符号连成一条线就赢了！</li>
+                <li>可以横着、竖着或斜着连线</li>
+                <li>家长可以和孩子一起玩，帮助孩子思考</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
