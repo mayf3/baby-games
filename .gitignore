@@ -1,29 +1,44 @@
-# 依赖
-node_modules/
-package-lock.json
-
-# 环境变量和敏感配置
+# 敏感配置文件
 .env
-.env.local
-*.local
 config.local.json
-secrets.*
+*.config.local
 
-# IDE
+# 日志文件
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器配置
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# 系统文件
-.DS_Store
-Thumbs.db
-
-# 日志
-*.log
-npm-debug.log*
+*~
 
 # 临时文件
-.tmp/
-temp/
 *.tmp
+*.temp
+.cache/
+
+# 依赖目录（如果使用包管理器）
+node_modules/
+bower_components/
+
+# 构建输出
+dist/
+build/
+*.min.js.map
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# 环境变量
+.env.local
+.env.*.local
