@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝宝游戏大厅 - 4岁儿童教育游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Microsoft YaHei', cursive, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            padding: 20px;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .game-icon {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .game-description {
+            color: #666;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .game-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👶 宝宝游戏大厅 🎮</h1>
+            <p>基于蒙特梭利理念的4岁儿童教育游戏</p>
+        </div>
+
+        <div class="games-grid">
+            <!-- 形状分类 -->
+            <div class="game-card" onclick="location.href='games/shape-sorting/index.html'">
+                <div class="game-icon">🔷</div>
+                <div class="game-title">形状分类</div>
+                <div class="game-description">
+                    拖拽形状到对应的轮廓中，学习识别基本几何形状
+                </div>
+                <div class="game-tags">
+                    <span class="tag">认知</span>
+                    <span class="tag">形状</span>
+                    <span class="tag">拖拽</span>
+                </div>
+            </div>
+
+            <!-- 井字棋 -->
+            <div class="game-card" onclick="location.href='games/tic-tac-toe/index.html'">
+                <div class="game-icon">⭕</div>
+                <div class="game-title">井字棋</div>
+                <div class="game-description">
+                    经典策略游戏，培养逻辑思维和策略规划能力
+                </div>
+                <div class="game-tags">
+                    <span class="tag">逻辑</span>
+                    <span class="tag">策略</span>
+                    <span class="tag">双人</span>
+                </div>
+            </div>
+
+            <!-- 颜色配对 -->
+            <div class="game-card" onclick="location.href='games/color-matching/index.html'">
+                <div class="game-icon">🎨</div>
+                <div class="game-title">颜色配对</div>
+                <div class="game-description">
+                    将颜色拖到对应的位置，学习识别和匹配颜色
+                </div>
+                <div class="game-tags">
+                    <span class="tag">认知</span>
+                    <span class="tag">颜色</span>
+                    <span class="tag">配对</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 动画延迟
+        document.querySelectorAll('.game-card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+    </script>
+</body>
+</html>

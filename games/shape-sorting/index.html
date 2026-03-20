@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>形状分类游戏 - 宝宝游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Microsoft YaHei', cursive, sans-serif;
+            background: linear-gradient(135deg, #FFE5B4 0%, #FFB347 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        .score-board {
+            background: white;
+            border-radius: 30px;
+            padding: 15px 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-size: 1.3rem;
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .shapes-container {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            min-height: 150px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .shape {
+            width: 100px;
+            height: 100px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            animation: popIn 0.5s ease;
+        }
+
+        .shape:active {
+            cursor: grabbing;
+            transform: scale(1.1);
+        }
+
+        .shape.circle {
+            background: #FF6B6B;
+            border-radius: 50%;
+        }
+
+        .shape.square {
+            background: #4ECDC4;
+            border-radius: 10px;
+        }
+
+        .shape.triangle {
+            width: 0;
+            height: 0;
+            background: transparent;
+            border-left: 50px solid transparent;
+            border-right: 50px solid transparent;
+            border-bottom: 86px solid #FFE66D;
+            border-radius: 0;
+        }
+
+        .drop-zones {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            width: 100%;
+        }
+
+        .drop-zone {
+            background: rgba(255, 255, 255, 0.9);
+            border: 4px dashed #ccc;
+            border-radius: 30px;
+            padding: 30px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #FF6B6B;
+            background: rgba(255, 107, 107, 0.1);
+            transform: scale(1.05);
+        }
+
+        .drop-zone.correct {
+            border-color: #4ECDC4;
+            background: rgba(78, 205, 196, 0.2);
+            animation: successPulse 0.5s ease;
+        }
+
+        .drop-zone.wrong {
+            animation: shake 0.5s ease;
+        }
+
+        .drop-zone-label {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .drop-zone-icon {
+            font-size: 4rem;
+            opacity: 0.3;
+        }
+
+        .success-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .success-modal.show {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .success-content {
+            background: white;
+            border-radius: 30px;
+            padding: 50px;
+            text-align: center;
+            animation: scaleUp 0.5s ease;
+        }
+
+        .success-content h2 {
+            font-size: 3rem;
+            color: #4ECDC4;
+            margin-bottom: 20px;
+        }
+
+        .success-content p {
+            font-size: 1.5rem;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .play-again-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .play-again-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes successPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-10px);
+            }
+            75% {
+                transform: translateX(10px);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleUp {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .shape {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+
+            .drop-zones {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="location.href='../index.html'">←</button>
+
+    <div class="header">
+        <h1>🔷 形状分类游戏</h1>
+        <div class="score-board">
+            得分: <span id="score">0</span> / 6
+        </div>
+    </div>
+
+    <div class="game-area">
+        <div class="shapes-container" id="shapesContainer">
+            <!-- Shapes will be generated by JavaScript -->
+        </div>
+
+        <div class="drop-zones">
+            <div class="drop-zone" data-shape="circle">
+                <div class="drop-zone-icon">⭕</div>
+                <div class="drop-zone-label">圆形</div>
+            </div>
+            <div class="drop-zone" data-shape="square">
+                <div class="drop-zone-icon">⬜</div>
+                <div class="drop-zone-label">正方形</div>
+            </div>
+            <div class="drop-zone" data-shape="triangle">
+                <div class="drop-zone-icon">🔺</div>
+                <div class="drop-zone-label">三角形</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <h2>🎉 太棒了！</h2>
+            <p>你完成了所有形状分类！</p>
+            <button class="play-again-btn" onclick="restartGame()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let shapes = [];
+        const totalShapes = 6;
+
+        function initGame() {
+            score = 0;
+            document.getElementById('score').textContent = score;
+            generateShapes();
+            setupDragAndDrop();
+        }
+
+        function generateShapes() {
+            const container = document.getElementById('shapesContainer');
+            container.innerHTML = '';
+            shapes = [];
+
+            const shapeTypes = ['circle', 'square', 'triangle'];
+            const emojis = {
+                circle: '🔴',
+                square: '🟦',
+                triangle: '🔺'
+            };
+
+            // Generate 2 of each shape
+            for (let i = 0; i < totalShapes; i++) {
+                const shapeType = shapeTypes[i % 3];
+                shapes.push({
+                    id: `shape-${i}`,
+                    type: shapeType,
+                    emoji: emojis[shapeType]
+                });
+            }
+
+            // Shuffle shapes
+            shapes.sort(() => Math.random() - 0.5);
+
+            // Create shape elements
+            shapes.forEach(shape => {
+                const shapeEl = document.createElement('div');
+                shapeEl.className = `shape ${shape.type}`;
+                shapeEl.id = shape.id;
+                shapeEl.draggable = true;
+                shapeEl.textContent = shape.emoji;
+                container.appendChild(shapeEl);
+            });
+        }
+
+        function setupDragAndDrop() {
+            const shapes = document.querySelectorAll('.shape');
+            const dropZones = document.querySelectorAll('.drop-zone');
+
+            shapes.forEach(shape => {
+                shape.addEventListener('dragstart', handleDragStart);
+                shape.addEventListener('dragend', handleDragEnd);
+
+                // Touch support
+                shape.addEventListener('touchstart', handleTouchStart, {passive: false});
+                shape.addEventListener('touchmove', handleTouchMove, {passive: false});
+                shape.addEventListener('touchend', handleTouchEnd);
+            });
+
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.id);
+            e.target.style.opacity = '0.5';
+        }
+
+        function handleDragEnd(e) {
+            e.target.style.opacity = '1';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const zone = e.currentTarget;
+            zone.classList.remove('drag-over');
+
+            const shapeId = e.dataTransfer.getData('text/plain');
+            const shape = document.getElementById(shapeId);
+            const shapeType = shape.classList[1]; // Get the shape type class
+
+            const expectedType = zone.dataset.shape;
+
+            if (shapeType === expectedType) {
+                // Correct!
+                zone.classList.add('correct');
+                shape.style.display = 'none';
+                score++;
+                document.getElementById('score').textContent = score;
+
+                // Play success sound (visual feedback)
+                setTimeout(() => {
+                    zone.classList.remove('correct');
+                    checkWin();
+                }, 500);
+            } else {
+                // Wrong!
+                zone.classList.add('wrong');
+                setTimeout(() => {
+                    zone.classList.remove('wrong');
+                }, 500);
+            }
+        }
+
+        // Touch event handlers
+        let touchedShape = null;
+        let touchOffsetX = 0;
+        let touchOffsetY = 0;
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchedShape = e.target;
+            const rect = touchedShape.getBoundingClientRect();
+            touchOffsetX = touch.clientX - rect.left;
+            touchOffsetY = touch.clientY - rect.top;
+            touchedShape.style.position = 'fixed';
+            touchedShape.style.zIndex = '1000';
+            touchedShape.style.opacity = '0.8';
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!touchedShape) return;
+
+            const touch = e.touches[0];
+            touchedShape.style.left = (touch.clientX - touchOffsetX) + 'px';
+            touchedShape.style.top = (touch.clientY - touchOffsetY) + 'px';
+        }
+
+        function handleTouchEnd(e) {
+            if (!touchedShape) return;
+
+            const touch = e.changedTouches[0];
+            const dropZone = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.drop-zone');
+
+            if (dropZone) {
+                const shapeType = touchedShape.classList[1];
+                const expectedType = dropZone.dataset.shape;
+
+                if (shapeType === expectedType) {
+                    dropZone.classList.add('correct');
+                    touchedShape.style.display = 'none';
+                    score++;
+                    document.getElementById('score').textContent = score;
+
+                    setTimeout(() => {
+                        dropZone.classList.remove('correct');
+                        checkWin();
+                    }, 500);
+                } else {
+                    dropZone.classList.add('wrong');
+                    setTimeout(() => {
+                        dropZone.classList.remove('wrong');
+                    }, 500);
+                }
+            }
+
+            // Reset shape position
+            touchedShape.style.position = '';
+            touchedShape.style.zIndex = '';
+            touchedShape.style.left = '';
+            touchedShape.style.top = '';
+            touchedShape.style.opacity = '1';
+            touchedShape = null;
+        }
+
+        function checkWin() {
+            if (score >= totalShapes) {
+                setTimeout(() => {
+                    document.getElementById('successModal').classList.add('show');
+                }, 500);
+            }
+        }
+
+        function restartGame() {
+            document.getElementById('successModal').classList.remove('show');
+            initGame();
+        }
+
+        // Initialize game on load
+        initGame();
+    </script>
+</body>
+</html>
