@@ -2,13 +2,14 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>形状分类游戏 - 宝宝游戏</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -18,88 +19,91 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 10px;
             overflow-x: hidden;
+            touch-action: manipulation;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 600px;
         }
 
         .back-btn {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 10px;
+            left: 10px;
             background: white;
             border: none;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             font-size: 1.5rem;
             cursor: pointer;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
         }
 
         .header h1 {
             color: #333;
-            font-size: 2.5rem;
+            font-size: 1.8rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            padding: 0 50px;
         }
 
         .score-board {
             background: white;
-            border-radius: 30px;
-            padding: 15px 30px;
+            border-radius: 25px;
+            padding: 10px 25px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             color: #FF6B6B;
             font-weight: bold;
+            display: inline-block;
         }
 
         .game-area {
             display: flex;
             flex-direction: column;
-            gap: 40px;
+            gap: 20px;
             width: 100%;
-            max-width: 900px;
+            max-width: 600px;
         }
 
         .shapes-container {
             background: white;
-            border-radius: 30px;
-            padding: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            min-height: 150px;
+            border-radius: 25px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            min-height: 120px;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             align-items: center;
-            gap: 30px;
+            gap: 15px;
         }
 
         .shape {
-            width: 100px;
-            height: 100px;
-            cursor: grab;
-            transition: all 0.3s ease;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 3rem;
-            animation: popIn 0.5s ease;
+            font-size: 2.5rem;
+            user-select: none;
         }
 
-        .shape:active {
-            cursor: grabbing;
-            transform: scale(1.1);
+        .shape.selected {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 4px #FFD700;
         }
 
         .shape.circle {
@@ -116,58 +120,59 @@
             width: 0;
             height: 0;
             background: transparent;
-            border-left: 50px solid transparent;
-            border-right: 50px solid transparent;
-            border-bottom: 86px solid #FFE66D;
+            border-left: 40px solid transparent;
+            border-right: 40px solid transparent;
+            border-bottom: 70px solid #FFE66D;
             border-radius: 0;
         }
 
         .drop-zones {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
             width: 100%;
         }
 
         .drop-zone {
             background: rgba(255, 255, 255, 0.9);
-            border: 4px dashed #ccc;
-            border-radius: 30px;
-            padding: 30px;
-            min-height: 200px;
+            border: 3px dashed #ccc;
+            border-radius: 20px;
+            padding: 15px 10px;
+            min-height: 140px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            cursor: pointer;
             position: relative;
         }
 
-        .drop-zone.drag-over {
+        .drop-zone.active {
             border-color: #FF6B6B;
             background: rgba(255, 107, 107, 0.1);
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
 
         .drop-zone.correct {
             border-color: #4ECDC4;
             background: rgba(78, 205, 196, 0.2);
-            animation: successPulse 0.5s ease;
+            animation: successPulse 0.4s ease;
         }
 
         .drop-zone.wrong {
-            animation: shake 0.5s ease;
+            animation: shake 0.4s ease;
         }
 
         .drop-zone-label {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: bold;
             color: #555;
-            margin-bottom: 15px;
+            margin-top: 10px;
         }
 
         .drop-zone-icon {
-            font-size: 4rem;
+            font-size: 3rem;
             opacity: 0.3;
         }
 
@@ -182,115 +187,141 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            padding: 20px;
         }
 
         .success-modal.show {
             display: flex;
-            animation: fadeIn 0.5s ease;
+            animation: fadeIn 0.3s ease;
         }
 
         .success-content {
             background: white;
             border-radius: 30px;
-            padding: 50px;
+            padding: 40px 30px;
             text-align: center;
-            animation: scaleUp 0.5s ease;
+            animation: scaleUp 0.3s ease;
+            max-width: 400px;
         }
 
         .success-content h2 {
-            font-size: 3rem;
+            font-size: 2.5rem;
             color: #4ECDC4;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .success-content p {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
         .play-again-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 30px;
-            padding: 15px 40px;
-            font-size: 1.3rem;
+            border-radius: 25px;
+            padding: 15px 35px;
+            font-size: 1.2rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease;
         }
 
-        .play-again-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        @keyframes popIn {
-            0% {
-                transform: scale(0);
-                opacity: 0;
-            }
-            50% {
-                transform: scale(1.2);
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
+        .play-again-btn:active {
+            transform: scale(0.95);
         }
 
         @keyframes successPulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
         }
 
         @keyframes shake {
-            0%, 100% {
-                transform: translateX(0);
-            }
-            25% {
-                transform: translateX(-10px);
-            }
-            75% {
-                transform: translateX(10px);
-            }
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         @keyframes scaleUp {
-            from {
-                transform: scale(0);
-            }
-            to {
-                transform: scale(1);
-            }
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
-        @media (max-width: 768px) {
+        /* Mobile optimization */
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+
+            .back-btn {
+                width: 40px;
+                height: 40px;
+                top: 5px;
+                left: 5px;
+                font-size: 1.3rem;
+            }
+
             .header h1 {
-                font-size: 1.8rem;
+                font-size: 1.5rem;
+                padding: 0 45px;
+            }
+
+            .score-board {
+                padding: 8px 20px;
+                font-size: 1.1rem;
             }
 
             .shape {
-                width: 70px;
-                height: 70px;
+                width: 65px;
+                height: 65px;
                 font-size: 2rem;
+            }
+
+            .shape.triangle {
+                border-left-width: 32px;
+                border-right-width: 32px;
+                border-bottom-width: 56px;
             }
 
             .drop-zones {
                 grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .drop-zone {
+                flex-direction: row;
+                gap: 15px;
+                padding: 15px 20px;
+                min-height: 80px;
+            }
+
+            .drop-zone-icon {
+                font-size: 2.5rem;
+            }
+
+            .drop-zone-label {
+                font-size: 1.1rem;
+                margin-top: 0;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 360px) {
+            .shape {
+                width: 55px;
+                height: 55px;
+                font-size: 1.8rem;
+            }
+
+            .shape.triangle {
+                border-left-width: 27px;
+                border-right-width: 27px;
+                border-bottom-width: 48px;
             }
         }
     </style>
@@ -336,14 +367,16 @@
 
     <script>
         let score = 0;
+        let selectedShape = null;
         let shapes = [];
         const totalShapes = 6;
 
         function initGame() {
             score = 0;
+            selectedShape = null;
             document.getElementById('score').textContent = score;
             generateShapes();
-            setupDragAndDrop();
+            setupClickHandlers();
         }
 
         function generateShapes() {
@@ -376,151 +409,113 @@
                 const shapeEl = document.createElement('div');
                 shapeEl.className = `shape ${shape.type}`;
                 shapeEl.id = shape.id;
-                shapeEl.draggable = true;
                 shapeEl.textContent = shape.emoji;
+                shapeEl.dataset.type = shape.type;
                 container.appendChild(shapeEl);
             });
         }
 
-        function setupDragAndDrop() {
+        function setupClickHandlers() {
             const shapes = document.querySelectorAll('.shape');
             const dropZones = document.querySelectorAll('.drop-zone');
 
+            // Shape click handlers
             shapes.forEach(shape => {
-                shape.addEventListener('dragstart', handleDragStart);
-                shape.addEventListener('dragend', handleDragEnd);
-
-                // Touch support
-                shape.addEventListener('touchstart', handleTouchStart, {passive: false});
-                shape.addEventListener('touchmove', handleTouchMove, {passive: false});
-                shape.addEventListener('touchend', handleTouchEnd);
+                shape.addEventListener('click', handleShapeClick);
+                shape.addEventListener('touchend', handleShapeClick);
             });
 
+            // Drop zone click handlers
             dropZones.forEach(zone => {
-                zone.addEventListener('dragover', handleDragOver);
-                zone.addEventListener('dragleave', handleDragLeave);
-                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('click', handleZoneClick);
+                zone.addEventListener('touchend', handleZoneClick);
             });
         }
 
-        function handleDragStart(e) {
-            e.dataTransfer.setData('text/plain', e.target.id);
-            e.target.style.opacity = '0.5';
-        }
-
-        function handleDragEnd(e) {
-            e.target.style.opacity = '1';
-        }
-
-        function handleDragOver(e) {
+        function handleShapeClick(e) {
             e.preventDefault();
-            e.currentTarget.classList.add('drag-over');
+            e.stopPropagation();
+
+            const shape = e.target;
+
+            // If this shape is already selected, deselect it
+            if (selectedShape === shape) {
+                shape.classList.remove('selected');
+                selectedShape = null;
+                return;
+            }
+
+            // Deselect previous shape
+            if (selectedShape) {
+                selectedShape.classList.remove('selected');
+            }
+
+            // Select this shape
+            selectedShape = shape;
+            shape.classList.add('selected');
+
+            // Provide visual feedback
+            if (navigator.vibrate) {
+                navigator.vibrate(30);
+            }
         }
 
-        function handleDragLeave(e) {
-            e.currentTarget.classList.remove('drag-over');
-        }
-
-        function handleDrop(e) {
+        function handleZoneClick(e) {
             e.preventDefault();
+            e.stopPropagation();
+
+            if (!selectedShape) {
+                // No shape selected - give feedback
+                const zone = e.currentTarget;
+                zone.classList.add('wrong');
+                setTimeout(() => {
+                    zone.classList.remove('wrong');
+                }, 300);
+                return;
+            }
+
             const zone = e.currentTarget;
-            zone.classList.remove('drag-over');
-
-            const shapeId = e.dataTransfer.getData('text/plain');
-            const shape = document.getElementById(shapeId);
-            const shapeType = shape.classList[1]; // Get the shape type class
-
+            const shapeType = selectedShape.dataset.type;
             const expectedType = zone.dataset.shape;
 
             if (shapeType === expectedType) {
                 // Correct!
                 zone.classList.add('correct');
-                shape.style.display = 'none';
+                selectedShape.style.display = 'none';
+                selectedShape.classList.remove('selected');
+                selectedShape = null;
                 score++;
                 document.getElementById('score').textContent = score;
 
-                // Play success sound (visual feedback)
+                // Success feedback
+                if (navigator.vibrate) {
+                    navigator.vibrate([50, 50, 50]);
+                }
+
                 setTimeout(() => {
                     zone.classList.remove('correct');
                     checkWin();
-                }, 500);
+                }, 400);
             } else {
                 // Wrong!
                 zone.classList.add('wrong');
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100]);
+                }
                 setTimeout(() => {
                     zone.classList.remove('wrong');
-                }, 500);
+                }, 400);
             }
-        }
-
-        // Touch event handlers
-        let touchedShape = null;
-        let touchOffsetX = 0;
-        let touchOffsetY = 0;
-
-        function handleTouchStart(e) {
-            e.preventDefault();
-            const touch = e.touches[0];
-            touchedShape = e.target;
-            const rect = touchedShape.getBoundingClientRect();
-            touchOffsetX = touch.clientX - rect.left;
-            touchOffsetY = touch.clientY - rect.top;
-            touchedShape.style.position = 'fixed';
-            touchedShape.style.zIndex = '1000';
-            touchedShape.style.opacity = '0.8';
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            if (!touchedShape) return;
-
-            const touch = e.touches[0];
-            touchedShape.style.left = (touch.clientX - touchOffsetX) + 'px';
-            touchedShape.style.top = (touch.clientY - touchOffsetY) + 'px';
-        }
-
-        function handleTouchEnd(e) {
-            if (!touchedShape) return;
-
-            const touch = e.changedTouches[0];
-            const dropZone = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.drop-zone');
-
-            if (dropZone) {
-                const shapeType = touchedShape.classList[1];
-                const expectedType = dropZone.dataset.shape;
-
-                if (shapeType === expectedType) {
-                    dropZone.classList.add('correct');
-                    touchedShape.style.display = 'none';
-                    score++;
-                    document.getElementById('score').textContent = score;
-
-                    setTimeout(() => {
-                        dropZone.classList.remove('correct');
-                        checkWin();
-                    }, 500);
-                } else {
-                    dropZone.classList.add('wrong');
-                    setTimeout(() => {
-                        dropZone.classList.remove('wrong');
-                    }, 500);
-                }
-            }
-
-            // Reset shape position
-            touchedShape.style.position = '';
-            touchedShape.style.zIndex = '';
-            touchedShape.style.left = '';
-            touchedShape.style.top = '';
-            touchedShape.style.opacity = '1';
-            touchedShape = null;
         }
 
         function checkWin() {
             if (score >= totalShapes) {
                 setTimeout(() => {
                     document.getElementById('successModal').classList.add('show');
-                }, 500);
+                    if (navigator.vibrate) {
+                        navigator.vibrate([100, 50, 100, 50, 100]);
+                    }
+                }, 300);
             }
         }
 
@@ -528,6 +523,13 @@
             document.getElementById('successModal').classList.remove('show');
             initGame();
         }
+
+        // Prevent default touch behaviors
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.closest('.shape') || e.target.closest('.drop-zone')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
 
         // Initialize game on load
         initGame();
