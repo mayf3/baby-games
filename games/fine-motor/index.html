@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>精细动作 - 小手点点乐</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Comic Sans MS', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #7dd3fc 0%, #a78bfa 45%, #f9a8d4 100%);
+            color: #2d3748;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .back-btn {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            z-index: 20;
+            border: none;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.92);
+            padding: 12px 16px;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+            cursor: pointer;
+        }
+        .game-shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 72px 16px 20px;
+            gap: 16px;
+        }
+        .header {
+            width: min(960px, 100%);
+            background: rgba(255,255,255,0.92);
+            border-radius: 28px;
+            padding: 18px 20px;
+            box-shadow: 0 14px 36px rgba(76, 29, 149, 0.16);
+            text-align: center;
+        }
+        h1 { font-size: clamp(2rem, 4vw, 3rem); color: #7c3aed; margin-bottom: 8px; }
+        .subtitle { font-size: 1.05rem; color: #6b7280; }
+        .hud {
+            width: min(960px, 100%);
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .stat, .mission {
+            background: rgba(255,255,255,0.9);
+            border-radius: 22px;
+            padding: 14px 16px;
+            box-shadow: 0 10px 24px rgba(76, 29, 149, 0.12);
+            text-align: center;
+        }
+        .stat-label { color: #6b7280; font-size: 0.95rem; }
+        .stat-value { font-size: 1.6rem; font-weight: 900; color: #ec4899; margin-top: 6px; }
+        .mission {
+            grid-column: span 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+        }
+        .progress {
+            height: 12px;
+            width: 100%;
+            border-radius: 999px;
+            background: #e9d5ff;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f59e0b, #ec4899, #8b5cf6);
+            transition: width 0.25s ease;
+        }
+        .play-area {
+            width: min(960px, 100%);
+            flex: 1;
+            position: relative;
+            background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.14));
+            border: 4px solid rgba(255,255,255,0.5);
+            border-radius: 30px;
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.18), 0 18px 40px rgba(76, 29, 149, 0.16);
+            overflow: hidden;
+            min-height: 420px;
+        }
+        .sky-deco, .ground-deco {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .cloud {
+            position: absolute;
+            color: rgba(255,255,255,0.75);
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            animation: floatCloud 16s linear infinite;
+        }
+        .cloud:nth-child(1) { top: 32px; left: -10%; }
+        .cloud:nth-child(2) { top: 90px; left: 26%; animation-duration: 19s; }
+        .cloud:nth-child(3) { top: 54px; left: 68%; animation-duration: 22s; }
+        @keyframes floatCloud { from { transform: translateX(0); } to { transform: translateX(70px); } }
+        .ground-deco {
+            top: auto;
+            height: 96px;
+            background: linear-gradient(180deg, rgba(74, 222, 128, 0.05), rgba(74, 222, 128, 0.22));
+            border-top: 3px dashed rgba(34,197,94,0.4);
+            bottom: 0;
+        }
+        .target {
+            position: absolute;
+            width: clamp(74px, 12vw, 104px);
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(2rem, 5vw, 3.4rem);
+            box-shadow: 0 12px 22px rgba(0,0,0,0.16);
+            transform: translate(-50%, -50%) scale(1);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+        .target:active { transform: translate(-50%, -50%) scale(0.92); }
+        .target.good { background: linear-gradient(135deg, #fef08a, #f9a8d4); }
+        .target.bad { background: linear-gradient(135deg, #bfdbfe, #93c5fd); }
+        .target.pop { animation: popOut 0.35s ease forwards; }
+        @keyframes popOut {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.45); opacity: 0; }
+        }
+        .tip {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255,255,255,0.92);
+            border-radius: 18px;
+            padding: 10px 14px;
+            font-size: 1rem;
+            color: #4b5563;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+        }
+        .floating-text {
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: 900;
+            pointer-events: none;
+            animation: rise 0.8s ease forwards;
+            text-shadow: 0 4px 8px rgba(255,255,255,0.8);
+        }
+        @keyframes rise {
+            0% { opacity: 0; transform: translate(-50%, -10px) scale(0.7); }
+            20% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -60px) scale(1.1); }
+        }
+        .controls {
+            width: min(960px, 100%);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+        .pill-btn {
+            border: none;
+            border-radius: 999px;
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 12px 20px rgba(124,58,237,0.22);
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+        }
+        .guide {
+            width: min(960px, 100%);
+            background: rgba(255,255,255,0.9);
+            border-radius: 24px;
+            padding: 16px 18px;
+            color: #4b5563;
+            line-height: 1.6;
+            box-shadow: 0 12px 28px rgba(76,29,149,0.1);
+        }
+        .guide strong { color: #7c3aed; }
+        .overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(31, 41, 55, 0.55);
+            padding: 18px;
+            z-index: 30;
+        }
+        .overlay.show { display: flex; }
+        .card {
+            width: min(460px, 100%);
+            background: white;
+            border-radius: 30px;
+            padding: 32px 24px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .card-emoji { font-size: 4rem; margin-bottom: 12px; }
+        .card h2 { font-size: 2rem; color: #7c3aed; margin-bottom: 10px; }
+        .card p { font-size: 1.1rem; color: #6b7280; margin-bottom: 10px; }
+        @media (max-width: 768px) {
+            .hud { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .mission { grid-column: span 2; }
+            .play-area { min-height: 56vh; }
+            .tip { left: 16px; right: 16px; top: auto; bottom: 14px; text-align: center; }
+        }
+        @media (max-width: 480px) {
+            .game-shell { padding-top: 78px; }
+            .header { padding: 16px; }
+            .subtitle { font-size: 0.95rem; }
+            .stat-value { font-size: 1.35rem; }
+            .guide { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="location.href='../../'">🏠 返回大厅</button>
+
+    <div class="game-shell">
+        <header class="header">
+            <h1>✂️ 精细动作</h1>
+            <p class="subtitle">点一点会笑的小伙伴，避开云朵，练习小手控制力和专注力。</p>
+        </header>
+
+        <section class="hud">
+            <div class="stat">
+                <div class="stat-label">关卡</div>
+                <div class="stat-value"><span id="level">1</span> / 3</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">分数</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="mission">
+                <div class="stat-label" id="missionText">找到 6 个笑脸小伙伴</div>
+                <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+        </section>
+
+        <main class="play-area" id="playArea" aria-label="游戏区域">
+            <div class="sky-deco">
+                <div class="cloud">☁️</div>
+                <div class="cloud">☁️</div>
+                <div class="cloud">☁️</div>
+            </div>
+            <div class="tip" id="tip">轻轻点击笑脸、星星和爱心，别点到云朵哦。</div>
+            <div class="ground-deco"></div>
+        </main>
+
+        <div class="controls">
+            <button class="pill-btn" id="startBtn">开始游戏</button>
+            <button class="pill-btn" id="restartBtn">重新开始</button>
+        </div>
+
+        <section class="guide">
+            <strong>家长提示：</strong> 这款游戏适合 3-5 岁孩子进行点击控制练习。可以鼓励孩子用食指轻点目标、看准再按，帮助发展手眼协调、专注力和精细动作控制。
+        </section>
+    </div>
+
+    <div class="overlay" id="overlay">
+        <div class="card">
+            <div class="card-emoji" id="overlayEmoji">🎉</div>
+            <h2 id="overlayTitle">准备好了</h2>
+            <p id="overlayText">点开始后，找到会发光的小伙伴。</p>
+            <button class="pill-btn" id="overlayBtn">开始闯关</button>
+        </div>
+    </div>
+
+    <script>
+        const playArea = document.getElementById('playArea');
+        const scoreEl = document.getElementById('score');
+        const levelEl = document.getElementById('level');
+        const missionText = document.getElementById('missionText');
+        const progressFill = document.getElementById('progressFill');
+        const tipEl = document.getElementById('tip');
+        const overlay = document.getElementById('overlay');
+        const overlayEmoji = document.getElementById('overlayEmoji');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlayText = document.getElementById('overlayText');
+        const overlayBtn = document.getElementById('overlayBtn');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+
+        const levels = [
+            { targetHits: 6, spawnMs: 1200, durationMs: 16000, good: ['😊', '🌟', '💖'], bad: ['☁️'] },
+            { targetHits: 8, spawnMs: 1000, durationMs: 17000, good: ['😄', '⭐', '🧡'], bad: ['☁️', '💤'] },
+            { targetHits: 10, spawnMs: 850, durationMs: 18000, good: ['🥰', '✨', '💛'], bad: ['☁️', '🫧'] }
+        ];
+
+        const state = {
+            started: false,
+            levelIndex: 0,
+            score: 0,
+            hits: 0,
+            misses: 0,
+            spawnTimer: null,
+            levelTimer: null,
+            activeTargets: new Set()
+        };
+
+        function showOverlay(title, text, emoji, buttonText, onClick) {
+            overlayTitle.textContent = title;
+            overlayText.textContent = text;
+            overlayEmoji.textContent = emoji;
+            overlayBtn.textContent = buttonText;
+            overlay.classList.add('show');
+            overlayBtn.onclick = () => {
+                overlay.classList.remove('show');
+                onClick();
+            };
+        }
+
+        function clearTargets() {
+            state.activeTargets.forEach(el => el.remove());
+            state.activeTargets.clear();
+        }
+
+        function resetGame() {
+            clearInterval(state.spawnTimer);
+            clearTimeout(state.levelTimer);
+            clearTargets();
+            state.started = false;
+            state.levelIndex = 0;
+            state.score = 0;
+            state.hits = 0;
+            state.misses = 0;
+            scoreEl.textContent = 0;
+            levelEl.textContent = 1;
+            progressFill.style.width = '0%';
+            missionText.textContent = `找到 ${levels[0].targetHits} 个笑脸小伙伴`;
+            tipEl.textContent = '轻轻点击笑脸、星星和爱心，别点到云朵哦。';
+        }
+
+        function startGame() {
+            resetGame();
+            state.started = true;
+            startLevel(0);
+        }
+
+        function startLevel(index) {
+            clearInterval(state.spawnTimer);
+            clearTimeout(state.levelTimer);
+            clearTargets();
+
+            state.levelIndex = index;
+            state.hits = 0;
+            state.misses = 0;
+
+            const config = levels[index];
+            levelEl.textContent = index + 1;
+            missionText.textContent = `找到 ${config.targetHits} 个笑脸小伙伴`;
+            tipEl.textContent = index === 0 ? '先慢慢点，练习手眼配合。' : index === 1 ? '速度快一点啦，继续保持准确。' : '最后一关，认真看准再点。';
+            updateProgress();
+
+            spawnTarget();
+            state.spawnTimer = setInterval(spawnTarget, config.spawnMs);
+            state.levelTimer = setTimeout(() => finishLevel(false), config.durationMs);
+        }
+
+        function updateProgress() {
+            const targetHits = levels[state.levelIndex].targetHits;
+            const percent = Math.min((state.hits / targetHits) * 100, 100);
+            progressFill.style.width = `${percent}%`;
+        }
+
+        function spawnTarget() {
+            const config = levels[state.levelIndex];
+            const rect = playArea.getBoundingClientRect();
+            const isGood = Math.random() > 0.28;
+            const choices = isGood ? config.good : config.bad;
+            const el = document.createElement('button');
+            el.type = 'button';
+            el.className = `target ${isGood ? 'good' : 'bad'}`;
+            el.textContent = choices[Math.floor(Math.random() * choices.length)];
+            el.setAttribute('aria-label', isGood ? '好目标' : '干扰目标');
+
+            const paddingX = Math.min(70, rect.width * 0.12);
+            const paddingTop = 70;
+            const paddingBottom = 110;
+            const left = paddingX + Math.random() * (rect.width - paddingX * 2);
+            const top = paddingTop + Math.random() * (rect.height - paddingTop - paddingBottom);
+            el.style.left = `${left}px`;
+            el.style.top = `${top}px`;
+
+            const removeTarget = () => {
+                state.activeTargets.delete(el);
+                el.remove();
+            };
+
+            el.addEventListener('click', () => {
+                if (isGood) {
+                    state.score += 10;
+                    state.hits += 1;
+                    scoreEl.textContent = state.score;
+                    popText(left, top, '+10', '#db2777');
+                    if (navigator.vibrate) navigator.vibrate(30);
+                    updateProgress();
+                    el.classList.add('pop');
+                    setTimeout(removeTarget, 220);
+
+                    if (state.hits >= config.targetHits) {
+                        finishLevel(true);
+                    }
+                } else {
+                    state.score = Math.max(0, state.score - 5);
+                    state.misses += 1;
+                    scoreEl.textContent = state.score;
+                    popText(left, top, '哎呀', '#2563eb');
+                    if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+                    el.classList.add('pop');
+                    setTimeout(removeTarget, 220);
+                }
+            });
+
+            state.activeTargets.add(el);
+            playArea.appendChild(el);
+
+            const life = 2300 - state.levelIndex * 250;
+            setTimeout(() => {
+                if (state.activeTargets.has(el)) {
+                    removeTarget();
+                }
+            }, Math.max(900, life));
+        }
+
+        function popText(x, y, text, color) {
+            const div = document.createElement('div');
+            div.className = 'floating-text';
+            div.textContent = text;
+            div.style.left = `${x}px`;
+            div.style.top = `${y}px`;
+            div.style.color = color;
+            playArea.appendChild(div);
+            setTimeout(() => div.remove(), 780);
+        }
+
+        function finishLevel(success) {
+            clearInterval(state.spawnTimer);
+            clearTimeout(state.levelTimer);
+            clearTargets();
+
+            const isLastLevel = state.levelIndex === levels.length - 1;
+            if (success && isLastLevel) {
+                showOverlay(
+                    '太棒了！',
+                    `你完成了全部小手训练，得分 ${state.score} 分！`,
+                    '🏆',
+                    '再玩一次',
+                    startGame
+                );
+                return;
+            }
+
+            if (success) {
+                showOverlay(
+                    `第 ${state.levelIndex + 1} 关完成`,
+                    '小手越来越稳啦，去下一关继续挑战。',
+                    '👏',
+                    '下一关',
+                    () => startLevel(state.levelIndex + 1)
+                );
+            } else {
+                showOverlay(
+                    '时间到啦',
+                    '没关系，我们再试一次，慢慢点、看准点。',
+                    '💪',
+                    '重试本关',
+                    () => startLevel(state.levelIndex)
+                );
+            }
+        }
+
+        startBtn.addEventListener('click', () => showOverlay('准备开始', '轻轻点亮小伙伴，练习小手控制力。', '🎯', '开始闯关', startGame));
+        restartBtn.addEventListener('click', () => showOverlay('重新开始', '从第一关重新玩一遍。', '🔄', '开始', startGame));
+
+        showOverlay('欢迎来到小手点点乐', '点会发光的小伙伴，避开云朵，完成 3 个温柔关卡。', '✋', '开始游戏', startGame);
+    </script>
+</body>
+</html>
