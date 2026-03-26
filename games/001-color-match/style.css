@@ -1,0 +1,266 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+.container {
+    background: white;
+    border-radius: 30px;
+    padding: 20px;
+    max-width: 600px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    color: #333;
+    font-size: 28px;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.score {
+    color: #ff6b6b;
+}
+
+.level {
+    color: #4ecdc4;
+}
+
+.game-area {
+    min-height: 400px;
+}
+
+.target-color-section {
+    text-align: center;
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 20px;
+}
+
+.instruction {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.instruction span {
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.target-color-display {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto;
+    border-radius: 50%;
+    border: 5px solid #333;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.target-color-display:hover {
+    transform: scale(1.1);
+}
+
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.game-item {
+    aspect-ratio: 1;
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    border: 4px solid transparent;
+}
+
+.game-item:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.game-item:active {
+    transform: scale(0.95);
+}
+
+.game-item.correct {
+    animation: correct 0.5s ease;
+    border-color: #4caf50;
+}
+
+.game-item.wrong {
+    animation: wrong 0.5s ease;
+    border-color: #f44336;
+}
+
+.game-item.found {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: scale(0.8);
+}
+
+@keyframes correct {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+@keyframes wrong {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+.message {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    min-height: 35px;
+    margin: 15px 0;
+    transition: all 0.3s ease;
+}
+
+.message.success {
+    color: #4caf50;
+    animation: pulse 0.5s ease;
+}
+
+.message.complete {
+    color: #ff9800;
+    font-size: 28px;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.btn-next {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    font-size: 22px;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-next:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.btn-next:active {
+    transform: translateY(0);
+}
+
+.footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 2px dashed #ddd;
+}
+
+.footer p {
+    color: #666;
+    font-size: 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+        border-radius: 20px;
+    }
+
+    .header h1 {
+        font-size: 22px;
+    }
+
+    .stats {
+        font-size: 16px;
+        gap: 20px;
+    }
+
+    .instruction {
+        font-size: 16px;
+    }
+
+    .instruction span {
+        font-size: 20px;
+    }
+
+    .target-color-display {
+        width: 80px;
+        height: 80px;
+    }
+
+    .items-grid {
+        gap: 10px;
+    }
+
+    .game-item {
+        font-size: 40px;
+        border-radius: 15px;
+    }
+
+    .message {
+        font-size: 20px;
+    }
+
+    .btn-next {
+        font-size: 18px;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .items-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .game-item {
+        font-size: 35px;
+    }
+}

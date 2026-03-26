@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>颜色配对游戏 - Color Match</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎨 颜色配对</h1>
+            <div class="stats">
+                <div class="score">得分: <span id="score">0</span></div>
+                <div class="level">关卡: <span id="level">1</span></div>
+            </div>
+        </header>
+
+        <main class="game-area">
+            <div class="target-color-section">
+                <p class="instruction">找出所有 <span id="target-color-name">红色</span> 的物品！</p>
+                <div class="target-color-display" id="target-color"></div>
+            </div>
+
+            <div class="items-grid" id="items-grid">
+                <!-- 游戏物品将通过 JavaScript 动态生成 -->
+            </div>
+
+            <div class="message" id="message"></div>
+        </main>
+
+        <button class="btn-next" id="btn-next" style="display: none;">下一关 →</button>
+
+        <footer class="footer">
+            <p>点击相同颜色的物品来得分！</p>
+        </footer>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
