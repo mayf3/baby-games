@@ -1,0 +1,411 @@
+/* 基础样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.game-container {
+    background: white;
+    border-radius: 30px;
+    padding: 30px;
+    max-width: 900px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* 游戏头部 */
+.game-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.game-title {
+    font-size: 2.5em;
+    color: #667eea;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9em;
+    color: #999;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+/* 进度条 */
+.progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* 游戏说明 */
+.instructions {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#instruction-text {
+    font-size: 1.1em;
+    color: #666;
+}
+
+/* 拼图区域 */
+.puzzle-wrapper {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+/* 预览区域 */
+.preview-container {
+    flex: 0 0 150px;
+}
+
+.preview-title {
+    text-align: center;
+    font-size: 0.9em;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+.preview-box {
+    width: 150px;
+    height: 150px;
+    border: 3px solid #667eea;
+    border-radius: 15px;
+    overflow: hidden;
+    background: white;
+}
+
+/* 拼图板 */
+.puzzle-board {
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
+    aspect-ratio: 1;
+    display: grid;
+    gap: 2px;
+    background: #ddd;
+    border: 3px solid #667eea;
+    border-radius: 15px;
+    padding: 10px;
+}
+
+.puzzle-slot {
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px dashed #bbb;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.puzzle-slot.highlight {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+}
+
+/* 拼图块池 */
+.pieces-pool {
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
+    min-height: 200px;
+    background: #f8f9fa;
+    border: 3px solid #667eea;
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 拼图块 */
+.puzzle-piece {
+    cursor: grab;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    user-select: none;
+}
+
+.puzzle-piece:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.puzzle-piece.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.puzzle-piece.placed {
+    cursor: default;
+}
+
+/* SVG图案样式 */
+.piece-pattern {
+    width: 100%;
+    height: 100%;
+}
+
+/* 控制按钮 */
+.controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+/* 完成弹窗 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    animation: modalPop 0.5s ease;
+}
+
+@keyframes modalPop {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.modal-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    animation: bounce 0.6s ease infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.modal-title {
+    font-size: 2em;
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.modal-text {
+    font-size: 1.2em;
+    color: #666;
+    margin-bottom: 25px;
+}
+
+.modal-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 25px;
+}
+
+.modal-stat {
+    text-align: center;
+}
+
+.modal-stat .stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 5px;
+}
+
+.modal-stat .stat-label {
+    font-size: 0.9em;
+    color: #999;
+}
+
+/* 提示效果 */
+.hint-active .puzzle-slot {
+    animation: pulse 0.5s ease;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .game-container {
+        padding: 20px;
+    }
+
+    .game-title {
+        font-size: 1.8em;
+    }
+
+    .game-stats {
+        gap: 20px;
+    }
+
+    .puzzle-wrapper {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .preview-container {
+        flex: 0 0 auto;
+    }
+
+    .preview-box {
+        width: 120px;
+        height: 120px;
+    }
+
+    .puzzle-board,
+    .pieces-pool {
+        max-width: 100%;
+        min-width: auto;
+    }
+
+    .controls {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    .modal-content {
+        padding: 30px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-title {
+        font-size: 1.5em;
+    }
+
+    .stat-value {
+        font-size: 1.5em;
+    }
+
+    .puzzle-board {
+        padding: 5px;
+        gap: 1px;
+    }
+
+    .puzzle-piece {
+        font-size: 1.5em;
+    }
+}

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼图游戏 - Puzzle Fun</title>
+    <link rel="stylesheet" href="game.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 游戏头部 -->
+        <div class="game-header">
+            <h1 class="game-title">🧩 拼图游戏</h1>
+            <div class="game-stats">
+                <div class="stat">
+                    <span class="stat-label">关卡</span>
+                    <span class="stat-value" id="level">1</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">步数</span>
+                    <span class="stat-value" id="moves">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+
+        <!-- 游戏说明 -->
+        <div class="instructions">
+            <p id="instruction-text">拖拽拼图块到正确的位置</p>
+        </div>
+
+        <!-- 拼图区域 -->
+        <div class="puzzle-wrapper">
+            <!-- 完成图案预览 -->
+            <div class="preview-container">
+                <div class="preview-title">目标图案</div>
+                <div class="preview-box" id="preview"></div>
+            </div>
+
+            <!-- 拼图板 -->
+            <div class="puzzle-board" id="puzzle-board"></div>
+
+            <!-- 拼图块池 -->
+            <div class="pieces-pool" id="pieces-pool"></div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="controls">
+            <button class="btn btn-secondary" id="hint-btn">💡 提示</button>
+            <button class="btn btn-primary" id="restart-btn">🔄 重新开始</button>
+        </div>
+    </div>
+
+    <!-- 完成弹窗 -->
+    <div class="modal" id="completion-modal">
+        <div class="modal-content">
+            <div class="modal-icon">🎉</div>
+            <h2 class="modal-title">太棒了！</h2>
+            <p class="modal-text">你完成了拼图！</p>
+            <div class="modal-stats">
+                <div class="modal-stat">
+                    <div class="stat-value" id="final-moves">0</div>
+                    <div class="stat-label">步数</div>
+                </div>
+                <div class="modal-stat">
+                    <div class="stat-value" id="stars">⭐⭐⭐</div>
+                    <div class="stat-label">评分</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="next-level-btn">下一关</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
