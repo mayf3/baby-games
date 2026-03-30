@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字母乐园 - ABC Land</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', Arial, sans-serif;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .level-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .level-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            color: #0984e3;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .level-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .level-btn.active {
+            background: #ffeaa7;
+            color: #d63031;
+            transform: scale(1.1);
+        }
+
+        .game-area {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            min-height: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .level-1 {
+            text-align: center;
+        }
+
+        .letters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .letter-card {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #2d3436;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            user-select: none;
+        }
+
+        .letter-card:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .letter-card.clicked {
+            background: linear-gradient(135deg, #55efc4, #00b894);
+            color: white;
+            transform: scale(0.9);
+        }
+
+        .level-2 {
+            text-align: center;
+        }
+
+        .match-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .letters-column, .matches-column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 300px;
+        }
+
+        .letter-pair {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .big-letter, .small-letter {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .big-letter {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+        }
+
+        .small-letter {
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+            color: white;
+        }
+
+        .big-letter.dragging, .small-letter.dragging {
+            opacity: 0.5;
+            transform: scale(1.1);
+        }
+
+        .drop-zone {
+            width: 80px;
+            height: 80px;
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #bbb;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #00b894;
+            background: rgba(0, 184, 148, 0.1);
+        }
+
+        .drop-zone.filled {
+            border: none;
+            background: linear-gradient(135deg, #55efc4, #00b894);
+            color: white;
+        }
+
+        .level-3 {
+            text-align: center;
+        }
+
+        .word-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2d3436;
+            margin: 30px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .word-slot {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .word-letters {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .word-letter {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .word-letter:hover {
+            transform: translateY(-3px) scale(1.1);
+        }
+
+        .word-letter.used {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #fdcb6e, #e17055);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #55efc4, #00b894);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .progress-bar {
+            background: #ddd;
+            height: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(135deg, #00b894, #00a085);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .letters-grid {
+                grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            }
+            
+            .letter-card {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+            
+            .match-area {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .letters-column, .matches-column {
+                min-width: 250px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 字母乐园 ABC Land</h1>
+            <p>学习英文字母，开启语言启蒙之旅！</p>
+        </header>
+
+        <div class="level-selector">
+            <button class="level-btn active" onclick="showLevel(1)">第1关：字母认知</button>
+            <button class="level-btn" onclick="showLevel(2)">第2关：大小写配对</button>
+            <button class="level-btn" onclick="showLevel(3)">第3关：拼写单词</button>
+        </div>
+
+        <div class="game-area">
+            <!-- 第1关：字母认知 -->
+            <div id="level-1" class="level-1">
+                <h2>点击字母听听发音！</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-1"></div>
+                </div>
+                <div class="letters-grid" id="letters-grid-1">
+                    <!-- 字母卡片将通过JavaScript生成 -->
+                </div>
+                <div class="controls">
+                    <button class="btn btn-secondary" onclick="resetLevel(1)">重新开始</button>
+                </div>
+            </div>
+
+            <!-- 第2关：大小写配对 -->
+            <div id="level-2" class="level-2" style="display: none;">
+                <h2>将大写字母拖拽到对应的小写字母！</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-2"></div>
+                </div>
+                <div class="match-area">
+                    <div class="letters-column">
+                        <h3>大写字母</h3>
+                        <div id="big-letters">
+                            <!-- 大写字母将通过JavaScript生成 -->
+                        </div>
+                    </div>
+                    <div class="matches-column">
+                        <h3>小写字母</h3>
+                        <div id="small-letters">
+                            <!-- 小写字母和放置区域将通过JavaScript生成 -->
+                        </div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-secondary" onclick="resetLevel(2)">重新开始</button>
+                </div>
+            </div>
+
+            <!-- 第3关：拼写单词 -->
+            <div id="level-3" class="level-3" style="display: none;">
+                <h2>按顺序点击字母组成单词！</h2>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-3"></div>
+                </div>
+                <div class="word-display" id="word-display">
+                    <div class="word-slot" id="slot-1"></div>
+                    <div class="word-slot" id="slot-2"></div>
+                    <div class="word-slot" id="slot-3"></div>
+                </div>
+                <p id="word-hint">点击下面的字母组成 "CAT"</p>
+                <div class="word-letters" id="word-letters">
+                    <!-- 可选字母将通过JavaScript生成 -->
+                </div>
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="checkWord()">检查答案</button>
+                    <button class="btn btn-secondary" onclick="resetLevel(3)">重新开始</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="success-message" id="success-message">
+        🎉 太棒了！完成了！
+    </div>
+
+    <script>
+        // 游戏状态
+        let currentLevel = 1;
+        let clickedLetters = new Set();
+        let matchedPairs = 0;
+        let currentWord = '';
+        let currentWordIndex = 0;
+        
+        // 单词列表
+        const words = [
+            { word: 'CAT', hint: '小猫' },
+            { word: 'DOG', hint: '小狗' },
+            { word: 'SUN', hint: '太阳' },
+            { word: 'RED', hint: '红色' }
+        ];
+        let currentWordObj = words[0];
+
+        // 初始化游戏
+        function initGame() {
+            createLevel1Letters();
+            createLevel2Letters();
+            createLevel3Letters();
+        }
+
+        // 第1关：创建字母卡片
+        function createLevel1Letters() {
+            const grid = document.getElementById('letters-grid-1');
+            grid.innerHTML = '';
+            
+            for (let i = 65; i <= 90; i++) {
+                const letter = String.fromCharCode(i);
+                const card = document.createElement('div');
+                card.className = 'letter-card';
+                card.textContent = letter;
+                card.onclick = () => clickLetter(letter, card);
+                grid.appendChild(card);
+            }
+        }
+
+        // 第1关：点击字母
+        function clickLetter(letter, card) {
+            if (!clickedLetters.has(letter)) {
+                clickedLetters.add(letter);
+                card.classList.add('clicked');
+                playLetterSound(letter);
+                updateProgress(1, clickedLetters.size, 26);
+                
+                if (clickedLetters.size === 26) {
+                    setTimeout(() => showSuccess(), 500);
+                }
+            }
+        }
+
+        // 第2关：创建大小写字母
+        function createLevel2Letters() {
+            const bigContainer = document.getElementById('big-letters');
+            const smallContainer = document.getElementById('small-letters');
+            bigContainer.innerHTML = '';
+            smallContainer.innerHTML = '';
+            
+            // 创建随机顺序的字母
+            const letters = [];
+            for (let i = 65; i <= 90; i++) {
+                letters.push(String.fromCharCode(i));
+            }
+            
+            // 打乱顺序
+            for (let i = letters.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [letters[i], letters[j]] = [letters[j], letters[i]];
+            }
+            
+            // 创建大写字母（可拖拽）
+            letters.forEach(letter => {
+                const bigLetter = document.createElement('div');
+                bigLetter.className = 'big-letter';
+                bigLetter.textContent = letter;
+                bigLetter.draggable = true;
+                bigLetter.letter = letter;
+                
+                bigLetter.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', letter);
+                    bigLetter.classList.add('dragging');
+                };
+                
+                bigLetter.ondragend = () => {
+                    bigLetter.classList.remove('dragging');
+                };
+                
+                bigContainer.appendChild(bigLetter);
+            });
+            
+            // 创建小写字母和放置区域
+            letters.forEach((letter, index) => {
+                const smallLetter = String.fromCharCode(letter.charCodeAt(0) + 32);
+                const pair = document.createElement('div');
+                pair.className = 'letter-pair';
+                
+                const dropZone = document.createElement('div');
+                dropZone.className = 'drop-zone';
+                dropZone.textContent = '?';
+                dropZone.ondragover = (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('drag-over');
+                };
+                
+                dropZone.ondragleave = () => {
+                    dropZone.classList.remove('drag-over');
+                };
+                
+                dropZone.ondrop = (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('drag-over');
+                    
+                    const draggedLetter = e.dataTransfer.getData('text/plain');
+                    if (draggedLetter === letter) {
+                        dropZone.textContent = smallLetter;
+                        dropZone.classList.add('filled');
+                        pair.querySelector('.big-letter').style.visibility = 'hidden';
+                        matchedPairs++;
+                        updateProgress(2, matchedPairs, 13);
+                        
+                        if (matchedPairs === 13) {
+                            setTimeout(() => showSuccess(), 500);
+                        }
+                    } else {
+                        // 错误提示
+                        dropZone.style.background = '#ff7675';
+                        setTimeout(() => {
+                            dropZone.style.background = '';
+                        }, 500);
+                    }
+                };
+                
+                pair.appendChild(dropZone);
+                smallContainer.appendChild(pair);
+            });
+        }
+
+        // 第3关：创建拼写字母
+        function createLevel3Letters() {
+            const container = document.getElementById('word-letters');
+            container.innerHTML = '';
+            
+            // 创建当前单词的字母
+            const letters = currentWordObj.word.split('');
+            
+            // 添加干扰字母
+            const distractors = ['B', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+            for (let i = 0; i < 3; i++) {
+                const randomLetter = distractors[Math.floor(Math.random() * distractors.length)];
+                if (!letters.includes(randomLetter)) {
+                    letters.push(randomLetter);
+                }
+            }
+            
+            // 打乱顺序
+            for (let i = letters.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [letters[i], letters[j]] = [letters[j], letters[i]];
+            }
+            
+            // 创建字母按钮
+            letters.forEach(letter => {
+                const letterBtn = document.createElement('div');
+                letterBtn.className = 'word-letter';
+                letterBtn.textContent = letter;
+                letterBtn.onclick = () => selectLetter(letter, letterBtn);
+                container.appendChild(letterBtn);
+            });
+        }
+
+        // 第3关：选择字母
+        function selectLetter(letter, btn) {
+            if (btn.classList.contains('used')) return;
+            
+            if (currentWordIndex < 3) {
+                const slot = document.getElementById(`slot-${currentWordIndex + 1}`);
+                slot.textContent = letter;
+                currentWord += letter;
+                currentWordIndex++;
+                btn.classList.add('used');
+                btn.style.opacity = '0.3';
+            }
+        }
+
+        // 检查单词
+        function checkWord() {
+            if (currentWord === currentWordObj.word) {
+                showSuccess();
+            } else {
+                // 错误提示
+                const slots = document.querySelectorAll('.word-slot');
+                slots.forEach(slot => {
+                    slot.style.background = '#ff7675';
+                    setTimeout(() => {
+                        slot.style.background = '';
+                    }, 500);
+                });
+                
+                // 清空当前选择
+                setTimeout(() => {
+                    currentWord = '';
+                    currentWordIndex = 0;
+                    document.querySelectorAll('.word-slot').forEach(slot => {
+                        slot.textContent = '';
+                    });
+                    document.querySelectorAll('.word-letter').forEach(btn => {
+                        btn.classList.remove('used');
+                        btn.style.opacity = '1';
+                    });
+                }, 1000);
+            }
+        }
+
+        // 切换关卡
+        function showLevel(level) {
+            currentLevel = level;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 显示对应关卡
+            document.querySelectorAll('[id^="level-"]').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.getElementById(`level-${level}`).style.display = 'block';
+            
+            // 重置关卡状态
+            if (level === 1) {
+                resetLevel(1);
+            } else if (level === 2) {
+                resetLevel(2);
+            } else if (level === 3) {
+                resetLevel(3);
+            }
+        }
+
+        // 重置关卡
+        function resetLevel(level) {
+            if (level === 1) {
+                clickedLetters.clear();
+                createLevel1Letters();
+                updateProgress(1, 0, 26);
+            } else if (level === 2) {
+                matchedPairs = 0;
+                createLevel2Letters();
+                updateProgress(2, 0, 13);
+            } else if (level === 3) {
+                currentWord = '';
+                currentWordIndex = 0;
+                currentWordObj = words[Math.floor(Math.random() * words.length)];
+                document.getElementById('word-hint').textContent = `点击下面的字母组成 "${currentWordObj.word}" (${currentWordObj.hint})`;
+                createLevel3Letters();
+                updateProgress(3, 0, 1);
+            }
+        }
+
+        // 更新进度
+        function updateProgress(level, current, total) {
+            const progressFill = document.getElementById(`progress-${level}`);
+            const percentage = (current / total) * 100;
+            progressFill.style.width = percentage + '%';
+        }
+
+        // 播放字母发音
+        function playLetterSound(letter) {
+            const utterance = new SpeechSynthesisUtterance(letter);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8;
+            speechSynthesis.speak(utterance);
+        }
+
+        // 显示成功消息
+        function showSuccess() {
+            const successMsg = document.getElementById('success-message');
+            successMsg.style.display = 'block';
+            
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+                
+                // 自动进入下一关或循环
+                if (currentLevel < 3) {
+                    const nextBtn = document.querySelectorAll('.level-btn')[currentLevel];
+                    nextBtn.click();
+                } else {
+                    // 重置到第1关
+                    document.querySelectorAll('.level-btn')[0].click();
+                }
+            }, 2000);
+        }
+
+        // 页面加载完成后初始化
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>
