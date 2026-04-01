@@ -1,0 +1,90 @@
+[
+  {
+    "id": "color-match",
+    "title": "颜色配对",
+    "emoji": "🎨",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "2-4岁",
+    "description": "学习认识红色、蓝色、黄色等基本颜色，培养色彩感知能力",
+    "path": "games/001-color-match/index.html",
+    "difficulty": "简单"
+  },
+  {
+    "id": "shape-sorting",
+    "title": "形状分类",
+    "emoji": "🔷",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-5岁",
+    "description": "识别和分类圆形、方形、三角形等基本形状，培养空间认知能力",
+    "path": "games/shape-sorting/index.html",
+    "difficulty": "简单"
+  },
+  {
+    "id": "number-fun",
+    "title": "数字认知",
+    "emoji": "🔢",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-5岁",
+    "description": "学习数字1-10，通过可爱的物品和游戏方式掌握基础数学概念",
+    "path": "games/number-fun/index.html",
+    "difficulty": "简单"
+  },
+  {
+    "id": "abc-land",
+    "title": "字母乐园",
+    "emoji": "🔤",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "4-6岁",
+    "description": "学习英文字母，通过有趣的游戏掌握字母认知和拼写能力",
+    "path": "games/004-abc-land/index.html",
+    "difficulty": "中等"
+  },
+  {
+    "id": "tic-tac-toe",
+    "title": "井字棋",
+    "emoji": "❌⭕",
+    "type": "logic",
+    "typeLabel": "逻辑类",
+    "age": "4-6岁",
+    "description": "经典井字棋游戏，和爸爸妈妈一起玩，培养策略思维和规则意识",
+    "path": "games/tic-tac-toe/index.html",
+    "difficulty": "中等"
+  },
+  {
+    "id": "fine-motor",
+    "title": "小手点点乐",
+    "emoji": "👆",
+    "type": "motor",
+    "typeLabel": "运动类",
+    "age": "3-5岁",
+    "description": "轻点会笑的小伙伴获得分数，锻炼精细动作控制和手眼协调能力",
+    "path": "games/fine-motor/index.html",
+    "difficulty": "简单"
+  },
+  {
+    "id": "puzzle-game",
+    "title": "拼图游戏",
+    "emoji": "🧩",
+    "type": "logic",
+    "typeLabel": "逻辑类",
+    "age": "4-6岁",
+    "description": "拖拽拼图块到正确位置完成图案，培养观察力和逻辑思维能力",
+    "path": "games/puzzle-game/index.html",
+    "difficulty": "中等"
+  },
+  {
+    "id": "memory-match",
+    "title": "记忆翻牌",
+    "emoji": "🃏",
+    "type": "logic",
+    "typeLabel": "逻辑类",
+    "age": "3-6岁",
+    "description": "翻开卡片找到相同的图案，锻炼记忆力和观察能力，三个难度等级",
+    "path": "games/005-memory-match/index.html",
+    "difficulty": "中等"
+  }
+]
