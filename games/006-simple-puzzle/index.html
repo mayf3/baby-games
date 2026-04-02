@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>简单拼图 - Simple Puzzle</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #FF6B9D;
+            --secondary: #C44DFF;
+            --success: #4ECDC4;
+            --warning: #FFE66D;
+            --bg-start: #667eea;
+            --bg-end: #764ba2;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 30px;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        /* Header */
+        .game-header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .game-title {
+            font-size: 1.8em;
+            color: var(--primary);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .game-stats {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 10px;
+        }
+        .stat { text-align: center; }
+        .stat-label {
+            display: block;
+            font-size: 0.75em;
+            color: #999;
+        }
+        .stat-value {
+            display: block;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        /* Level selector */
+        .level-selector {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .level-btn {
+            padding: 6px 16px;
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            background: white;
+            color: var(--primary);
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .level-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        .level-btn:hover { transform: scale(1.05); }
+
+        /* Preview */
+        .preview-area {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .preview-label {
+            font-size: 0.8em;
+            color: #999;
+            margin-bottom: 5px;
+        }
+        .preview-grid {
+            display: inline-grid;
+            gap: 2px;
+            border: 3px solid var(--primary);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        .preview-cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Instruction */
+        .instruction {
+            text-align: center;
+            font-size: 1em;
+            color: #666;
+            margin-bottom: 10px;
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        /* Puzzle Board */
+        .puzzle-board {
+            display: grid;
+            gap: 4px;
+            background: #e8e8e8;
+            border: 4px solid var(--primary);
+            border-radius: 16px;
+            padding: 8px;
+            margin-bottom: 12px;
+            aspect-ratio: 1;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .puzzle-slot {
+            background: rgba(255,255,255,0.6);
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .puzzle-slot.highlight {
+            background: rgba(255,107,157,0.15);
+            border-color: var(--primary);
+        }
+        .puzzle-slot.filled {
+            border-style: solid;
+            border-color: var(--success);
+            background: rgba(78,205,196,0.1);
+        }
+        .puzzle-slot.wrong {
+            animation: shake 0.4s;
+        }
+        .puzzle-slot.pop {
+            animation: popIn 0.3s;
+        }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0.5; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Piece pool */
+        .piece-pool-label {
+            text-align: center;
+            font-size: 0.8em;
+            color: #999;
+            margin-bottom: 5px;
+        }
+        .piece-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            min-height: 80px;
+            background: #f8f9fa;
+            border: 3px dashed #ddd;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        .puzzle-piece {
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .puzzle-piece:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .puzzle-piece.selected {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
+            transform: scale(1.1);
+            box-shadow: 0 4px 16px rgba(255,107,157,0.4);
+        }
+        .puzzle-piece.used {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-weight: bold;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+            animation: modalPop 0.4s;
+        }
+        @keyframes modalPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .modal-icon {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+            animation: bounce 0.6s ease infinite;
+        }
+        @keyframes bounce {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .modal-title {
+            font-size: 1.8em;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        .modal-text {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .stars { font-size: 2em; margin-bottom: 15px; }
+        .modal-btn {
+            padding: 12px 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* Confetti canvas */
+        #confetti {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .game-container { padding: 15px; }
+            .game-title { font-size: 1.4em; }
+            .puzzle-board { padding: 5px; gap: 3px; }
+            .game-stats { gap: 15px; }
+            .stat-value { font-size: 1.2em; }
+            .controls { flex-direction: row; }
+            .btn { padding: 8px 18px; font-size: 0.9em; }
+        }
+        @media (max-width: 360px) {
+            .game-container { padding: 10px; border-radius: 20px; }
+            .puzzle-board { gap: 2px; padding: 4px; }
+            .piece-pool { padding: 8px; gap: 5px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="confetti"></canvas>
+
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">🧩 简单拼图</h1>
+            <div class="game-stats">
+                <div class="stat">
+                    <span class="stat-label">步数</span>
+                    <span class="stat-value" id="moves">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">完成</span>
+                    <span class="stat-value" id="progress">0/4</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="level-selector">
+            <button class="level-btn active" data-grid="2">简单 2×2</button>
+            <button class="level-btn" data-grid="3">中等 3×3</button>
+        </div>
+
+        <div class="preview-area">
+            <div class="preview-label">👀 参考图片</div>
+            <div class="preview-grid" id="preview-grid"></div>
+        </div>
+
+        <div class="instruction" id="instruction">👆 点选一个拼图块，然后点选上方空格放置</div>
+
+        <div class="puzzle-board" id="puzzle-board"></div>
+
+        <div class="piece-pool-label">🎨 拼图块</div>
+        <div class="piece-pool" id="piece-pool"></div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" id="hint-btn">💡 提示</button>
+            <button class="btn btn-primary" id="restart-btn">🔄 重来</button>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div class="modal-overlay" id="win-modal">
+        <div class="modal-content">
+            <div class="modal-icon">🎉</div>
+            <h2 class="modal-title">太棒了！</h2>
+            <p class="modal-text" id="modal-text">你完成了拼图！</p>
+            <div class="stars" id="stars">⭐⭐⭐</div>
+            <button class="modal-btn" id="next-btn">再来一次</button>
+        </div>
+    </div>
+
+    <script>
+    (() => {
+        // ===== Picture definitions (emoji grid art) =====
+        const PICTURES = [
+            {
+                name: '小猫',
+                grid2: [
+                    ['🐱','😊'],
+                    ['🐾','❤️']
+                ],
+                grid3: [
+                    ['🐱','😊','🌟'],
+                    ['🐾','❤️','🌈'],
+                    ['🦋','🌸','🎀']
+                ]
+            },
+            {
+                name: '海洋',
+                grid2: [
+                    ['🐠','🐙'],
+                    ['🫧','🐚']
+                ],
+                grid3: [
+                    ['🐠','🐙','🐳'],
+                    ['🫧','🐚','🦀'],
+                    ['🌊','⛵','🏝️']
+                ]
+            },
+            {
+                name: '水果',
+                grid2: [
+                    ['🍎','🍌'],
+                    ['🍇','🍓']
+                ],
+                grid3: [
+                    ['🍎','🍌','🍊'],
+                    ['🍇','🍓','🫐'],
+                    ['🍉','🥝','🍑']
+                ]
+            },
+            {
+                name: '太空',
+                grid2: [
+                    ['🌙','⭐'],
+                    ['🚀','🛸']
+                ],
+                grid3: [
+                    ['🌙','⭐','✨'],
+                    ['🚀','🛸','🌍'],
+                    ['🪐','💫','🔭']
+                ]
+            },
+            {
+                name: '花园',
+                grid2: [
+                    ['🌸','🌻'],
+                    ['🦋','🐝']
+                ],
+                grid3: [
+                    ['🌸','🌻','🌺'],
+                    ['🦋','🐝','🐞'],
+                    ['🌷','🌹','🌾']
+                ]
+            }
+        ];
+
+        // ===== Game State =====
+        let gridSize = 2;
+        let moves = 0;
+        let placed = 0;
+        let totalPieces = 4;
+        let selectedPiece = null;
+        let currentPicture = null;
+        let slots = [];    // { el, correctIndex, pieceIndex: null | number }
+        let pieces = [];   // { el, pictureIndex, used }
+
+        // ===== DOM refs =====
+        const boardEl = document.getElementById('puzzle-board');
+        const poolEl = document.getElementById('piece-pool');
+        const previewEl = document.getElementById('preview-grid');
+        const movesEl = document.getElementById('moves');
+        const progressEl = document.getElementById('progress');
+        const instructionEl = document.getElementById('instruction');
+        const winModal = document.getElementById('win-modal');
+        const confettiCanvas = document.getElementById('confetti');
+        const confettiCtx = confettiCanvas.getContext('2d');
+
+        // ===== Audio =====
+        let audioCtx = null;
+        function getAudioCtx() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+        function playTone(freq, dur, type='sine', vol=0.2) {
+            try {
+                const ctx = getAudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = freq;
+                osc.type = type;
+                gain.gain.setValueAtTime(vol, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + dur);
+            } catch(e) {}
+        }
+        function playSelect() { playTone(600, 0.08); }
+        function playCorrect() {
+            playTone(523, 0.15);
+            setTimeout(() => playTone(659, 0.15), 100);
+        }
+        function playWrong() { playTone(200, 0.2, 'square', 0.15); }
+        function playVictory() {
+            [523, 659, 784, 1047].forEach((f, i) => {
+                setTimeout(() => playTone(f, 0.3), i * 150);
+            });
+        }
+
+        // ===== Init Game =====
+        function initGame() {
+            // Pick random picture
+            currentPicture = PICTURES[Math.floor(Math.random() * PICTURES.length)];
+            const gridData = gridSize === 2 ? currentPicture.grid2 : currentPicture.grid3;
+            totalPieces = gridSize * gridSize;
+            moves = 0;
+            placed = 0;
+            selectedPiece = null;
+            slots = [];
+            pieces = [];
+
+            movesEl.textContent = '0';
+            progressEl.textContent = `0/${totalPieces}`;
+            instructionEl.textContent = '👆 点选一个拼图块，然后点选上方空格放置';
+            winModal.classList.remove('show');
+
+            // Build preview
+            buildPreview(gridData);
+
+            // Build board
+            buildBoard(gridData);
+
+            // Build pieces (shuffled)
+            buildPieces(gridData);
+        }
+
+        function buildPreview(gridData) {
+            previewEl.innerHTML = '';
+            const size = gridSize === 2 ? 40 : 32;
+            previewEl.style.gridTemplateColumns = `repeat(${gridSize}, ${size}px)`;
+            previewEl.style.gridTemplateRows = `repeat(${gridSize}, ${size}px)`;
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'preview-cell';
+                    cell.style.fontSize = (size * 0.7) + 'px';
+                    cell.style.lineHeight = '1';
+                    cell.textContent = gridData[r][c];
+                    previewEl.appendChild(cell);
+                }
+            }
+        }
+
+        function buildBoard(gridData) {
+            boardEl.innerHTML = '';
+            boardEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            slots = [];
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    const idx = r * gridSize + c;
+                    const slotEl = document.createElement('div');
+                    slotEl.className = 'puzzle-slot';
+                    slotEl.dataset.index = idx;
+
+                    // Show a faded hint of what belongs here
+                    const hint = document.createElement('span');
+                    hint.style.cssText = 'font-size:1.8em;opacity:0.15;position:absolute;';
+                    hint.textContent = gridData[r][c];
+                    slotEl.appendChild(hint);
+
+                    slotEl.addEventListener('click', () => onSlotClick(idx));
+                    boardEl.appendChild(slotEl);
+                    slots.push({ el: slotEl, correctIndex: idx, pieceIndex: null });
+                }
+            }
+        }
+
+        function buildPieces(gridData) {
+            poolEl.innerHTML = '';
+            pieces = [];
+
+            // Flatten the grid into pieces
+            const items = [];
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    items.push({
+                        emoji: gridData[r][c],
+                        index: r * gridSize + c
+                    });
+                }
+            }
+
+            // Shuffle
+            for (let i = items.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [items[i], items[j]] = [items[j], items[i]];
+            }
+
+            items.forEach((item, i) => {
+                const pieceEl = document.createElement('div');
+                pieceEl.className = 'puzzle-piece';
+                const size = gridSize === 2 ? 60 : 48;
+                pieceEl.style.width = size + 'px';
+                pieceEl.style.height = size + 'px';
+                pieceEl.style.fontSize = (size * 0.65) + 'px';
+                pieceEl.textContent = item.emoji;
+                pieceEl.dataset.index = item.index;
+
+                pieceEl.addEventListener('click', () => onPieceClick(i));
+                poolEl.appendChild(pieceEl);
+                pieces.push({ el: pieceEl, pictureIndex: item.index, used: false });
+            });
+        }
+
+        // ===== Interaction =====
+        function onPieceClick(pieceIdx) {
+            const piece = pieces[pieceIdx];
+            if (piece.used) return;
+
+            // Deselect previous
+            if (selectedPiece !== null) {
+                pieces[selectedPiece].el.classList.remove('selected');
+            }
+
+            if (selectedPiece === pieceIdx) {
+                // Deselect
+                selectedPiece = null;
+                instructionEl.textContent = '👆 点选一个拼图块，然后点选上方空格放置';
+                clearSlotHighlights();
+                return;
+            }
+
+            selectedPiece = pieceIdx;
+            piece.el.classList.add('selected');
+            playSelect();
+            instructionEl.textContent = '👇 现在点选上方的空格放置这个拼图块';
+
+            // Highlight available slots
+            clearSlotHighlights();
+            slots.forEach(s => {
+                if (s.pieceIndex === null) s.el.classList.add('highlight');
+            });
+        }
+
+        function onSlotClick(slotIdx) {
+            if (selectedPiece === null) {
+                instructionEl.textContent = '👆 先点选下面的拼图块哦！';
+                return;
+            }
+            const slot = slots[slotIdx];
+            if (slot.pieceIndex !== null) {
+                // Already filled
+                instructionEl.textContent = '⚠️ 这个格子已经有拼图块了';
+                return;
+            }
+
+            const piece = pieces[selectedPiece];
+            const correct = piece.pictureIndex === slot.correctIndex;
+
+            moves++;
+            movesEl.textContent = moves;
+
+            if (correct) {
+                // Place the piece
+                slot.pieceIndex = piece.pictureIndex;
+                piece.used = true;
+
+                // Visual: put the emoji in the slot
+                const hintEl = slot.el.querySelector('span');
+                if (hintEl) hintEl.style.opacity = '1';
+
+                // Also add the emoji properly
+                slot.el.innerHTML = '';
+                const emojiSpan = document.createElement('span');
+                emojiSpan.style.cssText = 'font-size:1.8em;line-height:1;';
+                emojiSpan.textContent = piece.el.textContent;
+                slot.el.appendChild(emojiSpan);
+                slot.el.classList.add('filled', 'pop');
+                setTimeout(() => slot.el.classList.remove('pop'), 300);
+
+                piece.el.classList.add('used');
+                piece.el.classList.remove('selected');
+
+                placed++;
+                progressEl.textContent = `${placed}/${totalPieces}`;
+                playCorrect();
+
+                selectedPiece = null;
+                clearSlotHighlights();
+
+                if (placed === totalPieces) {
+                    instructionEl.textContent = '🎉 太棒了！拼图完成！';
+                    setTimeout(onWin, 400);
+                } else {
+                    instructionEl.textContent = '✅ 正确！继续加油！';
+                }
+            } else {
+                // Wrong
+                slot.el.classList.add('wrong');
+                setTimeout(() => slot.el.classList.remove('wrong'), 400);
+                playWrong();
+                instructionEl.textContent = '🤔 不太对，再试试别的位置吧！';
+            }
+        }
+
+        function clearSlotHighlights() {
+            slots.forEach(s => s.el.classList.remove('highlight'));
+        }
+
+        // ===== Hint =====
+        function showHint() {
+            // Find an unused piece and its correct slot
+            const unusedPiece = pieces.find(p => !p.used);
+            if (!unusedPiece) return;
+            const correctSlot = slots.find(s => s.correctIndex === unusedPiece.pictureIndex && s.pieceIndex === null);
+            if (!correctSlot) return;
+
+            // Flash the piece
+            unusedPiece.el.style.animation = 'pulse 0.5s 3';
+            setTimeout(() => unusedPiece.el.style.animation = '', 1500);
+
+            // Flash the slot
+            correctSlot.el.style.background = 'rgba(255,107,157,0.3)';
+            correctSlot.el.style.borderColor = 'var(--primary)';
+            setTimeout(() => {
+                correctSlot.el.style.background = '';
+                correctSlot.el.style.borderColor = '';
+            }, 1500);
+
+            // Add pulse animation if not present
+            if (!document.getElementById('pulse-style')) {
+                const s = document.createElement('style');
+                s.id = 'pulse-style';
+                s.textContent = `@keyframes pulse {
+                    0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,107,157,0.4); }
+                    50% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(255,107,157,0); }
+                }`;
+                document.head.appendChild(s);
+            }
+
+            playSelect();
+        }
+
+        // ===== Win =====
+        function onWin() {
+            // Calculate stars
+            const optimal = totalPieces;
+            let starCount = 3;
+            if (moves > optimal * 2) starCount = 2;
+            if (moves > optimal * 3) starCount = 1;
+
+            document.getElementById('stars').textContent = '⭐'.repeat(starCount);
+            document.getElementById('modal-text').textContent = `用了 ${moves} 步完成「${currentPicture.name}」拼图！`;
+            winModal.classList.add('show');
+            playVictory();
+            launchConfetti();
+        }
+
+        // ===== Confetti =====
+        let confettiParticles = [];
+        let confettiAnimId = null;
+
+        function launchConfetti() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+            confettiParticles = [];
+
+            const colors = ['#FF6B9D','#C44DFF','#4ECDC4','#FFE66D','#FF6B6B','#74b9ff','#55efc4'];
+            for (let i = 0; i < 80; i++) {
+                confettiParticles.push({
+                    x: Math.random() * confettiCanvas.width,
+                    y: -20 - Math.random() * 100,
+                    w: 6 + Math.random() * 6,
+                    h: 4 + Math.random() * 8,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    vy: 2 + Math.random() * 3,
+                    vx: (Math.random() - 0.5) * 3,
+                    rot: Math.random() * 360,
+                    rotV: (Math.random() - 0.5) * 10
+                });
+            }
+
+            if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            let alive = false;
+            confettiParticles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.05;
+                p.rot += p.rotV;
+                if (p.y < confettiCanvas.height + 20) alive = true;
+
+                confettiCtx.save();
+                confettiCtx.translate(p.x, p.y);
+                confettiCtx.rotate(p.rot * Math.PI / 180);
+                confettiCtx.fillStyle = p.color;
+                confettiCtx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+                confettiCtx.restore();
+            });
+            if (alive) {
+                confettiAnimId = requestAnimationFrame(animateConfetti);
+            } else {
+                confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+                confettiAnimId = null;
+            }
+        }
+
+        // ===== Event Bindings =====
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                gridSize = parseInt(btn.dataset.grid);
+                initGame();
+            });
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', initGame);
+        document.getElementById('hint-btn').addEventListener('click', showHint);
+        document.getElementById('next-btn').addEventListener('click', () => {
+            winModal.classList.remove('show');
+            // Try next picture
+            initGame();
+        });
+
+        // Resize confetti canvas
+        window.addEventListener('resize', () => {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        });
+
+        // Start!
+        initGame();
+    })();
+    </script>
+</body>
+</html>
