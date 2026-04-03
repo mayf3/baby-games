@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>找不同 - Spot the Difference</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --primary: #FF6B6B;
+            --secondary: #4ECDC4;
+            --accent: #FFE66D;
+            --bg-start: #45B7D1;
+            --bg-end: #F78FB3;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* ====== Start Screen ====== */
+        .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
+            text-align: center;
+            animation: fadeIn 0.6s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .start-emoji { font-size: 100px; margin-bottom: 15px; animation: float 2s ease infinite; }
+        @keyframes float {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        .start-screen h1 { font-size: 48px; color: white; text-shadow: 3px 3px 6px rgba(0,0,0,0.3); margin-bottom: 8px; }
+        .start-screen .subtitle { color: rgba(255,255,255,0.9); font-size: 18px; margin-bottom: 40px; }
+        .difficulty-select { display: flex; flex-direction: column; gap: 15px; width: 280px; }
+        .diff-btn {
+            padding: 18px 30px; border: none; border-radius: 20px;
+            font-size: 20px; font-weight: bold; cursor: pointer;
+            transition: all 0.3s ease; font-family: inherit;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        .diff-btn:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .diff-btn:active { transform: translateY(0) scale(0.98); }
+        .diff-easy { background: linear-gradient(135deg, #a8e6cf, #88d8b0); color: #2d6a4f; }
+        .diff-medium { background: linear-gradient(135deg, #ffd93d, #ff6b6b); color: #7c2d12; }
+        .diff-hard { background: linear-gradient(135deg, #74b9ff, #a29bfe); color: #2d3a8c; }
+        .diff-label { font-size: 14px; font-weight: normal; opacity: 0.8; }
+
+        /* ====== Game Screen ====== */
+        .game-screen {
+            display: none; flex-direction: column; align-items: center;
+            width: 100%; max-width: 700px; animation: fadeIn 0.4s ease;
+        }
+        .game-screen.active { display: flex; }
+
+        .header { text-align: center; color: white; margin-bottom: 10px; width: 100%; }
+        .header h1 { font-size: 28px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 8px; }
+        .game-stats {
+            display: flex; justify-content: center; gap: 20px;
+            background: rgba(255,255,255,0.2); border-radius: 20px;
+            padding: 8px 24px; backdrop-filter: blur(10px);
+            font-size: 16px; color: white; flex-wrap: wrap;
+        }
+        .game-stats span { font-weight: bold; }
+
+        /* Scene area */
+        .scenes-container {
+            display: flex; gap: 10px; width: 100%; margin: 12px 0;
+            justify-content: center; flex-wrap: wrap;
+        }
+
+        .scene-wrapper {
+            flex: 1; min-width: 280px; max-width: 340px;
+            background: white; border-radius: 20px; padding: 10px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .scene-label {
+            text-align: center; font-size: 14px; color: #999;
+            margin-bottom: 6px; font-weight: bold;
+        }
+        .scene-grid {
+            display: grid; gap: 3px;
+            border-radius: 12px; overflow: hidden;
+            position: relative;
+        }
+
+        /* Scene cells */
+        .cell {
+            aspect-ratio: 1; display: flex; justify-content: center;
+            align-items: center; cursor: pointer; position: relative;
+            transition: all 0.15s ease; border-radius: 4px;
+            background: #f0f0f0; font-size: 24px; line-height: 1;
+        }
+        .cell:hover { transform: scale(1.1); z-index: 5; }
+        .cell:active { transform: scale(0.95); }
+
+        /* Difference highlight */
+        .cell.found {
+            outline: 3px solid var(--primary);
+            outline-offset: 1px;
+            animation: foundPop 0.5s ease;
+            background: rgba(255,107,107,0.15);
+            border-radius: 6px;
+        }
+        @keyframes foundPop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+            100% { transform: scale(1); }
+        }
+
+        /* Wrong tap */
+        .cell.wrong-tap {
+            animation: wrongShake 0.4s ease;
+        }
+        @keyframes wrongShake {
+            0%,100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        /* Found overlay checkmark */
+        .cell .check {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%); font-size: 20px;
+            pointer-events: none; opacity: 0;
+        }
+        .cell.found .check { opacity: 1; }
+
+        /* Difference counter */
+        .diff-counter {
+            display: flex; justify-content: center; gap: 8px;
+            margin: 8px 0;
+        }
+        .diff-dot {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.6);
+            transition: all 0.3s ease;
+        }
+        .diff-dot.found {
+            background: var(--primary); border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(255,107,107,0.5);
+            animation: dotPop 0.4s ease;
+        }
+        @keyframes dotPop {
+            0% { transform: scale(0.5); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* Controls */
+        .controls { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+        .ctrl-btn {
+            padding: 10px 22px; border: none; border-radius: 25px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s ease; font-family: inherit;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .ctrl-btn:hover { transform: translateY(-2px); }
+        .ctrl-btn:active { transform: translateY(0); }
+        .btn-restart { background: white; color: var(--primary); }
+        .btn-home { background: rgba(255,255,255,0.3); color: white; border: 2px solid rgba(255,255,255,0.6); }
+        .btn-hint { background: linear-gradient(135deg, #ffd93d, #f9ca24); color: #7c5c00; }
+
+        /* ====== Win Overlay ====== */
+        .win-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 100;
+            align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .win-overlay.active { display: flex; }
+        .win-card {
+            background: white; border-radius: 30px; padding: 35px;
+            text-align: center; max-width: 380px; width: 90%;
+            animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .win-emoji { font-size: 70px; margin-bottom: 10px; animation: float 2s ease infinite; }
+        .win-card h2 { font-size: 30px; color: var(--primary); margin-bottom: 8px; }
+        .win-stars { font-size: 36px; margin: 8px 0; }
+        .win-message { color: #2d3436; font-size: 18px; margin-bottom: 12px; font-weight: bold; }
+        .win-stats { color: #636e72; font-size: 15px; margin-bottom: 18px; line-height: 1.8; }
+        .win-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .win-btn {
+            padding: 12px 26px; border: none; border-radius: 20px;
+            font-size: 17px; font-weight: bold; cursor: pointer;
+            font-family: inherit; transition: all 0.2s ease;
+        }
+        .win-btn:hover { transform: translateY(-2px); }
+        .btn-again { background: linear-gradient(135deg, var(--bg-start), var(--bg-end)); color: white; }
+        .btn-next-round { background: linear-gradient(135deg, #a8e6cf, #88d8b0); color: #2d6a4f; }
+        .btn-back-menu { background: #dfe6e9; color: #636e72; }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 18%; left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(0,0,0,0.8); color: white;
+            padding: 10px 24px; border-radius: 25px;
+            font-size: 20px; font-weight: bold; z-index: 50;
+            opacity: 0; transition: all 0.3s ease; pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Particle container */
+        .particle-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 200; overflow: hidden;
+        }
+        .particle {
+            position: absolute; font-size: 24px;
+            animation: particleFall 2s ease-out forwards; pointer-events: none;
+        }
+        @keyframes particleFall {
+            0% { transform: translateY(-20px) rotate(0deg) scale(1); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg) scale(0); opacity: 0; }
+        }
+
+        /* Sparkle on found */
+        .sparkle {
+            position: absolute; pointer-events: none; z-index: 10;
+            animation: sparkleAnim 0.7s ease forwards;
+            font-size: 22px;
+        }
+        @keyframes sparkleAnim {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.5) rotate(180deg); opacity: 1; }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 620px) {
+            .scenes-container { flex-direction: column; align-items: center; gap: 8px; }
+            .scene-wrapper { min-width: 0; max-width: 100%; width: 100%; padding: 8px; }
+            .cell { font-size: 20px; }
+            .header h1 { font-size: 24px; }
+            .game-stats { font-size: 14px; gap: 12px; padding: 6px 16px; }
+        }
+        @media (max-width: 360px) {
+            .cell { font-size: 16px; }
+            .scene-wrapper { padding: 6px; border-radius: 14px; }
+            .start-screen h1 { font-size: 36px; }
+            .start-emoji { font-size: 70px; }
+        }
+        @media (min-width: 768px) {
+            .cell { font-size: 30px; }
+            .scenes-container { gap: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div class="start-screen" id="start-screen">
+    <div class="start-emoji">🔍</div>
+    <h1>找不同</h1>
+    <p class="subtitle">两幅画看起来一样，但有几处不同哦！</p>
+    <div class="difficulty-select">
+        <button class="diff-btn diff-easy" onclick="startGame('easy')">
+            🌟 简单模式
+            <div class="diff-label">找出 3 处不同</div>
+        </button>
+        <button class="diff-btn diff-medium" onclick="startGame('medium')">
+            ⭐ 普通模式
+            <div class="diff-label">找出 4 处不同</div>
+        </button>
+        <button class="diff-btn diff-hard" onclick="startGame('hard')">
+            💎 挑战模式
+            <div class="diff-label">找出 5 处不同</div>
+        </button>
+    </div>
+</div>
+
+<!-- Game Screen -->
+<div class="game-screen" id="game-screen">
+    <div class="header">
+        <h1>🔍 找不同</h1>
+        <div class="game-stats">
+            <div>找到: <span id="found-count">0</span>/<span id="total-diffs">0</span></div>
+            <div>点击: <span id="tap-count">0</span></div>
+            <div>💡 <span id="hints-left">3</span></div>
+        </div>
+    </div>
+    <div class="diff-counter" id="diff-counter"></div>
+    <div class="scenes-container" id="scenes-container">
+        <div class="scene-wrapper" id="scene-left-wrap">
+            <div class="scene-label">图画 1</div>
+            <div class="scene-grid" id="scene-left"></div>
+        </div>
+        <div class="scene-wrapper" id="scene-right-wrap">
+            <div class="scene-label">图画 2</div>
+            <div class="scene-grid" id="scene-right"></div>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="ctrl-btn btn-hint" id="hint-btn" onclick="useHint()">💡 提示</button>
+        <button class="ctrl-btn btn-restart" onclick="restartGame()">🔄 重来</button>
+        <button class="ctrl-btn btn-home" onclick="goHome()">🏠 返回</button>
+    </div>
+</div>
+
+<!-- Win Overlay -->
+<div class="win-overlay" id="win-overlay">
+    <div class="win-card">
+        <div class="win-emoji">🎉</div>
+        <h2>太棒了！</h2>
+        <div class="win-stars" id="win-stars">⭐⭐⭐</div>
+        <div class="win-message" id="win-message">你真会观察！</div>
+        <div class="win-stats" id="win-stats"></div>
+        <div class="win-btns">
+            <button class="win-btn btn-again" onclick="restartGame()">再来一次</button>
+            <button class="win-btn btn-next-round" id="btn-next" onclick="nextLevel()">下一关</button>
+            <button class="win-btn btn-back-menu" onclick="goHome()">返回菜单</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Particles -->
+<div class="particle-container" id="particle-container"></div>
+
+<script>
+(() => {
+    // ===== Scene Definitions =====
+    // Each scene is a grid of emojis. "diffs" lists positions that differ in the right scene.
+    // "rightReplace" is what the right scene shows at those positions.
+    const GRID_SIZE = 5;
+
+    const SCENES = [
+        {
+            name: '小花园',
+            grid: [
+                ['☀️','☁️','☁️','🐦','🌿'],
+                ['🌸','🌱','🦋','🌱','🌹'],
+                ['🌳','🐝','🌻','🐞','🌳'],
+                ['🌷','🌱','🌷','🌱','🌺'],
+                ['🌿','🍄','🐛','🍄','🌿']
+            ],
+            diffs: [
+                { r: 0, c: 3, replace: '☁️' },  // bird → cloud
+                { r: 1, c: 1, replace: '🌸' },  // seedling → flower
+                { r: 2, c: 1, replace: '🦋' },  // bee → butterfly
+                { r: 3, c: 2, replace: '🌱' },  // tulip → seedling
+                { r: 4, c: 3, replace: '🌿' }   // mushroom → grass
+            ]
+        },
+        {
+            name: '海洋世界',
+            grid: [
+                ['🌊','⛵','☁️','🌊','🌊'],
+                ['🐠','🫧','🐠','🫧','🐟'],
+                ['🐙','🐚','🦀','🐠','🌊'],
+                ['🫧','🐠','🐳','🫧','🐚'],
+                ['🌊','🦀','🐚','🐙','🌊']
+            ],
+            diffs: [
+                { r: 0, c: 1, replace: '🌊' },  // boat → wave
+                { r: 1, c: 2, replace: '🐟' },  // fish → different fish
+                { r: 2, c: 2, replace: '🐚' },  // crab → shell
+                { r: 3, c: 3, replace: '🐠' },  // bubble → fish
+                { r: 4, c: 0, replace: '🐚' }   // wave → shell
+            ]
+        },
+        {
+            name: '水果派对',
+            grid: [
+                ['🍎','🍌','🍊','🍇','🍓'],
+                ['🫐','🍑','🍉','🥝','🍎'],
+                ['🍌','🍓','🍇','🍊','🍑'],
+                ['🍊','🍉','🍎','🍌','🫐'],
+                ['🍇','🥝','🍓','🍑','🍉']
+            ],
+            diffs: [
+                { r: 0, c: 2, replace: '🍋' },
+                { r: 1, c: 0, replace: '🍒' },
+                { r: 2, c: 3, replace: '🍎' },
+                { r: 3, c: 4, replace: '🍊' },
+                { r: 4, c: 1, replace: '🍌' }
+            ]
+        },
+        {
+            name: '动物乐园',
+            grid: [
+                ['🌳','🐰','🌳','🐿️','🌳'],
+                ['🐶','🌿','🐱','🌿','🐸'],
+                ['🌿','🐻','🌿','🐼','🌿'],
+                ['🐮','🌿','🐷','🌿','🐔'],
+                ['🌿','🦊','🌿','🐨','🌿']
+            ],
+            diffs: [
+                { r: 0, c: 3, replace: '🐦' },
+                { r: 1, c: 2, replace: '🐶' },
+                { r: 2, c: 1, replace: '🐼' },
+                { r: 3, c: 0, replace: '🐷' },
+                { r: 4, c: 3, replace: '🐻' }
+            ]
+        },
+        {
+            name: '太空冒险',
+            grid: [
+                ['🌙','⭐','✨','⭐','🪐'],
+                ['🚀','💫','🌍','💫','🛸'],
+                ['⭐','🛸','✨','🔭','⭐'],
+                ['💫','🪐','🚀','🌍','💫'],
+                ['✨','⭐','💫','⭐','🌙']
+            ],
+            diffs: [
+                { r: 0, c: 1, replace: '✨' },
+                { r: 1, c: 0, replace: '🛸' },
+                { r: 2, c: 3, replace: '⭐' },
+                { r: 3, c: 2, replace: '🌍' },
+                { r: 4, c: 4, replace: '⭐' }
+            ]
+        },
+        {
+            name: '甜点屋',
+            grid: [
+                ['🎂','🍩','🧁','🍪','🍰'],
+                ['🍫','🍦','🍬','🍭','🎂'],
+                ['🍩','🍰','🎂','🧁','🍫'],
+                ['🍦','🍪','🍭','🍬','🍩'],
+                ['🍬','🧁','🍫','🍦','🍰']
+            ],
+            diffs: [
+                { r: 0, c: 1, replace: '🧁' },
+                { r: 1, c: 3, replace: '🍦' },
+                { r: 2, c: 0, replace: '🍰' },
+                { r: 3, c: 4, replace: '🍬' },
+                { r: 4, c: 2, replace: '🎂' }
+            ]
+        }
+    ];
+
+    const DIFFICULTY = {
+        easy:   { diffs: 3, label: '简单' },
+        medium: { diffs: 4, label: '普通' },
+        hard:   { diffs: 5, label: '挑战' }
+    };
+
+    const WIN_MESSAGES = [
+        '你真会观察！👀',
+        '眼力超棒！💪',
+        '太厉害了！🎊',
+        '火眼金睛！🏆',
+        '棒棒哒！👍',
+        '你是找不同高手！🌟'
+    ];
+
+    // ===== State =====
+    let currentDifficulty = 'easy';
+    let currentScene = null;
+    let activeDiffs = [];   // indices into scene.diffs
+    let foundSet = new Set();
+    let tapCount = 0;
+    let hintsLeft = 3;
+    let leftCells = [];
+    let rightCells = [];
+    let isLocked = false;
+
+    // ===== Audio =====
+    let audioCtx = null;
+    function getAudioCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    }
+    function playTone(freq, dur, type = 'sine', vol = 0.15) {
+        try {
+            const ctx = getAudioCtx();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.frequency.value = freq; o.type = type;
+            g.gain.setValueAtTime(vol, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+            o.start(ctx.currentTime); o.stop(ctx.currentTime + dur);
+        } catch (e) {}
+    }
+    function playFound() {
+        playTone(523, 0.12); setTimeout(() => playTone(659, 0.12), 80);
+        setTimeout(() => playTone(784, 0.2), 160);
+    }
+    function playWrong() { playTone(220, 0.2, 'square', 0.1); }
+    function playWin() {
+        [523, 587, 659, 784, 880, 1047].forEach((f, i) =>
+            setTimeout(() => playTone(f, 0.25), i * 120));
+    }
+
+    // ===== Build Scene =====
+    function startGame(diff) {
+        currentDifficulty = diff;
+        const cfg = DIFFICULTY[diff];
+        const numDiffs = cfg.diffs;
+
+        // Pick a random scene
+        currentScene = SCENES[Math.floor(Math.random() * SCENES.length)];
+
+        // Pick random diffs
+        const allDiffs = currentScene.diffs.slice();
+        shuffle(allDiffs);
+        activeDiffs = allDiffs.slice(0, numDiffs);
+
+        foundSet = new Set();
+        tapCount = 0;
+        hintsLeft = 3;
+        isLocked = false;
+
+        // Update UI
+        document.getElementById('found-count').textContent = '0';
+        document.getElementById('total-diffs').textContent = numDiffs;
+        document.getElementById('tap-count').textContent = '0';
+        document.getElementById('hints-left').textContent = hintsLeft;
+
+        // Build diff counter dots
+        const counterEl = document.getElementById('diff-counter');
+        counterEl.innerHTML = '';
+        for (let i = 0; i < numDiffs; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'diff-dot';
+            dot.dataset.index = i;
+            counterEl.appendChild(dot);
+        }
+
+        // Build grids
+        buildGrids();
+
+        // Switch screens
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-screen').classList.add('active');
+        document.getElementById('win-overlay').classList.remove('active');
+    }
+
+    function buildGrids() {
+        const leftEl = document.getElementById('scene-left');
+        const rightEl = document.getElementById('scene-right');
+        leftEl.innerHTML = '';
+        rightEl.innerHTML = '';
+        leftCells = [];
+        rightCells = [];
+
+        const gridData = currentScene.grid;
+        // Build right grid data: copy + apply diffs
+        const rightData = gridData.map(row => row.slice());
+        activeDiffs.forEach(d => { rightData[d.r][d.c] = d.replace; });
+
+        leftEl.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+        rightEl.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const diffIdx = activeDiffs.findIndex(d => d.r === r && d.c === c);
+
+                // Left cell
+                const lc = createCell(gridData[r][c], r, c, diffIdx, 'left');
+                leftEl.appendChild(lc);
+                leftCells.push(lc);
+
+                // Right cell
+                const rc = createCell(rightData[r][c], r, c, diffIdx, 'right');
+                rightEl.appendChild(rc);
+                rightCells.push(rc);
+            }
+        }
+    }
+
+    function createCell(emoji, row, col, diffIdx, side) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = emoji;
+        cell.dataset.row = row;
+        cell.dataset.col = col;
+        cell.dataset.side = side;
+        if (diffIdx >= 0) cell.dataset.diff = diffIdx;
+
+        // Add check mark overlay
+        const check = document.createElement('span');
+        check.className = 'check';
+        check.textContent = '✅';
+        cell.appendChild(check);
+
+        cell.addEventListener('click', () => onCellClick(cell));
+        return cell;
+    }
+
+    function onCellClick(cell) {
+        if (isLocked) return;
+        if (cell.classList.contains('found')) return;
+
+        tapCount++;
+        document.getElementById('tap-count').textContent = tapCount;
+
+        const diffIdx = cell.dataset.diff !== undefined ? parseInt(cell.dataset.diff) : -1;
+
+        if (diffIdx >= 0 && !foundSet.has(diffIdx)) {
+            // Correct! Found a difference
+            foundSet.add(diffIdx);
+            playFound();
+            showToast('找到了！🎉', 800);
+
+            // Mark both sides
+            markFound(diffIdx);
+
+            // Update counter
+            document.getElementById('found-count').textContent = foundSet.size;
+            const dots = document.querySelectorAll('.diff-dot');
+            if (dots[diffIdx]) dots[diffIdx].classList.add('found');
+
+            // Check win
+            if (foundSet.size === activeDiffs.length) {
+                isLocked = true;
+                setTimeout(showWin, 600);
+            }
+        } else {
+            // Wrong tap
+            cell.classList.add('wrong-tap');
+            setTimeout(() => cell.classList.remove('wrong-tap'), 400);
+            playWrong();
+        }
+    }
+
+    function markFound(diffIdx) {
+        // Find and highlight cells on both sides with this diff index
+        const allCells = [...leftCells, ...rightCells];
+        allCells.forEach(cell => {
+            if (cell.dataset.diff == diffIdx) {
+                cell.classList.add('found');
+                spawnSparkle(cell);
+            }
+        });
+    }
+
+    function spawnSparkle(cell) {
+        const sparkles = ['✨', '💫', '⭐'];
+        for (let i = 0; i < 3; i++) {
+            const s = document.createElement('div');
+            s.className = 'sparkle';
+            s.textContent = sparkles[Math.floor(Math.random() * sparkles.length)];
+            s.style.left = (Math.random() * 60 + 20) + '%';
+            s.style.top = (Math.random() * 60 + 20) + '%';
+            s.style.animationDelay = (i * 0.1) + 's';
+            cell.appendChild(s);
+            setTimeout(() => s.remove(), 800);
+        }
+    }
+
+    // ===== Hint =====
+    function useHint() {
+        if (hintsLeft <= 0) { showToast('提示已用完！', 1000); return; }
+        if (isLocked) return;
+
+        // Find an unfound diff
+        const unfound = activeDiffs.filter((_, i) => !foundSet.has(i));
+        if (unfound.length === 0) return;
+
+        hintsLeft--;
+        document.getElementById('hints-left').textContent = hintsLeft;
+
+        // Pick random unfound diff
+        const target = unfound[Math.floor(Math.random() * unfound.length)];
+        const idx = activeDiffs.indexOf(target);
+
+        // Flash the cells
+        const allCells = [...leftCells, ...rightCells];
+        allCells.forEach(cell => {
+            if (cell.dataset.diff == idx && !cell.classList.contains('found')) {
+                cell.style.transition = 'background 0.3s';
+                cell.style.background = 'rgba(255, 230, 109, 0.6)';
+                setTimeout(() => { cell.style.background = ''; }, 1200);
+            }
+        });
+
+        showToast(`💡 提示！还剩 ${hintsLeft} 次`, 1000);
+        playTone(440, 0.1);
+    }
+
+    // ===== Win =====
+    function showWin() {
+        playWin();
+        spawnParticles();
+
+        const numDiffs = activeDiffs.length;
+        const optimal = numDiffs;
+        let stars = 3;
+        if (tapCount > optimal * 2.5) stars = 2;
+        if (tapCount > optimal * 4) stars = 1;
+
+        document.getElementById('win-stars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+        document.getElementById('win-message').textContent = WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)];
+        document.getElementById('win-stats').innerHTML = `
+            🎯 找到 ${numDiffs} 处不同<br>
+            👆 点击了 ${tapCount} 次<br>
+            💡 剩余提示 ${hintsLeft} 次
+        `;
+
+        const nextBtn = document.getElementById('btn-next');
+        const levels = ['easy', 'medium', 'hard'];
+        const idx = levels.indexOf(currentDifficulty);
+        if (idx < levels.length - 1) {
+            nextBtn.textContent = '下一关 → ' + DIFFICULTY[levels[idx + 1]].label;
+            nextBtn.style.display = 'inline-block';
+        } else {
+            nextBtn.style.display = 'none';
+        }
+
+        document.getElementById('win-overlay').classList.add('active');
+    }
+
+    function nextLevel() {
+        const levels = ['easy', 'medium', 'hard'];
+        const idx = levels.indexOf(currentDifficulty);
+        if (idx < levels.length - 1) startGame(levels[idx + 1]);
+    }
+
+    function restartGame() {
+        document.getElementById('win-overlay').classList.remove('active');
+        startGame(currentDifficulty);
+    }
+
+    function goHome() {
+        document.getElementById('win-overlay').classList.remove('active');
+        document.getElementById('game-screen').classList.remove('active');
+        document.getElementById('start-screen').style.display = 'flex';
+    }
+
+    // ===== Utilities =====
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+    }
+
+    function showToast(msg, duration) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), duration || 1500);
+    }
+
+    function spawnParticles() {
+        const container = document.getElementById('particle-container');
+        const emojis = ['🎉', '🎊', '⭐', '🌟', '💫', '✨', '🎈', '💖', '🏆', '🎯'];
+        for (let i = 0; i < 30; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            p.style.left = Math.random() * 100 + '%';
+            p.style.top = '-10px';
+            p.style.animationDelay = Math.random() * 1.5 + 's';
+            p.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+            container.appendChild(p);
+        }
+        setTimeout(() => { container.innerHTML = ''; }, 4000);
+    }
+
+    // Expose to onclick handlers
+    window.startGame = startGame;
+    window.useHint = useHint;
+    window.restartGame = restartGame;
+    window.goHome = goHome;
+    window.nextLevel = nextLevel;
+})();
+</script>
+</body>
+</html>

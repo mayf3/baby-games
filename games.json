@@ -97,5 +97,16 @@
     "description": "点选拼图块放到正确位置，完成可爱的emoji图案，锻炼观察力和空间思维",
     "path": "games/006-simple-puzzle/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "spot-difference",
+    "title": "找不同",
+    "emoji": "🔍",
+    "type": "logic",
+    "typeLabel": "逻辑类",
+    "age": "3-6岁",
+    "description": "对比两幅画，找出不一样的地方！锻炼观察力和专注力，三个难度等级",
+    "path": "games/007-spot-difference/index.html",
+    "difficulty": "中等"
   }
 ]
