@@ -108,5 +108,16 @@
     "description": "对比两幅画，找出不一样的地方！锻炼观察力和专注力，三个难度等级",
     "path": "games/007-spot-difference/index.html",
     "difficulty": "中等"
+  },
+  {
+    "id": "coloring-board",
+    "title": "涂色画板",
+    "emoji": "🎨",
+    "type": "creative",
+    "typeLabel": "创意类",
+    "age": "2-6岁",
+    "description": "选一个可爱的图案涂色，或者自由发挥画画！培养创造力和色彩感知",
+    "path": "games/008-coloring-board/index.html",
+    "difficulty": "简单"
   }
 ]
