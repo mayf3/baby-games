@@ -119,5 +119,16 @@
     "description": "选一个可爱的图案涂色，或者自由发挥画画！培养创造力和色彩感知",
     "path": "games/008-coloring-board/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "sticker-fun",
+    "title": "贴纸乐园",
+    "emoji": "🌟",
+    "type": "creative",
+    "typeLabel": "创意类",
+    "age": "2-6岁",
+    "description": "选择场景，用可爱的贴纸自由创作！拖拽移动，双击删除，发挥想象力",
+    "path": "games/009-sticker-fun/index.html",
+    "difficulty": "简单"
   }
 ]

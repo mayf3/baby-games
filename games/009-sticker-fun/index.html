@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>贴纸乐园 - Sticker Fun</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --primary: #FF9A56;
+            --secondary: #FF6B9D;
+            --accent: #FFD93D;
+            --bg-start: #ffecd2;
+            --bg-end: #fcb69f;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* ====== Start Screen ====== */
+        .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            animation: fadeIn 0.6s ease;
+            padding: 20px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .start-emoji { font-size: 90px; margin-bottom: 15px; animation: float 2s ease infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        .start-screen h1 {
+            font-size: 44px; color: #E17055;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.15); margin-bottom: 8px;
+        }
+        .start-screen .subtitle {
+            color: rgba(0,0,0,0.6); font-size: 17px; margin-bottom: 30px;
+        }
+
+        /* Background selection */
+        .bg-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            max-width: 340px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .bg-card {
+            background: white;
+            border-radius: 16px;
+            padding: 12px 8px 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 3px solid transparent;
+            text-align: center;
+        }
+        .bg-card:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        .bg-card:active { transform: scale(0.97); }
+        .bg-card .preview {
+            width: 70px; height: 70px; border-radius: 12px; margin: 0 auto 6px;
+            border: 2px solid #eee;
+        }
+        .bg-card .name { font-size: 13px; color: #666; font-weight: bold; }
+
+        .free-btn {
+            padding: 14px 45px;
+            background: linear-gradient(135deg, #FF9A56, #FF6B9D);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            box-shadow: 0 6px 20px rgba(255,107,157,0.4);
+        }
+        .free-btn:hover { transform: translateY(-3px) scale(1.05); }
+        .free-btn:active { transform: scale(0.97); }
+
+        /* ====== Game Screen ====== */
+        .game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+            animation: fadeIn 0.3s ease;
+        }
+        .game-screen.active { display: flex; }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.4);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.5);
+            border: none;
+            border-radius: 12px;
+            padding: 6px 14px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            color: #E17055;
+            transition: all 0.2s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.7); }
+        .header-title { color: #E17055; font-size: 18px; font-weight: bold; }
+        .header-actions { display: flex; gap: 6px; }
+        .icon-btn {
+            background: rgba(255,255,255,0.5);
+            border: none;
+            border-radius: 12px;
+            padding: 6px 12px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { background: rgba(255,255,255,0.7); transform: scale(1.1); }
+        .icon-btn:active { transform: scale(0.9); }
+
+        /* Canvas Area */
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            min-height: 0;
+            position: relative;
+        }
+        #game-canvas {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Sticker Panel */
+        .sticker-panel {
+            width: 100%;
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(10px);
+            padding: 6px 8px;
+            z-index: 10;
+        }
+
+        /* Category tabs */
+        .category-bar {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scrollbar-width: none;
+        }
+        .category-bar::-webkit-scrollbar { display: none; }
+        .cat-btn {
+            flex-shrink: 0;
+            padding: 5px 14px;
+            border-radius: 14px;
+            border: 2px solid rgba(0,0,0,0.1);
+            background: rgba(255,255,255,0.5);
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            color: #666;
+        }
+        .cat-btn:hover { background: rgba(255,255,255,0.8); }
+        .cat-btn.active {
+            background: linear-gradient(135deg, #FF9A56, #FF6B9D);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Sticker grid */
+        .sticker-grid {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            padding: 4px 0;
+            scrollbar-width: none;
+        }
+        .sticker-grid::-webkit-scrollbar { display: none; }
+        .sticker-item {
+            flex-shrink: 0;
+            width: 48px; height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            background: rgba(255,255,255,0.4);
+        }
+        .sticker-item:hover { transform: scale(1.15); background: rgba(255,255,255,0.7); }
+        .sticker-item:active { transform: scale(0.95); }
+        .sticker-item.selected {
+            border-color: #FF6B9D;
+            background: rgba(255,107,157,0.15);
+            transform: scale(1.1);
+            box-shadow: 0 2px 10px rgba(255,107,157,0.3);
+        }
+
+        /* Size control */
+        .size-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 4px 0 2px;
+            color: #888;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .size-bar input[type="range"] {
+            width: 100px;
+            accent-color: #FF6B9D;
+        }
+        .size-bar span { font-size: 14px; }
+
+        /* Draggable sticker on canvas */
+        .drag-sticker {
+            position: absolute;
+            cursor: grab;
+            transition: transform 0.1s;
+            z-index: 5;
+            pointer-events: auto;
+            user-select: none;
+        }
+        .drag-sticker:hover { filter: brightness(1.1); }
+        .drag-sticker.placing {
+            animation: stickerBounce 0.3s ease;
+        }
+        @keyframes stickerBounce {
+            0% { transform: scale(0.3); opacity: 0.5; }
+            60% { transform: scale(1.15); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .drag-sticker.selected-sticker {
+            outline: 3px dashed #FF6B9D;
+            outline-offset: 4px;
+            border-radius: 8px;
+        }
+
+        /* Celebration overlay */
+        .celebration {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .celebration.active { display: flex; }
+        .celebration-card {
+            background: white;
+            border-radius: 30px;
+            padding: 35px 40px;
+            text-align: center;
+            animation: popIn 0.5s ease;
+            max-width: 90%;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .celebration-card .big-emoji { font-size: 80px; margin-bottom: 15px; }
+        .celebration-card h2 { font-size: 28px; color: #E17055; margin-bottom: 10px; }
+        .celebration-card p { color: #666; font-size: 16px; margin-bottom: 20px; }
+        .celebration-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .cel-btn {
+            padding: 12px 28px;
+            border-radius: 20px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .cel-btn:hover { transform: translateY(-2px); }
+        .cel-primary {
+            background: linear-gradient(135deg, #FF9A56, #FF6B9D);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255,107,157,0.4);
+        }
+        .cel-secondary { background: #f0f0f0; color: #555; }
+
+        /* Confetti */
+        .confetti-container {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 101;
+        }
+        .confetti-piece {
+            position: absolute; top: -10px;
+            width: 10px; height: 10px;
+            border-radius: 2px;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 400px) {
+            .start-screen h1 { font-size: 34px; }
+            .bg-card .preview { width: 55px; height: 55px; }
+            .bg-card .preview .emoji { font-size: 28px !important; }
+            .sticker-item { width: 42px; height: 42px; font-size: 26px; }
+        }
+        @media (max-height: 600px) {
+            .start-emoji { font-size: 60px; margin-bottom: 8px; }
+            .start-screen h1 { font-size: 30px; }
+            .start-screen .subtitle { margin-bottom: 15px; font-size: 14px; }
+            .bg-grid { gap: 8px; }
+            .bg-card .preview { width: 55px; height: 55px; }
+            .bg-card { padding: 8px 6px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ====== Start Screen ====== -->
+<div class="start-screen" id="start-screen">
+    <div class="start-emoji">🌟</div>
+    <h1>贴纸乐园</h1>
+    <p class="subtitle">选一个场景，用贴纸创造你的世界！</p>
+
+    <div class="bg-grid" id="bg-grid">
+        <!-- filled by JS -->
+    </div>
+
+    <button class="free-btn" onclick="startGame('blank')">🌈 开始创作</button>
+</div>
+
+<!-- ====== Game Screen ====== -->
+<div class="game-screen" id="game-screen">
+    <div class="header">
+        <button class="back-btn" onclick="goBack()">← 返回</button>
+        <span class="header-title" id="header-title">贴纸乐园</span>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="undoSticker()" title="撤销">↩️</button>
+            <button class="icon-btn" onclick="clearAll()" title="清空">🗑️</button>
+            <button class="icon-btn" onclick="celebrate()" title="完成">🎉</button>
+        </div>
+    </div>
+
+    <div class="canvas-area" id="canvas-area">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <div class="sticker-panel">
+        <div class="category-bar" id="category-bar">
+            <!-- filled by JS -->
+        </div>
+        <div class="sticker-grid" id="sticker-grid">
+            <!-- filled by JS -->
+        </div>
+        <div class="size-bar">
+            <span>小</span>
+            <input type="range" min="30" max="120" value="60" id="sticker-size" oninput="updateStickerSize(this.value)">
+            <span>大</span>
+            <span style="margin-left:8px;" id="sticker-count">贴纸: 0</span>
+        </div>
+    </div>
+</div>
+
+<!-- ====== Celebration ====== -->
+<div class="celebration" id="celebration">
+    <div class="celebration-card">
+        <div class="big-emoji">🎨</div>
+        <h2>太漂亮了！</h2>
+        <p>你的贴纸作品真棒！小艺术家真厉害 🌟</p>
+        <div class="celebration-actions">
+            <button class="cel-btn cel-secondary" onclick="hideCelebration(); goBack();">返回首页</button>
+            <button class="cel-btn cel-secondary" onclick="hideCelebration(); clearAll();">重新创作</button>
+            <button class="cel-btn cel-primary" onclick="hideCelebration(); celebrate();">再看一次 🎉</button>
+        </div>
+    </div>
+</div>
+
+<div class="confetti-container" id="confetti-container"></div>
+
+<script>
+(function() {
+    // ============ CONFIG ============
+    const BACKGROUNDS = [
+        { id: 'meadow',   name: '草地',   emoji: '🌿', gradient: ['#a8e6cf','#88d8a8'] },
+        { id: 'ocean',    name: '海洋',   emoji: '🌊', gradient: ['#89CFF0','#74b9ff'] },
+        { id: 'sky',      name: '天空',   emoji: '☁️', gradient: ['#dfe6e9','#b2bec3'] },
+        { id: 'night',    name: '夜空',   emoji: '🌙', gradient: ['#2d3436','#636e72'] },
+        { id: 'garden',   name: '花园',   emoji: '🌸', gradient: ['#ffeaa7','#fab1a0'] },
+        { id: 'snow',     name: '雪地',   emoji: '❄️', gradient: ['#dfe6e9','#f5f6fa'] },
+    ];
+
+    const CATEGORIES = {
+        '🐾 动物': ['🐶','🐱','🐰','🐻','🐼','🐨','🦊','🐸','🐵','🦁','🐯','🐮','🐷','🐔','🐧','🐴','🦄','🐝','🦋','🐛','🐢','🐬','🐙','🐠','🦀','🐳','🦒','🐘'],
+        '🌳 自然': ['🌸','🌺','🌻','🌷','🌹','🌼','🍀','🌿','🌳','🌲','🌴','🌵','🍁','🍂','🍃','🌈','⭐','🌟','✨','💫','🌙','☀️','⛅','❄️','🔥','💧','🍄'],
+        '🍎 食物': ['🍎','🍊','🍋','🍇','🍉','🍓','🍑','🍒','🥝','🍌','🥕','🌽','🍕','🍰','🎂','🍩','🍪','🍦','🍫','🍭','🍬','🧁','🍿','🥞','🍔','🌮','🎈'],
+        '🏠 物品': ['🏠','🚗','🚙','✈️','🚀','⛵','🎈','🎀','🎁','🎉','🎊','🧸','👑','💎','🔔','⚽','🏀','🎪','🎡','🎢','🎭','🎨','📚','🎵','🎹','🛒','❤️'],
+        '😀 表情': ['😀','😊','😍','🥰','😘','😜','🤗','😎','🤩','🥳','😴','🤔','🙃','😇','🤠','👻','🤖','👽','🎃','💪','👍','👏','🙌','🤝','💅','🦸','🧚'],
+    };
+
+    // ============ STATE ============
+    let currentBg = 'blank';
+    let currentCategory = Object.keys(CATEGORIES)[0];
+    let selectedSticker = null;
+    let stickerSize = 60;
+    let placedStickers = []; // {id, emoji, x, y, size, el}
+    let stickerIdCounter = 0;
+    let canvas, ctx;
+    let isDragging = false;
+    let dragTarget = null;
+    let dragOffsetX = 0, dragOffsetY = 0;
+    let activeStickerId = null;
+
+    // ============ INIT ============
+    function init() {
+        renderBgGrid();
+        renderCategories();
+        renderStickers();
+    }
+
+    function renderBgGrid() {
+        const grid = document.getElementById('bg-grid');
+        grid.innerHTML = BACKGROUNDS.map(bg => {
+            const gradStr = `linear-gradient(135deg, ${bg.gradient[0]}, ${bg.gradient[1]})`;
+            return `<div class="bg-card" onclick="startGame('${bg.id}')">
+                <div class="preview" style="background:${gradStr}; display:flex; align-items:center; justify-content:center;">
+                    <span style="font-size:32px">${bg.emoji}</span>
+                </div>
+                <div class="name">${bg.name}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderCategories() {
+        const bar = document.getElementById('category-bar');
+        bar.innerHTML = Object.keys(CATEGORIES).map((cat, i) =>
+            `<button class="cat-btn ${i === 0 ? 'active' : ''}" onclick="switchCategory('${cat}', this)">${cat}</button>`
+        ).join('');
+    }
+
+    function renderStickers() {
+        const grid = document.getElementById('sticker-grid');
+        const stickers = CATEGORIES[currentCategory] || [];
+        grid.innerHTML = stickers.map(s =>
+            `<div class="sticker-item ${selectedSticker === s ? 'selected' : ''}"
+                  onclick="selectSticker('${s}')">${s}</div>`
+        ).join('');
+    }
+
+    // ============ START GAME ============
+    window.startGame = function(bgId) {
+        currentBg = bgId;
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-screen').classList.add('active');
+
+        const bg = BACKGROUNDS.find(b => b.id === bgId);
+        document.getElementById('header-title').textContent = bg ? `贴纸乐园 - ${bg.name}` : '贴纸乐园';
+
+        requestAnimationFrame(() => {
+            initCanvas();
+            drawBackground();
+        });
+    };
+
+    function initCanvas() {
+        canvas = document.getElementById('game-canvas');
+        ctx = canvas.getContext('2d');
+
+        const area = document.getElementById('canvas-area');
+        const areaW = area.clientWidth - 16;
+        const areaH = area.clientHeight - 16;
+        const w = Math.min(areaW, 560);
+        const h = Math.min(areaH, 700);
+
+        canvas.width = w;
+        canvas.height = h;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+
+        // Canvas click to place sticker
+        canvas.addEventListener('click', onCanvasClick);
+        canvas.addEventListener('touchstart', onCanvasTouchStart, { passive: false });
+    }
+
+    function drawBackground() {
+        const w = canvas.width;
+        const h = canvas.height;
+
+        if (currentBg === 'blank') {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, w, h);
+            return;
+        }
+
+        const bg = BACKGROUNDS.find(b => b.id === currentBg);
+        if (!bg) return;
+
+        // Draw gradient background
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, bg.gradient[0]);
+        grad.addColorStop(1, bg.gradient[1]);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Draw scene elements based on background
+        switch (currentBg) {
+            case 'meadow': drawMeadow(w, h); break;
+            case 'ocean': drawOcean(w, h); break;
+            case 'sky': drawSky(w, h); break;
+            case 'night': drawNight(w, h); break;
+            case 'garden': drawGarden(w, h); break;
+            case 'snow': drawSnow(w, h); break;
+        }
+    }
+
+    function drawMeadow(w, h) {
+        // Ground
+        ctx.fillStyle = '#7bc67e';
+        ctx.beginPath();
+        ctx.moveTo(0, h * 0.7);
+        for (let x = 0; x <= w; x += 20) {
+            ctx.lineTo(x, h * 0.7 + Math.sin(x * 0.02) * 10);
+        }
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Grass blades
+        ctx.strokeStyle = '#5fb563';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 30; i++) {
+            const gx = Math.random() * w;
+            const gy = h * 0.7 + Math.sin(gx * 0.02) * 10 + Math.random() * (h * 0.25);
+            ctx.beginPath();
+            ctx.moveTo(gx, gy);
+            ctx.quadraticCurveTo(gx + (Math.random() - 0.5) * 10, gy - 15, gx + (Math.random() - 0.5) * 6, gy - 20 - Math.random() * 10);
+            ctx.stroke();
+        }
+
+        // Sun
+        ctx.fillStyle = '#FFD93D';
+        ctx.beginPath();
+        ctx.arc(w * 0.85, h * 0.12, w * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawOcean(w, h) {
+        // Deep water
+        ctx.fillStyle = '#3498db';
+        ctx.fillRect(0, h * 0.4, w, h * 0.6);
+
+        // Waves
+        for (let wave = 0; wave < 4; wave++) {
+            const waveY = h * 0.4 + wave * h * 0.12;
+            ctx.fillStyle = `rgba(52, 152, 219, ${0.3 + wave * 0.15})`;
+            ctx.beginPath();
+            ctx.moveTo(0, waveY);
+            for (let x = 0; x <= w; x += 10) {
+                ctx.lineTo(x, waveY + Math.sin((x + wave * 50) * 0.03) * 8);
+            }
+            ctx.lineTo(w, waveY + 20);
+            ctx.lineTo(0, waveY + 20);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Sun
+        ctx.fillStyle = '#FFD93D';
+        ctx.beginPath();
+        ctx.arc(w * 0.8, h * 0.1, w * 0.07, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawSky(w, h) {
+        // Ground
+        ctx.fillStyle = '#a8e6cf';
+        ctx.fillRect(0, h * 0.85, w, h * 0.15);
+
+        // Clouds
+        function drawCloud(cx, cy, size) {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.beginPath();
+            ctx.arc(cx, cy, size, 0, Math.PI * 2);
+            ctx.arc(cx + size * 0.8, cy - size * 0.3, size * 0.7, 0, Math.PI * 2);
+            ctx.arc(cx + size * 1.5, cy, size * 0.8, 0, Math.PI * 2);
+            ctx.arc(cx - size * 0.6, cy + size * 0.1, size * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        drawCloud(w * 0.2, h * 0.2, 25);
+        drawCloud(w * 0.6, h * 0.15, 20);
+        drawCloud(w * 0.85, h * 0.3, 18);
+
+        // Sun
+        ctx.fillStyle = '#FFD93D';
+        ctx.beginPath();
+        ctx.arc(w * 0.1, h * 0.08, w * 0.06, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawNight(w, h) {
+        // Stars
+        ctx.fillStyle = '#FFFFFF';
+        for (let i = 0; i < 50; i++) {
+            const sx = Math.random() * w;
+            const sy = Math.random() * h * 0.6;
+            const sr = Math.random() * 2 + 0.5;
+            ctx.globalAlpha = Math.random() * 0.5 + 0.5;
+            ctx.beginPath();
+            ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Moon
+        ctx.fillStyle = '#ffeaa7';
+        ctx.beginPath();
+        ctx.arc(w * 0.8, h * 0.15, w * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#2d3436';
+        ctx.beginPath();
+        ctx.arc(w * 0.8 + w * 0.03, h * 0.14, w * 0.07, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Ground
+        ctx.fillStyle = '#1e272e';
+        ctx.fillRect(0, h * 0.8, w, h * 0.2);
+    }
+
+    function drawGarden(w, h) {
+        // Ground
+        ctx.fillStyle = '#7bc67e';
+        ctx.fillRect(0, h * 0.75, w, h * 0.25);
+
+        // Fence
+        ctx.strokeStyle = '#dfe6e9';
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 10; i++) {
+            const fx = w * 0.05 + i * (w * 0.1);
+            ctx.beginPath();
+            ctx.moveTo(fx, h * 0.55);
+            ctx.lineTo(fx, h * 0.78);
+            ctx.stroke();
+        }
+        // Fence rails
+        ctx.beginPath();
+        ctx.moveTo(0, h * 0.62);
+        ctx.lineTo(w, h * 0.62);
+        ctx.moveTo(0, h * 0.72);
+        ctx.lineTo(w, h * 0.72);
+        ctx.stroke();
+
+        // Simple flowers
+        const flowerColors = ['#FF6B6B', '#FFD93D', '#FF6B9D', '#6C5CE7', '#FF9A56'];
+        for (let i = 0; i < 8; i++) {
+            const fx = w * 0.1 + Math.random() * w * 0.8;
+            const fy = h * 0.78 + Math.random() * h * 0.15;
+            ctx.fillStyle = flowerColors[i % flowerColors.length];
+            ctx.beginPath();
+            ctx.arc(fx, fy, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#2d3436';
+            ctx.beginPath();
+            ctx.arc(fx, fy, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function drawSnow(w, h) {
+        // Snow ground
+        ctx.fillStyle = '#f5f6fa';
+        ctx.beginPath();
+        ctx.moveTo(0, h * 0.6);
+        for (let x = 0; x <= w; x += 20) {
+            ctx.lineTo(x, h * 0.6 + Math.sin(x * 0.015) * 15 + Math.cos(x * 0.02) * 8);
+        }
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Snow hills
+        ctx.fillStyle = '#ecf0f1';
+        ctx.beginPath();
+        ctx.arc(w * 0.3, h * 0.65, w * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(w * 0.7, h * 0.7, w * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Snowflakes
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        for (let i = 0; i < 40; i++) {
+            const sx = Math.random() * w;
+            const sy = Math.random() * h * 0.55;
+            ctx.beginPath();
+            ctx.arc(sx, sy, Math.random() * 3 + 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Pine trees
+        function drawPine(tx, ty, s) {
+            ctx.fillStyle = '#636e72';
+            ctx.fillRect(tx - s * 0.08, ty, s * 0.16, s * 0.3);
+            ctx.fillStyle = '#27ae60';
+            ctx.beginPath();
+            ctx.moveTo(tx, ty - s * 0.8);
+            ctx.lineTo(tx - s * 0.4, ty + s * 0.1);
+            ctx.lineTo(tx + s * 0.4, ty + s * 0.1);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = '#2ecc71';
+            ctx.beginPath();
+            ctx.moveTo(tx, ty - s * 1.1);
+            ctx.lineTo(tx - s * 0.3, ty - s * 0.3);
+            ctx.lineTo(tx + s * 0.3, ty - s * 0.3);
+            ctx.closePath();
+            ctx.fill();
+            // Snow on tree
+            ctx.fillStyle = '#ecf0f1';
+            ctx.beginPath();
+            ctx.moveTo(tx, ty - s * 1.1);
+            ctx.lineTo(tx - s * 0.15, ty - s * 0.7);
+            ctx.lineTo(tx + s * 0.15, ty - s * 0.7);
+            ctx.closePath();
+            ctx.fill();
+        }
+        drawPine(w * 0.15, h * 0.58, 50);
+        drawPine(w * 0.85, h * 0.55, 45);
+    }
+
+    // ============ STICKER INTERACTION ============
+    window.switchCategory = function(cat, btn) {
+        currentCategory = cat;
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedSticker = null;
+        renderStickers();
+    };
+
+    window.selectSticker = function(emoji) {
+        if (selectedSticker === emoji) {
+            selectedSticker = null;
+            renderStickers();
+            return;
+        }
+        selectedSticker = emoji;
+        renderStickers();
+    };
+
+    window.updateStickerSize = function(size) {
+        stickerSize = parseInt(size);
+    };
+
+    function onCanvasClick(e) {
+        if (!selectedSticker) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        placeSticker(selectedSticker, x, y, stickerSize);
+    }
+
+    function onCanvasTouchStart(e) {
+        if (!selectedSticker) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        placeSticker(selectedSticker, x, y, stickerSize);
+    }
+
+    function placeSticker(emoji, x, y, size) {
+        const id = ++stickerIdCounter;
+        const area = document.getElementById('canvas-area');
+        const canvasRect = canvas.getBoundingClientRect();
+        const areaRect = area.getBoundingClientRect();
+
+        const el = document.createElement('div');
+        el.className = 'drag-sticker placing';
+        el.dataset.id = id;
+        el.textContent = emoji;
+        el.style.fontSize = size + 'px';
+        el.style.lineHeight = '1';
+        el.style.position = 'absolute';
+        el.style.left = (canvasRect.left - areaRect.left + x - size / 2) + 'px';
+        el.style.top = (canvasRect.top - areaRect.top + y - size / 2) + 'px';
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+
+        // Remove placing animation class after animation ends
+        el.addEventListener('animationend', () => el.classList.remove('placing'));
+
+        // Drag support
+        el.addEventListener('mousedown', onStickerMouseDown);
+        el.addEventListener('touchstart', onStickerTouchStart, { passive: false });
+
+        // Double tap to remove
+        let lastTap = 0;
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const now = Date.now();
+            if (now - lastTap < 300) {
+                removeSticker(id);
+            } else {
+                // Select sticker
+                deselectAll();
+                activeStickerId = id;
+                el.classList.add('selected-sticker');
+            }
+            lastTap = now;
+        });
+
+        area.appendChild(el);
+        placedStickers.push({ id, emoji, x, y, size, el });
+        updateStickerCount();
+
+        // Auto play a small sound effect
+        playPlaceSound();
+    }
+
+    function onStickerMouseDown(e) {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        const el = e.currentTarget;
+        startDrag(el, e.clientX, e.clientY);
+    }
+
+    function onStickerTouchStart(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const el = e.currentTarget;
+        const touch = e.touches[0];
+        startDrag(el, touch.clientX, touch.clientY);
+    }
+
+    function startDrag(el, clientX, clientY) {
+        isDragging = true;
+        dragTarget = el;
+        const rect = el.getBoundingClientRect();
+        dragOffsetX = clientX - rect.left;
+        dragOffsetY = clientY - rect.top;
+        el.style.cursor = 'grabbing';
+        el.style.zIndex = 10;
+        el.classList.remove('placing');
+
+        deselectAll();
+        activeStickerId = parseInt(el.dataset.id);
+        el.classList.add('selected-sticker');
+    }
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging || !dragTarget) return;
+        moveDrag(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!isDragging || !dragTarget) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        moveDrag(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    function moveDrag(clientX, clientY) {
+        const area = document.getElementById('canvas-area');
+        const areaRect = area.getBoundingClientRect();
+        const newLeft = clientX - areaRect.left - dragOffsetX;
+        const newTop = clientY - areaRect.top - dragOffsetY;
+        dragTarget.style.left = newLeft + 'px';
+        dragTarget.style.top = newTop + 'px';
+
+        // Update sticker data
+        const sticker = placedStickers.find(s => s.el === dragTarget);
+        if (sticker) {
+            const canvasRect = canvas.getBoundingClientRect();
+            sticker.x = newLeft - (canvasRect.left - areaRect.left) + sticker.size / 2;
+            sticker.y = newTop - (canvasRect.top - areaRect.top) + sticker.size / 2;
+        }
+    }
+
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+
+    function endDrag() {
+        if (isDragging && dragTarget) {
+            dragTarget.style.cursor = 'grab';
+            dragTarget.style.zIndex = 5;
+        }
+        isDragging = false;
+        dragTarget = null;
+    }
+
+    function deselectAll() {
+        document.querySelectorAll('.selected-sticker').forEach(el => el.classList.remove('selected-sticker'));
+        activeStickerId = null;
+    }
+
+    // Click outside canvas area to deselect
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.drag-sticker') && !e.target.closest('.sticker-item') && !e.target.closest('#game-canvas')) {
+            deselectAll();
+        }
+    });
+
+    function removeSticker(id) {
+        const idx = placedStickers.findIndex(s => s.id === id);
+        if (idx === -1) return;
+        const sticker = placedStickers[idx];
+        sticker.el.style.transition = 'transform 0.2s, opacity 0.2s';
+        sticker.el.style.transform = 'scale(0)';
+        sticker.el.style.opacity = '0';
+        setTimeout(() => {
+            sticker.el.remove();
+            placedStickers.splice(idx, 1);
+            updateStickerCount();
+        }, 200);
+    }
+
+    function updateStickerCount() {
+        document.getElementById('sticker-count').textContent = `贴纸: ${placedStickers.length}`;
+    }
+
+    // ============ TOOLS ============
+    window.undoSticker = function() {
+        if (placedStickers.length === 0) return;
+        const last = placedStickers[placedStickers.length - 1];
+        removeSticker(last.id);
+    };
+
+    window.clearAll = function() {
+        [...placedStickers].forEach(s => removeSticker(s.id));
+    };
+
+    // ============ NAVIGATION ============
+    window.goBack = function() {
+        document.getElementById('game-screen').classList.remove('active');
+        document.getElementById('start-screen').style.display = 'flex';
+        // Clear stickers
+        placedStickers.forEach(s => s.el.remove());
+        placedStickers = [];
+        stickerIdCounter = 0;
+        selectedSticker = null;
+        updateStickerCount();
+    };
+
+    // ============ SOUND EFFECT ============
+    function playPlaceSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800 + Math.random() * 400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200 + Math.random() * 300, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.15);
+        } catch(e) {}
+    }
+
+    // ============ CELEBRATION ============
+    window.celebrate = function() {
+        showConfetti();
+        document.getElementById('celebration').classList.add('active');
+    };
+
+    window.hideCelebration = function() {
+        document.getElementById('celebration').classList.remove('active');
+        document.getElementById('confetti-container').innerHTML = '';
+    };
+
+    function showConfetti() {
+        const container = document.getElementById('confetti-container');
+        container.innerHTML = '';
+        const colors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4ECDC4', '#6C5CE7', '#FF6B9D', '#C44DFF', '#FF9A56'];
+        for (let i = 0; i < 50; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + '%';
+            piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+            piece.style.animationDelay = Math.random() * 0.5 + 's';
+            piece.style.width = (Math.random() * 8 + 6) + 'px';
+            piece.style.height = (Math.random() * 8 + 6) + 'px';
+            piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+            container.appendChild(piece);
+        }
+        setTimeout(() => { container.innerHTML = ''; }, 4000);
+    }
+
+    // ============ START ============
+    init();
+})();
+</script>
+</body>
+</html>
