@@ -130,5 +130,16 @@
     "description": "选择场景，用可爱的贴纸自由创作！拖拽移动，双击删除，发挥想象力",
     "path": "games/009-sticker-fun/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "music-piano",
+    "title": "音乐钢琴",
+    "emoji": "🎹",
+    "type": "creative",
+    "typeLabel": "创意类",
+    "age": "3-6岁",
+    "description": "点击钢琴键演奏美妙音乐，培养音乐节奏感和听觉能力，支持录音回放",
+    "path": "games/010-music-piano/index.html",
+    "difficulty": "简单"
   }
 ]

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>音乐钢琴 - Music Piano</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: white;
+            font-size: clamp(24px, 5vw, 42px);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: clamp(14px, 3vw, 18px);
+            margin-bottom: 30px;
+        }
+
+        .piano-container {
+            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+            border-radius: 15px;
+            padding: 30px 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4),
+                        inset 0 2px 0 rgba(255,255,255,0.1);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .piano {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 25px;
+        }
+
+        .white-key {
+            width: clamp(50px, 10vw, 80px);
+            height: clamp(180px, 35vw, 280px);
+            background: linear-gradient(180deg, #fff 0%, #e8e8e8 100%);
+            border: 1px solid #ccc;
+            border-radius: 0 0 8px 8px;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 8px 0 #999,
+                        0 10px 10px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 15px;
+            user-select: none;
+        }
+
+        .white-key:active,
+        .white-key.active {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #999,
+                        0 5px 5px rgba(0,0,0,0.3);
+            background: linear-gradient(180deg, #f0f0f0 0%, #d8d8d8 100%);
+        }
+
+        .white-key .note-label {
+            font-size: clamp(12px, 2.5vw, 18px);
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .white-key .note-name {
+            font-size: clamp(10px, 2vw, 14px);
+            color: #999;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+
+        .btn {
+            background: linear-gradient(180deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 25px;
+            font-size: clamp(14px, 3vw, 16px);
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn-play {
+            background: linear-gradient(180deg, #51cf66 0%, #40c057 100%);
+        }
+
+        .btn-record {
+            background: linear-gradient(180deg, #ffd43b 0%, #fab005 100%);
+        }
+
+        .btn-record.recording {
+            animation: pulse 1s infinite;
+            background: linear-gradient(180deg, #ff6b6b 0%, #ee5a5a 100%);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .melody-display {
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .note-bubble {
+            background: white;
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: clamp(12px, 2.5vw, 16px);
+            font-weight: bold;
+            animation: pop 0.3s ease;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        @media (max-width: 600px) {
+            .piano-container {
+                padding: 20px 10px;
+            }
+
+            .piano {
+                gap: 2px;
+            }
+
+            .controls {
+                gap: 10px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="../" class="back-btn">← 返回</a>
+
+    <div class="container">
+        <h1>🎹 音乐钢琴</h1>
+        <p class="subtitle">点击琴键，演奏美妙音乐！</p>
+
+        <div class="piano-container">
+            <div class="melody-display" id="melody">
+                <span style="color: rgba(255,255,255,0.7); font-size: 14px;">按下琴键开始演奏...</span>
+            </div>
+
+            <div class="piano" id="piano">
+                <div class="white-key" data-note="C" data-freq="261.63">
+                    <div class="note-label">1</div>
+                    <div class="note-name">Do</div>
+                </div>
+                <div class="white-key" data-note="D" data-freq="293.66">
+                    <div class="note-label">2</div>
+                    <div class="note-name">Re</div>
+                </div>
+                <div class="white-key" data-note="E" data-freq="329.63">
+                    <div class="note-label">3</div>
+                    <div class="note-name">Mi</div>
+                </div>
+                <div class="white-key" data-note="F" data-freq="349.23">
+                    <div class="note-label">4</div>
+                    <div class="note-name">Fa</div>
+                </div>
+                <div class="white-key" data-note="G" data-freq="392.00">
+                    <div class="note-label">5</div>
+                    <div class="note-name">Sol</div>
+                </div>
+                <div class="white-key" data-note="A" data-freq="440.00">
+                    <div class="note-label">6</div>
+                    <div class="note-name">La</div>
+                </div>
+                <div class="white-key" data-note="B" data-freq="493.88">
+                    <div class="note-label">7</div>
+                    <div class="note-name">Si</div>
+                </div>
+                <div class="white-key" data-note="C2" data-freq="523.25">
+                    <div class="note-label">1</div>
+                    <div class="note-name">Do</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-play" id="playDemo">🎵 演示歌曲</button>
+                <button class="btn btn-record" id="recordBtn">🔴 开始录音</button>
+                <button class="btn" id="clearBtn">🗑️ 清除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Audio Context
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioCtx;
+        }
+
+        // Play a note
+        function playNote(frequency, duration = 0.5) {
+            const ctx = getAudioContext();
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            oscillator.type = 'triangle';
+            oscillator.frequency.value = frequency;
+
+            // ADSR envelope
+            const now = ctx.currentTime;
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.6, now + 0.01);
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, now + duration);
+
+            oscillator.start(now);
+            oscillator.stop(now + duration);
+        }
+
+        // Initialize piano keys
+        const piano = document.getElementById('piano');
+        const melody = document.getElementById('melody');
+        const keys = piano.querySelectorAll('.white-key');
+        const noteNames = {
+            'C': 'Do',
+            'D': 'Re',
+            'E': 'Mi',
+            'F': 'Fa',
+            'G': 'Sol',
+            'A': 'La',
+            'B': 'Si',
+            'C2': 'Do↑'
+        };
+
+        // Recording state
+        let isRecording = false;
+        let recordedNotes = [];
+
+        // Play demo melody (Twinkle Twinkle Little Star)
+        const demoMelody = [
+            { note: 'C', freq: 261.63 },
+            { note: 'C', freq: 261.63 },
+            { note: 'G', freq: 392.00 },
+            { note: 'G', freq: 392.00 },
+            { note: 'A', freq: 440.00 },
+            { note: 'A', freq: 440.00 },
+            { note: 'G', freq: 392.00 },
+
+            { note: 'F', freq: 349.23 },
+            { note: 'F', freq: 349.23 },
+            { note: 'E', freq: 329.63 },
+            { note: 'E', freq: 329.63 },
+            { note: 'D', freq: 293.66 },
+            { note: 'D', freq: 293.66 },
+            { note: 'C', freq: 261.63 }
+        ];
+
+        function playDemo() {
+            playDemo.disabled = true;
+            melody.innerHTML = '';
+            let i = 0;
+
+            function playNext() {
+                if (i >= demoMelody.length) {
+                    playDemo.disabled = false;
+                    return;
+                }
+
+                const { note, freq } = demoMelody[i];
+                playNote(freq);
+                addNoteBubble(noteNames[note]);
+
+                i++;
+                setTimeout(playNext, 400);
+            }
+
+            playNext();
+        }
+
+        // Key press handlers
+        keys.forEach(key => {
+            const note = key.dataset.note;
+            const freq = parseFloat(key.dataset.freq);
+
+            // Mouse events
+            key.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                playNote(freq);
+                key.classList.add('active');
+                addNoteBubble(noteNames[note]);
+
+                if (isRecording) {
+                    recordedNotes.push({ note, freq, time: Date.now() });
+                }
+            });
+
+            key.addEventListener('mouseup', () => {
+                key.classList.remove('active');
+            });
+
+            key.addEventListener('mouseleave', () => {
+                key.classList.remove('active');
+            });
+
+            // Touch events
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                playNote(freq);
+                key.classList.add('active');
+                addNoteBubble(noteNames[note]);
+
+                if (isRecording) {
+                    recordedNotes.push({ note, freq, time: Date.now() });
+                }
+            });
+
+            key.addEventListener('touchend', () => {
+                key.classList.remove('active');
+            });
+        });
+
+        function addNoteBubble(noteName) {
+            const bubble = document.createElement('div');
+            bubble.className = 'note-bubble';
+            bubble.textContent = noteName;
+
+            // Clear initial text
+            if (melody.querySelector('span')) {
+                melody.innerHTML = '';
+            }
+
+            // Keep only last 8 notes
+            const bubbles = melody.querySelectorAll('.note-bubble');
+            if (bubbles.length >= 8) {
+                bubbles[0].remove();
+            }
+
+            melody.appendChild(bubble);
+        }
+
+        // Play demo button
+        document.getElementById('playDemo').addEventListener('click', playDemo);
+
+        // Record button
+        const recordBtn = document.getElementById('recordBtn');
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                // Start recording
+                isRecording = true;
+                recordedNotes = [];
+                recordBtn.textContent = '⏹️ 停止录音';
+                recordBtn.classList.add('recording');
+                melody.innerHTML = '<span style="color: rgba(255,255,255,0.7);">录音中...</span>';
+            } else {
+                // Stop recording
+                isRecording = false;
+                recordBtn.textContent = '🔴 开始录音';
+                recordBtn.classList.remove('recording');
+
+                if (recordedNotes.length > 0) {
+                    // Play back recorded notes
+                    playRecording();
+                }
+            }
+        });
+
+        function playRecording() {
+            melody.innerHTML = '';
+            let i = 0;
+
+            function playNext() {
+                if (i >= recordedNotes.length) {
+                    recordBtn.disabled = false;
+                    return;
+                }
+
+                const { note, freq } = recordedNotes[i];
+                playNote(freq);
+                addNoteBubble(noteNames[note]);
+
+                i++;
+                setTimeout(playNext, 400);
+            }
+
+            playNext();
+        }
+
+        // Clear button
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            melody.innerHTML = '<span style="color: rgba(255,255,255,0.7); font-size: 14px;">按下琴键开始演奏...</span>';
+            recordedNotes = [];
+            isRecording = false;
+            recordBtn.textContent = '🔴 开始录音';
+            recordBtn.classList.remove('recording');
+        });
+
+        // Keyboard support
+        const keyMap = {
+            'a': 'C',
+            's': 'D',
+            'd': 'E',
+            'f': 'F',
+            'g': 'G',
+            'h': 'A',
+            'j': 'B',
+            'k': 'C2'
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            const note = keyMap[e.key.toLowerCase()];
+            if (note) {
+                const key = document.querySelector(`[data-note="${note}"]`);
+                if (key) {
+                    key.click();
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const note = keyMap[e.key.toLowerCase()];
+            if (note) {
+                const key = document.querySelector(`[data-note="${note}"]`);
+                if (key) {
+                    key.classList.remove('active');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
