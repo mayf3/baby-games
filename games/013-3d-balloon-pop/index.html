@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🎈 3D气球捕捉</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', 'Noto Sans SC', sans-serif;
+            background: #87CEEB;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* HUD overlay */
+        .hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            pointer-events: none;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .score-box {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 20px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            pointer-events: auto;
+        }
+
+        .score-box .emoji {
+            font-size: 28px;
+        }
+
+        .score-box .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF6B6B;
+        }
+
+        .combo-display {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            font-size: 64px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 3px 3px 0 #FF6B00, 6px 6px 0 rgba(0,0,0,0.1);
+            opacity: 0;
+            pointer-events: none;
+            transition: none;
+        }
+
+        .combo-display.show {
+            animation: comboAnim 1s ease-out forwards;
+        }
+
+        @keyframes comboAnim {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            30% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); }
+            100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+        }
+
+        /* Star burst particles */
+        .star-particle {
+            position: fixed;
+            z-index: 15;
+            font-size: 24px;
+            pointer-events: none;
+            animation: starBurst 0.8s ease-out forwards;
+        }
+
+        @keyframes starBurst {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.3); }
+        }
+
+        /* Score popup */
+        .score-popup {
+            position: fixed;
+            z-index: 15;
+            font-size: 36px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+            pointer-events: none;
+            animation: scoreUp 0.8s ease-out forwards;
+        }
+
+        @keyframes scoreUp {
+            0% { opacity: 1; transform: translateY(0) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+        }
+
+        /* Start screen */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, #FF6B9D 0%, #C44DFF 50%, #6BB5FF 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h1 {
+            font-size: 48px;
+            color: white;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .overlay .balloon-art {
+            font-size: 80px;
+            animation: floatBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes floatBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .play-btn {
+            background: #FFD700;
+            border: none;
+            border-radius: 30px;
+            padding: 18px 50px;
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF6B6B;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #E6B800, 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+            pointer-events: auto;
+        }
+
+        .play-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #E6B800, 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .overlay .instructions {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 20px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        /* Game Over overlay */
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .game-over.hidden {
+            display: none;
+        }
+
+        .game-over .result-card {
+            background: white;
+            border-radius: 30px;
+            padding: 40px 50px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .game-over .result-card h2 {
+            font-size: 36px;
+            color: #FF6B9D;
+            margin-bottom: 10px;
+        }
+
+        .game-over .result-card .final-score {
+            font-size: 64px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 0 #FFB800;
+        }
+
+        .game-over .result-card .stars-earned {
+            font-size: 40px;
+            margin: 10px 0;
+        }
+
+        .game-over .result-card .message {
+            font-size: 22px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* Back button */
+        .back-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Color name popup */
+        .color-name {
+            position: fixed;
+            z-index: 15;
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            animation: colorNameAnim 1.2s ease-out forwards;
+        }
+
+        @keyframes colorNameAnim {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.1); }
+        }
+
+        /* Timer bar */
+        .timer-bar-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: 10;
+        }
+
+        .timer-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77);
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        /* Difficulty selector */
+        .difficulty-selector {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .diff-btn {
+            border: 3px solid white;
+            border-radius: 20px;
+            padding: 10px 24px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .diff-btn:hover, .diff-btn.selected {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .diff-btn.selected {
+            background: white;
+            color: #C44DFF;
+        }
+    </style>
+</head>
+<body>
+    <!-- Start Screen -->
+    <div class="overlay" id="startScreen">
+        <div class="balloon-art">🎈🎈🎈</div>
+        <h1>3D气球捕捉</h1>
+        <p class="instructions">点击飞起来的气球，看它们砰砰爆破！<br>学习颜色，赢得星星！⭐</p>
+        <div class="difficulty-selector">
+            <button class="diff-btn selected" data-diff="easy">简单</button>
+            <button class="diff-btn" data-diff="medium">中等</button>
+            <button class="diff-btn" data-diff="hard">挑战</button>
+        </div>
+        <button class="play-btn" id="startBtn">开始玩！🎮</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div class="game-over hidden" id="gameOverScreen">
+        <div class="result-card">
+            <h2 id="goTitle">太棒了！🎉</h2>
+            <div class="stars-earned" id="goStars">⭐⭐⭐</div>
+            <div class="final-score" id="goScore">0</div>
+            <div class="message" id="goMessage">你真厉害！</div>
+            <button class="play-btn" id="replayBtn">再玩一次！🎈</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div class="hud" id="hud" style="display:none;">
+        <div class="score-box">
+            <span class="emoji">⭐</span>
+            <span class="value" id="scoreDisplay">0</span>
+        </div>
+        <div class="score-box">
+            <span class="emoji">🎈</span>
+            <span class="value" id="balloonCount">0</span>
+        </div>
+    </div>
+
+    <!-- Combo display -->
+    <div class="combo-display" id="comboDisplay"></div>
+
+    <!-- Timer bar -->
+    <div class="timer-bar-container" id="timerContainer" style="display:none;">
+        <div class="timer-bar" id="timerBar"></div>
+    </div>
+
+    <!-- Back button -->
+    <button class="back-btn" id="backBtn" style="display:none;" onclick="location.href='../../index.html'">🏠</button>
+
+    <!-- Three.js Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        // ===== AUDIO =====
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function ensureAudio() {
+            if (!audioCtx) audioCtx = new AudioCtx();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playPop(pitch) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400 * (pitch || 1), audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800 * (pitch || 1), audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playCombo() {
+            if (!audioCtx) return;
+            [0, 100, 200].forEach((delay, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(500 + i * 200, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                }, delay);
+            });
+        }
+
+        function playGameOver() {
+            if (!audioCtx) return;
+            const notes = [523, 659, 784, 1047];
+            notes.forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                }, i * 150);
+            });
+        }
+
+        // ===== COLOR DEFINITIONS =====
+        const BALLOON_COLORS = [
+            { hex: 0xFF6B6B, name: '红色', css: '#FF6B6B' },
+            { hex: 0x4ECDC4, name: '青色', css: '#4ECDC4' },
+            { hex: 0xFFD93D, name: '黄色', css: '#FFD93D' },
+            { hex: 0x95E1D3, name: '绿色', css: '#95E1D3' },
+            { hex: 0xF38181, name: '粉色', css: '#F38181' },
+            { hex: 0xAA96DA, name: '紫色', css: '#AA96DA' },
+            { hex: 0xFF9A76, name: '橙色', css: '#FF9A76' },
+            { hex: 0x6BB5FF, name: '蓝色', css: '#6BB5FF' },
+        ];
+
+        // ===== DIFFICULTY SETTINGS =====
+        const DIFFICULTY = {
+            easy: {
+                spawnInterval: 1500,
+                floatSpeed: 0.008,
+                gameDuration: 60,
+                maxBalloons: 6,
+                balloonScale: 1.2,
+            },
+            medium: {
+                spawnInterval: 1000,
+                floatSpeed: 0.012,
+                gameDuration: 60,
+                maxBalloons: 10,
+                balloonScale: 1.0,
+            },
+            hard: {
+                spawnInterval: 700,
+                floatSpeed: 0.016,
+                gameDuration: 60,
+                maxBalloons: 14,
+                balloonScale: 0.85,
+            }
+        };
+
+        // ===== GAME STATE =====
+        let state = {
+            running: false,
+            score: 0,
+            popped: 0,
+            combo: 0,
+            lastPopTime: 0,
+            difficulty: 'easy',
+            timeLeft: 60,
+            startTime: 0,
+        };
+
+        let balloons = [];
+        let particles = [];
+        let clouds = [];
+
+        // ===== DOM =====
+        const canvas = document.getElementById('gameCanvas');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const hud = document.getElementById('hud');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const balloonCount = document.getElementById('balloonCount');
+        const comboDisplay = document.getElementById('comboDisplay');
+        const timerContainer = document.getElementById('timerContainer');
+        const timerBar = document.getElementById('timerBar');
+        const backBtn = document.getElementById('backBtn');
+
+        // ===== THREE.JS SETUP =====
+        const scene = new THREE.Scene();
+
+        // Sky gradient background
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = 2;
+        bgCanvas.height = 512;
+        const bgCtx = bgCanvas.getContext('2d');
+        const bgGrad = bgCtx.createLinearGradient(0, 0, 0, 512);
+        bgGrad.addColorStop(0, '#87CEEB');
+        bgGrad.addColorStop(0.5, '#B8E4F0');
+        bgGrad.addColorStop(1, '#E8F8FF');
+        bgCtx.fillStyle = bgGrad;
+        bgCtx.fillRect(0, 0, 2, 512);
+        const bgTexture = new THREE.CanvasTexture(bgCanvas);
+        scene.background = bgTexture;
+
+        // Fog for depth
+        scene.fog = new THREE.Fog(0xB8E4F0, 15, 40);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 5, 12);
+        camera.lookAt(0, 4, 0);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = false; // Performance for mobile
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        // Ground - grassy field
+        const groundGeo = new THREE.PlaneGeometry(50, 50);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x7EC850 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -1;
+        scene.add(ground);
+
+        // Simple hills in background
+        for (let i = 0; i < 6; i++) {
+            const hillGeo = new THREE.SphereGeometry(3 + Math.random() * 3, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+            const hillMat = new THREE.MeshLambertMaterial({ color: new THREE.Color().setHSL(0.3, 0.5, 0.45 + Math.random() * 0.1) });
+            const hill = new THREE.Mesh(hillGeo, hillMat);
+            hill.position.set(-15 + i * 6 + Math.random() * 3, -1, -10 - Math.random() * 5);
+            hill.scale.y = 0.5;
+            scene.add(hill);
+        }
+
+        // Clouds
+        function createCloud(x, y, z) {
+            const group = new THREE.Group();
+            const cloudMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+            for (let i = 0; i < 5; i++) {
+                const size = 0.8 + Math.random() * 1.2;
+                const cloudGeo = new THREE.SphereGeometry(size, 12, 8);
+                const part = new THREE.Mesh(cloudGeo, cloudMat);
+                part.position.set(Math.random() * 3 - 1.5, Math.random() * 0.5, Math.random() * 1 - 0.5);
+                group.add(part);
+            }
+            group.position.set(x, y, z);
+            group.userData.speed = 0.002 + Math.random() * 0.003;
+            return group;
+        }
+
+        for (let i = 0; i < 8; i++) {
+            const cloud = createCloud(
+                -20 + Math.random() * 40,
+                8 + Math.random() * 6,
+                -5 - Math.random() * 15
+            );
+            scene.add(cloud);
+            clouds.push(cloud);
+        }
+
+        // Sun
+        const sunGeo = new THREE.SphereGeometry(1.5, 24, 16);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFD93D });
+        const sun = new THREE.Mesh(sunGeo, sunMat);
+        sun.position.set(10, 14, -15);
+        scene.add(sun);
+
+        // Sun rays
+        const rayMat = new THREE.MeshBasicMaterial({ color: 0xFFE066, transparent: true, opacity: 0.3 });
+        for (let i = 0; i < 8; i++) {
+            const rayGeo = new THREE.PlaneGeometry(0.4, 3);
+            const ray = new THREE.Mesh(rayGeo, rayMat);
+            ray.position.copy(sun.position);
+            ray.rotation.z = (i / 8) * Math.PI * 2;
+            scene.add(ray);
+        }
+
+        // ===== BALLOON CREATION =====
+        function createBalloon(colorInfo) {
+            const group = new THREE.Group();
+
+            // Balloon body - slightly elongated sphere
+            const balloonGeo = new THREE.SphereGeometry(0.7, 20, 16);
+            const balloonMat = new THREE.MeshPhongMaterial({
+                color: colorInfo.hex,
+                shininess: 80,
+                specular: 0x444444,
+                transparent: true,
+                opacity: 0.92,
+            });
+            const balloonMesh = new THREE.Mesh(balloonGeo, balloonMat);
+            balloonMesh.scale.set(1, 1.2, 1);
+            group.add(balloonMesh);
+
+            // Highlight/shine spot
+            const shineGeo = new THREE.SphereGeometry(0.15, 8, 8);
+            const shineMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.6 });
+            const shine = new THREE.Mesh(shineGeo, shineMat);
+            shine.position.set(0.2, 0.3, 0.5);
+            group.add(shine);
+
+            // Knot at bottom
+            const knotGeo = new THREE.ConeGeometry(0.1, 0.2, 8);
+            const knotMat = new THREE.MeshPhongMaterial({ color: colorInfo.hex });
+            const knot = new THREE.Mesh(knotGeo, knotMat);
+            knot.position.y = -0.85;
+            knot.rotation.x = Math.PI;
+            group.add(knot);
+
+            // String
+            const stringCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0, -0.95, 0),
+                new THREE.Vector3(0.05, -1.5, 0.02),
+                new THREE.Vector3(-0.03, -2.1, -0.01),
+                new THREE.Vector3(0.02, -2.7, 0.01),
+            ]);
+            const stringGeo = new THREE.TubeGeometry(stringCurve, 12, 0.015, 6, false);
+            const stringMat = new THREE.MeshBasicMaterial({ color: 0x999999 });
+            const string = new THREE.Mesh(stringGeo, stringMat);
+            group.add(string);
+
+            // Set random position
+            const diff = DIFFICULTY[state.difficulty];
+            const spread = 10;
+            group.position.set(
+                (Math.random() - 0.5) * spread,
+                -2,
+                (Math.random() - 0.5) * 4
+            );
+
+            group.scale.setScalar(diff.balloonScale);
+
+            // Custom data
+            group.userData = {
+                type: 'balloon',
+                colorInfo: colorInfo,
+                floatSpeed: diff.floatSpeed * (0.8 + Math.random() * 0.4),
+                wobbleOffset: Math.random() * Math.PI * 2,
+                wobbleSpeed: 1 + Math.random() * 0.5,
+                wobbleAmount: 0.3 + Math.random() * 0.3,
+                alive: true,
+            };
+
+            // Store color info in the main mesh for raycasting
+            balloonMesh.userData.parentGroup = group;
+            knot.userData.parentGroup = group;
+
+            return group;
+        }
+
+        // ===== PARTICLE BURST =====
+        function createBurstParticles(position, color) {
+            const count = 12;
+            for (let i = 0; i < count; i++) {
+                const size = 0.08 + Math.random() * 0.15;
+                const geo = new THREE.SphereGeometry(size, 6, 6);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 1,
+                });
+                const particle = new THREE.Mesh(geo, mat);
+                particle.position.copy(position);
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.3,
+                        Math.random() * 0.3,
+                        (Math.random() - 0.5) * 0.3
+                    ),
+                    life: 1.0,
+                    decay: 0.015 + Math.random() * 0.01,
+                };
+                scene.add(particle);
+                particles.push(particle);
+            }
+        }
+
+        // ===== HTML STAR BURST =====
+        function htmlStarBurst(screenX, screenY, count) {
+            const emojis = ['⭐', '✨', '💫', '🌟'];
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star-particle';
+                star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+                const dist = 50 + Math.random() * 80;
+                star.style.left = screenX + 'px';
+                star.style.top = screenY + 'px';
+                star.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+                star.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+                document.body.appendChild(star);
+                setTimeout(() => star.remove(), 800);
+            }
+        }
+
+        // ===== SCORE POPUP =====
+        function showScorePopup(screenX, screenY, points) {
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = '+' + points;
+            popup.style.left = screenX + 'px';
+            popup.style.top = screenY + 'px';
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 800);
+        }
+
+        // ===== COLOR NAME =====
+        function showColorName(screenX, screenY, colorName) {
+            const el = document.createElement('div');
+            el.className = 'color-name';
+            el.textContent = colorName;
+            el.style.left = screenX + 'px';
+            el.style.top = (screenY + 40) + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1200);
+        }
+
+        // ===== COMBO DISPLAY =====
+        function showCombo(count) {
+            comboDisplay.textContent = count + ' 连击！🎉';
+            comboDisplay.classList.remove('show');
+            void comboDisplay.offsetWidth; // reflow
+            comboDisplay.classList.add('show');
+        }
+
+        // ===== RAYCASTER =====
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        function onPointerDown(event) {
+            if (!state.running) return;
+            ensureAudio();
+
+            let clientX, clientY;
+            if (event.touches) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+
+            pointer.x = (clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(pointer, camera);
+
+            // Collect all balloon meshes
+            const targets = [];
+            balloons.forEach(bGroup => {
+                if (!bGroup.userData.alive) return;
+                bGroup.children.forEach(child => {
+                    if (child.isMesh) targets.push(child);
+                });
+            });
+
+            const intersects = raycaster.intersectObjects(targets);
+
+            if (intersects.length > 0) {
+                const hitMesh = intersects[0].object;
+                const bGroup = hitMesh.userData.parentGroup || hitMesh.parent;
+                if (bGroup && bGroup.userData.alive && bGroup.userData.type === 'balloon') {
+                    popBalloon(bGroup, clientX, clientY);
+                }
+            }
+        }
+
+        canvas.addEventListener('pointerdown', onPointerDown, { passive: true });
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            onPointerDown(e);
+        }, { passive: false });
+
+        // ===== POP BALLOON =====
+        function popBalloon(bGroup, screenX, screenY) {
+            if (!bGroup.userData.alive) return;
+            bGroup.userData.alive = false;
+
+            const colorInfo = bGroup.userData.colorInfo;
+            const pos = bGroup.position.clone();
+
+            // Create burst particles in 3D
+            createBurstParticles(pos, colorInfo.hex);
+
+            // Remove balloon from scene
+            scene.remove(bGroup);
+            balloons = balloons.filter(b => b !== bGroup);
+
+            // Calculate score
+            const now = Date.now();
+            if (now - state.lastPopTime < 1500) {
+                state.combo++;
+            } else {
+                state.combo = 1;
+            }
+            state.lastPopTime = now;
+
+            const points = state.combo >= 3 ? state.combo * 2 : 1;
+            state.score += points;
+            state.popped++;
+
+            // Audio
+            playPop(1 + state.combo * 0.1);
+            if (state.combo >= 3) {
+                playCombo();
+                showCombo(state.combo);
+            }
+
+            // Visual feedback
+            htmlStarBurst(screenX, screenY, 4 + state.combo * 2);
+            showScorePopup(screenX - 20, screenY - 30, points);
+            showColorName(screenX - 30, screenY, colorInfo.name);
+
+            // Update HUD
+            scoreDisplay.textContent = state.score;
+            balloonCount.textContent = state.popped;
+        }
+
+        // ===== SPAWN BALLOONS =====
+        let spawnTimer = 0;
+
+        function spawnBalloon() {
+            const diff = DIFFICULTY[state.difficulty];
+            if (balloons.length >= diff.maxBalloons) return;
+
+            const colorInfo = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
+            const balloon = createBalloon(colorInfo);
+            scene.add(balloon);
+            balloons.push(balloon);
+        }
+
+        // ===== GAME LOOP =====
+        let lastTime = 0;
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+
+            const delta = time - lastTime;
+            lastTime = time;
+
+            // Animate clouds
+            clouds.forEach(cloud => {
+                cloud.position.x += cloud.userData.speed;
+                if (cloud.position.x > 25) cloud.position.x = -25;
+            });
+
+            // Sun pulse
+            sun.scale.setScalar(1 + Math.sin(time * 0.001) * 0.05);
+
+            if (!state.running) {
+                renderer.render(scene, camera);
+                return;
+            }
+
+            // Spawn timer
+            const diff = DIFFICULTY[state.difficulty];
+            spawnTimer += delta;
+            if (spawnTimer >= diff.spawnInterval) {
+                spawnTimer = 0;
+                spawnBalloon();
+            }
+
+            // Animate balloons
+            for (let i = balloons.length - 1; i >= 0; i--) {
+                const b = balloons[i];
+                if (!b.userData.alive) continue;
+
+                b.position.y += b.userData.floatSpeed;
+
+                // Wobble
+                const wobble = Math.sin(time * 0.001 * b.userData.wobbleSpeed + b.userData.wobbleOffset);
+                b.position.x += wobble * b.userData.wobbleAmount * 0.01;
+                b.rotation.z = wobble * 0.1;
+
+                // Remove if too high
+                if (b.position.y > 15) {
+                    scene.remove(b);
+                    balloons.splice(i, 1);
+                    // Reset combo if balloon escapes
+                    state.combo = 0;
+                }
+            }
+
+            // Animate particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.position.add(p.userData.velocity);
+                p.userData.velocity.y -= 0.005; // gravity
+                p.userData.life -= p.userData.decay;
+                p.material.opacity = Math.max(0, p.userData.life);
+                p.scale.setScalar(p.userData.life);
+
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Timer
+            const elapsed = (Date.now() - state.startTime) / 1000;
+            state.timeLeft = Math.max(0, diff.gameDuration - elapsed);
+            const pct = (state.timeLeft / diff.gameDuration) * 100;
+            timerBar.style.width = pct + '%';
+
+            if (pct < 20) {
+                timerBar.style.background = '#FF6B6B';
+            } else if (pct < 50) {
+                timerBar.style.background = 'linear-gradient(90deg, #FF6B6B, #FFD93D)';
+            } else {
+                timerBar.style.background = 'linear-gradient(90deg, #FF6B6B, #FFD93D, #6BCB77)';
+            }
+
+            if (state.timeLeft <= 0) {
+                endGame();
+            }
+
+            // Camera gentle sway
+            camera.position.x = Math.sin(time * 0.0002) * 0.3;
+            camera.lookAt(0, 4, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        // ===== GAME CONTROL =====
+        function startGame() {
+            ensureAudio();
+            const diff = DIFFICULTY[state.difficulty];
+
+            // Reset state
+            state.running = true;
+            state.score = 0;
+            state.popped = 0;
+            state.combo = 0;
+            state.lastPopTime = 0;
+            state.timeLeft = diff.gameDuration;
+            state.startTime = Date.now();
+            spawnTimer = 0;
+
+            // Clear old balloons
+            balloons.forEach(b => scene.remove(b));
+            balloons = [];
+            particles.forEach(p => scene.remove(p));
+            particles = [];
+
+            // UI
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            hud.style.display = 'flex';
+            timerContainer.style.display = 'block';
+            backBtn.style.display = 'flex';
+            scoreDisplay.textContent = '0';
+            balloonCount.textContent = '0';
+
+            // Spawn initial balloons
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => spawnBalloon(), i * 500);
+            }
+        }
+
+        function endGame() {
+            state.running = false;
+
+            // Clean up balloons
+            balloons.forEach(b => scene.remove(b));
+            balloons = [];
+
+            playGameOver();
+
+            // Calculate stars
+            const maxPossible = DIFFICULTY[state.difficulty].gameDuration;
+            let stars = 1;
+            if (state.popped >= 10) stars = 2;
+            if (state.popped >= 20) stars = 3;
+            if (state.popped >= 35) stars = 4;
+            if (state.popped >= 50) stars = 5;
+
+            const starStr = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
+
+            // Messages
+            const messages = [
+                '好厉害呀！🎈',
+                '你是最棒的！🌟',
+                '太棒了，继续加油！💪',
+                '哇，气球大王！👑',
+                '你真是抓气球高手！🏆',
+            ];
+
+            document.getElementById('goScore').textContent = state.score + ' 分';
+            document.getElementById('goStars').textContent = starStr;
+            document.getElementById('goMessage').textContent = messages[Math.floor(Math.random() * messages.length)];
+
+            if (state.popped >= 30) {
+                document.getElementById('goTitle').textContent = '超级厉害！🏆';
+            } else if (state.popped >= 15) {
+                document.getElementById('goTitle').textContent = '太棒了！🎉';
+            } else {
+                document.getElementById('goTitle').textContent = '做得好！😊';
+            }
+
+            hud.style.display = 'none';
+            timerContainer.style.display = 'none';
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        // ===== EVENT LISTENERS =====
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('replayBtn').addEventListener('click', startGame);
+
+        // Difficulty buttons
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                state.difficulty = btn.dataset.diff;
+            });
+        });
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Prevent default touch behaviors
+        document.addEventListener('touchmove', (e) => { if (state.running) e.preventDefault(); }, { passive: false });
+
+        // Start animation loop
+        animate(0);
+
+    })();
+    </script>
+</body>
+</html>

@@ -177,6 +177,16 @@
         .type-motor { background: #55efc4; color: #00b894; }
         .type-social { background: #a29bfe; color: #6c5ce7; }
 
+        .badge-3d {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            color: white;
+        }
+
         .game-description {
             color: #666;
             font-size: 14px;
@@ -306,6 +316,7 @@
                         <div class="game-title">${game.title}</div>
                         <div class="game-meta">
                             <span class="game-type type-${game.type}">${game.typeLabel}</span>
+                            ${game.dimension === '3D' ? '<span class="badge-3d">🎮 3D</span>' : ''}
                             <span class="game-age">👶 ${game.age}</span>
                             <span class="game-difficulty difficulty-${difficultyClass(game.difficulty)}">${game.difficulty}</span>
                         </div>

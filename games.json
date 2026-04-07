@@ -141,5 +141,17 @@
     "description": "点击钢琴键演奏美妙音乐，培养音乐节奏感和听觉能力，支持录音回放",
     "path": "games/010-music-piano/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "3d-balloon-pop",
+    "title": "3D气球捕捉",
+    "emoji": "🎈",
+    "type": "motor",
+    "typeLabel": "运动类",
+    "age": "3-6岁",
+    "description": "在3D天空中点击升起的彩色气球让它们砰砰爆破！学习颜色认知，锻炼3D空间手眼协调和反应速度",
+    "path": "games/013-3d-balloon-pop/index.html",
+    "difficulty": "简单",
+    "dimension": "3D"
   }
 ]
