@@ -143,6 +143,28 @@
     "difficulty": "简单"
   },
   {
+    "id": "catch-fruit",
+    "title": "接水果",
+    "emoji": "🧺",
+    "type": "motor",
+    "typeLabel": "运动类",
+    "age": "3-6岁",
+    "description": "移动篮子接住从天上掉下来的水果吧！锻炼反应速度和手眼协调能力，连击加分更刺激",
+    "path": "games/011-catch-fruit/index.html",
+    "difficulty": "中等"
+  },
+  {
+    "id": "animal-jump",
+    "title": "小动物跳跃",
+    "emoji": "🐰",
+    "type": "motor",
+    "typeLabel": "运动类",
+    "age": "3-6岁",
+    "description": "点击屏幕让可爱的小兔子跳跃！跳过石头和坑，收集胡萝卜，锻炼反应速度和手眼协调能力",
+    "path": "games/012-animal-jump/index.html",
+    "difficulty": "中等"
+  },
+  {
     "id": "3d-balloon-pop",
     "title": "3D气球捕捉",
     "emoji": "🎈",
