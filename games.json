@@ -175,5 +175,30 @@
     "path": "games/013-3d-balloon-pop/index.html",
     "difficulty": "简单",
     "dimension": "3D"
+  },
+  {
+    "id": "014-emotion-match",
+    "title": "情绪配对乐",
+    "emoji": "😊",
+    "type": "social-emotional",
+    "typeLabel": "社交情感类",
+    "age": "3-6岁",
+    "description": "认识五种基本情绪（开心、难过、生气、惊讶、害怕），通过情境配对游戏学会看懂表情和表达感受，培养情商和同理心",
+    "path": "games/014-emotion-match/index.html",
+    "difficulty": "简单",
+    "aiGenerated": true,
+    "aiTool": "Codex CLI (GPT-5.4-Mini)"
+  },
+  {
+    "id": "3d-color-bubbles",
+    "title": "3D颜色泡泡",
+    "emoji": "🫧",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "在3D空间中点击飘浮的彩色泡泡，找出和目标颜色相同的泡泡！学习颜色认知，锻炼3D空间手眼协调和专注力",
+    "path": "games/015-3d-color-bubbles/index.html",
+    "difficulty": "简单",
+    "dimension": "3D"
   }
 ]

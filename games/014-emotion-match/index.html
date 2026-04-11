@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>014-情绪配对乐</title>
+  <style>
+    :root {
+      --bg1: #ff7ab6;
+      --bg2: #7fd6ff;
+      --bg3: #ffd66e;
+      --card: rgba(255,255,255,0.92);
+      --text: #24415f;
+      --shadow: 0 18px 40px rgba(34, 63, 90, 0.18);
+      --good: #36c56d;
+      --bad: #ff6b6b;
+      --primary: #ff8b2c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Comic Sans MS", "Arial Rounded MT Bold", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.32) 0 10%, transparent 11%),
+        radial-gradient(circle at 80% 15%, rgba(255,255,255,0.22) 0 9%, transparent 10%),
+        radial-gradient(circle at 70% 80%, rgba(255,255,255,0.18) 0 11%, transparent 12%),
+        linear-gradient(135deg, var(--bg1), var(--bg2) 55%, var(--bg3));
+      touch-action: none;
+      color: var(--text);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.12) 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
+      gap: 12px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      z-index: 2;
+    }
+
+    .pill {
+      background: rgba(255,255,255,0.88);
+      border-radius: 999px;
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+    }
+
+    .pill .small {
+      font-size: clamp(14px, 2vw, 18px);
+    }
+
+    .score-stars {
+      font-size: clamp(18px, 2.5vw, 26px);
+      letter-spacing: 2px;
+    }
+
+    .stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .prompt-panel {
+      background: rgba(255,255,255,0.26);
+      border: 2px solid rgba(255,255,255,0.38);
+      border-radius: 28px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
+      padding: 14px;
+      backdrop-filter: blur(6px);
+    }
+
+    .emotion-wrap {
+      min-height: clamp(180px, 34vh, 320px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .emotion-emoji {
+      font-size: clamp(92px, 15vw, 170px);
+      line-height: 1;
+      filter: drop-shadow(0 10px 0 rgba(0,0,0,0.08));
+      animation: bob 1.6s ease-in-out infinite;
+    }
+
+    .emotion-label {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 4px 0 rgba(0,0,0,0.12);
+      letter-spacing: 1px;
+    }
+
+    .hint {
+      font-size: clamp(15px, 2.3vw, 20px);
+      color: rgba(255,255,255,0.95);
+      font-weight: 700;
+      min-height: 1.3em;
+      text-align: center;
+    }
+
+    .cards {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
+      align-content: stretch;
+    }
+
+    .card {
+      border: none;
+      background: var(--card);
+      border-radius: 28px;
+      box-shadow: var(--shadow), inset 0 2px 0 rgba(255,255,255,0.95);
+      padding: 16px 14px;
+      min-height: 142px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: -30% auto auto -20%;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.52);
+      filter: blur(4px);
+      transform: rotate(20deg);
+      pointer-events: none;
+    }
+
+    .card:active, .card.pressed {
+      transform: translateY(4px) scale(0.99);
+      box-shadow: 0 10px 20px rgba(34,63,90,0.14), inset 0 2px 0 rgba(255,255,255,0.95);
+    }
+
+    .card.disabled {
+      pointer-events: none;
+      filter: saturate(0.85);
+      opacity: 0.95;
+    }
+
+    .card .icon {
+      font-size: clamp(42px, 7vw, 72px);
+      line-height: 1;
+    }
+
+    .card .text {
+      font-size: clamp(18px, 2.8vw, 26px);
+      font-weight: 900;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .card .sub {
+      font-size: clamp(12px, 2vw, 16px);
+      color: rgba(36,65,95,0.62);
+      font-weight: 700;
+    }
+
+    .card.correct {
+      outline: 5px solid rgba(54,197,109,0.48);
+    }
+
+    .card.wrong {
+      animation: shake 0.4s ease;
+    }
+
+    .feedback {
+      min-height: 1.5em;
+      text-align: center;
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 3px 0 rgba(0,0,0,0.12);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      background: linear-gradient(160deg, rgba(255,122,182,0.98), rgba(127,214,255,0.96));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    .overlay-card {
+      width: min(760px, 100%);
+      background: rgba(255,255,255,0.95);
+      border-radius: 34px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .overlay-card::before,
+    .overlay-card::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,211,102,0.24);
+      pointer-events: none;
+    }
+
+    .overlay-card::before {
+      width: 170px;
+      height: 170px;
+      right: -40px;
+      top: -50px;
+    }
+
+    .overlay-card::after {
+      width: 120px;
+      height: 120px;
+      left: -30px;
+      bottom: -40px;
+      background: rgba(255,122,182,0.18);
+    }
+
+    .title {
+      font-size: clamp(34px, 6vw, 58px);
+      color: #ff5fa2;
+      margin-bottom: 8px;
+      font-weight: 900;
+    }
+
+    .subtitle {
+      font-size: clamp(16px, 2.8vw, 22px);
+      color: var(--text);
+      margin-bottom: 18px;
+      font-weight: 700;
+    }
+
+    .big-emoji {
+      font-size: clamp(64px, 10vw, 120px);
+      margin: 8px 0 12px;
+    }
+
+    .start-btn, .restart-btn {
+      border: none;
+      background: linear-gradient(180deg, #ffd54f, #ffb300);
+      color: #7a3b00;
+      font-size: clamp(22px, 4vw, 30px);
+      font-weight: 900;
+      border-radius: 999px;
+      padding: 16px 34px;
+      box-shadow: 0 10px 0 #d58c00, 0 18px 30px rgba(0,0,0,0.15);
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .start-btn:active, .restart-btn:active {
+      transform: translateY(6px);
+      box-shadow: 0 4px 0 #d58c00, 0 8px 16px rgba(0,0,0,0.12);
+    }
+
+    .result-stars {
+      font-size: clamp(36px, 6vw, 56px);
+      margin: 10px 0 12px;
+      letter-spacing: 4px;
+    }
+
+    .result-text {
+      font-size: clamp(18px, 3vw, 24px);
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    .star {
+      position: fixed;
+      z-index: 20;
+      pointer-events: none;
+      font-size: 24px;
+      animation: starFly 900ms ease-out forwards;
+      filter: drop-shadow(0 4px 0 rgba(0,0,0,0.08));
+    }
+
+    .sparkle {
+      position: fixed;
+      z-index: 15;
+      pointer-events: none;
+      font-size: 22px;
+      animation: sparklePop 650ms ease-out forwards;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      z-index: 25;
+      background: rgba(255,255,255,0.96);
+      border-radius: 999px;
+      padding: 12px 18px;
+      box-shadow: var(--shadow);
+      font-weight: 900;
+      color: #ff5a8d;
+      opacity: 0;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      pointer-events: none;
+      max-width: min(90vw, 560px);
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    @keyframes bob {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-8px) scale(1.01); }
+    }
+
+    @keyframes starFly {
+      0% { opacity: 1; transform: translate(0, 0) scale(0.6) rotate(0deg); }
+      100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(220deg); }
+    }
+
+    @keyframes sparklePop {
+      0% { opacity: 1; transform: translate(0, 0) scale(0.4); }
+      100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(1.1); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+
+    @media (orientation: landscape) and (max-height: 760px) {
+      .emotion-wrap {
+        min-height: 170px;
+      }
+      .cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .card {
+        min-height: 128px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .app { padding-left: 10px; padding-right: 10px; }
+      .cards {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+      .card {
+        min-height: 116px;
+        padding: 14px 12px;
+      }
+      .topbar {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="pill"><span class="small">第</span><span id="progress">1/10</span></div>
+      <div class="pill"><span class="small">星星</span><span id="stars" class="score-stars">☆☆☆☆☆</span></div>
+      <div class="pill"><span class="small">难度</span><span id="level">初级</span></div>
+    </div>
+
+    <div class="stage">
+      <div class="prompt-panel">
+        <div class="emotion-wrap">
+          <div id="emotionEmoji" class="emotion-emoji">😊</div>
+          <div id="emotionLabel" class="emotion-label">开心</div>
+          <div class="hint">点一张最像它的情境卡片</div>
+        </div>
+      </div>
+
+      <div id="cards" class="cards"></div>
+      <div id="feedback" class="feedback"></div>
+    </div>
+  </div>
+
+  <div id="startOverlay" class="overlay">
+    <div class="overlay-card">
+      <div class="title">014-情绪配对乐</div>
+      <div class="big-emoji">😊😢😠😮😨</div>
+      <div class="subtitle">看表情，找情境，认识开心、难过、生气、惊讶和害怕</div>
+      <button id="startBtn" class="start-btn">开始玩</button>
+    </div>
+  </div>
+
+  <div id="resultOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="title">太棒了！</div>
+      <div id="resultStars" class="result-stars">★★★★★</div>
+      <div id="resultText" class="result-text">你完成了一轮情绪配对</div>
+      <button id="restartBtn" class="restart-btn">再玩一次</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const emojiMap = {
+      happy: { emoji: '😊', label: '开心' },
+      sad: { emoji: '😢', label: '难过' },
+      angry: { emoji: '😠', label: '生气' },
+      surprised: { emoji: '😮', label: '惊讶' },
+      scared: { emoji: '😨', label: '害怕' }
+    };
+
+    const scenarioPool = {
+      happy: [
+        { icon: '🎂', text: '吃到蛋糕' },
+        { icon: '🎁', text: '收到礼物' },
+        { icon: '🤝', text: '和朋友玩耍' }
+      ],
+      sad: [
+        { icon: '🍦', text: '冰淇淋掉了' },
+        { icon: '🧸', text: '玩具坏了' },
+        { icon: '👋', text: '妈妈离开' }
+      ],
+      angry: [
+        { icon: '🧸', text: '玩具被抢' },
+        { icon: '⚖️', text: '不公平的事' },
+        { icon: '🚫', text: '轮到别人先玩' }
+      ],
+      surprised: [
+        { icon: '🎁', text: '惊喜礼物' },
+        { icon: '🌈', text: '看到彩虹' },
+        { icon: '🎉', text: '突然有派对' }
+      ],
+      scared: [
+        { icon: '⛈️', text: '打雷' },
+        { icon: '🌑', text: '黑暗' },
+        { icon: '🐶', text: '大狗' }
+      ]
+    };
+
+    const roundPlan = [
+      { key: 'happy', choices: 2 },
+      { key: 'sad', choices: 2 },
+      { key: 'angry', choices: 2 },
+      { key: 'surprised', choices: 2 },
+      { key: 'scared', choices: 2 },
+      { key: 'happy', choices: 3 },
+      { key: 'sad', choices: 3 },
+      { key: 'angry', choices: 3 },
+      { key: 'surprised', choices: 3 },
+      { key: 'scared', choices: 3 }
+    ];
+
+    const state = {
+      index: 0,
+      stars: 0,
+      audioReady: false,
+      audioCtx: null,
+      currentCards: [],
+      currentAnswer: null,
+      busy: false
+    };
+
+    const emotionEmoji = document.getElementById('emotionEmoji');
+    const emotionLabel = document.getElementById('emotionLabel');
+    const cardsEl = document.getElementById('cards');
+    const feedbackEl = document.getElementById('feedback');
+    const progressEl = document.getElementById('progress');
+    const starsEl = document.getElementById('stars');
+    const levelEl = document.getElementById('level');
+    const toastEl = document.getElementById('toast');
+    const startOverlay = document.getElementById('startOverlay');
+    const resultOverlay = document.getElementById('resultOverlay');
+    const resultStars = document.getElementById('resultStars');
+    const resultText = document.getElementById('resultText');
+
+    function ensureAudio() {
+      if (!state.audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        state.audioCtx = new AudioContextClass();
+      }
+      if (state.audioCtx.state === 'suspended') state.audioCtx.resume();
+      state.audioReady = true;
+    }
+
+    function playTone(type = 'good') {
+      ensureAudio();
+      if (!state.audioCtx) return;
+      const ctx = state.audioCtx;
+      const now = ctx.currentTime;
+      const notes = type === 'good' ? [523.25, 659.25, 783.99] : [261.63, 220.00];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type === 'good' ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.08);
+        gain.gain.setValueAtTime(type === 'good' ? 0.0001 : 0.0001, now + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(type === 'good' ? 0.16 : 0.10, now + i * 0.08 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.08 + (type === 'good' ? 0.18 : 0.22));
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.08);
+        osc.stop(now + i * 0.08 + (type === 'good' ? 0.2 : 0.24));
+      });
+    }
+
+    function playSuccessMelody() {
+      playTone('good');
+      setTimeout(() => playTone('good'), 140);
+    }
+
+    function playTryAgain() {
+      playTone('bad');
+    }
+
+    function setToast(text, duration = 1200) {
+      toastEl.textContent = text;
+      toastEl.classList.add('show');
+      clearTimeout(setToast._timer);
+      setToast._timer = setTimeout(() => toastEl.classList.remove('show'), duration);
+    }
+
+    function starBurst(x, y, count = 12) {
+      const symbols = ['⭐', '✨', '💫'];
+      for (let i = 0; i < count; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        s.textContent = symbols[i % symbols.length];
+        s.style.left = x + 'px';
+        s.style.top = y + 'px';
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 80 + Math.random() * 100;
+        s.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+        s.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 1000);
+      }
+    }
+
+    function sparkleFlash(el) {
+      const rect = el.getBoundingClientRect();
+      for (let i = 0; i < 5; i++) {
+        const sp = document.createElement('div');
+        sp.className = 'sparkle';
+        sp.textContent = '✨';
+        sp.style.left = (rect.left + rect.width * 0.5) + 'px';
+        sp.style.top = (rect.top + rect.height * 0.2) + 'px';
+        const angle = (Math.PI * 2 * i) / 5;
+        sp.style.setProperty('--tx', Math.cos(angle) * 48 + 'px');
+        sp.style.setProperty('--ty', Math.sin(angle) * 48 + 'px');
+        document.body.appendChild(sp);
+        setTimeout(() => sp.remove(), 700);
+      }
+    }
+
+    function shuffle(arr) {
+      return arr.map(v => ({ v, r: Math.random() })).sort((a, b) => a.r - b.r).map(o => o.v);
+    }
+
+    function updateHeader() {
+      progressEl.textContent = `${state.index + 1}/10`;
+      starsEl.textContent = '★'.repeat(state.stars) + '☆'.repeat(5 - state.stars);
+      const plan = roundPlan[state.index];
+      levelEl.textContent = plan.choices === 2 ? '初级' : '进阶';
+    }
+
+    function buildRound() {
+      const plan = roundPlan[state.index];
+      const target = emojiMap[plan.key];
+      state.currentAnswer = plan.key;
+      emotionEmoji.textContent = target.emoji;
+      emotionLabel.textContent = target.label;
+
+      const pool = [];
+      Object.keys(scenarioPool).forEach(key => {
+        scenarioPool[key].forEach(item => pool.push({ ...item, key }));
+      });
+
+      const correctItems = scenarioPool[plan.key].map(item => ({ ...item, key: plan.key }));
+      const wrongItems = pool.filter(item => item.key !== plan.key);
+      const needed = plan.choices - 1;
+      const wrongPick = shuffle(wrongItems).slice(0, needed);
+      const cards = shuffle([correctItems[Math.floor(Math.random() * correctItems.length)], ...wrongPick]);
+      state.currentCards = cards;
+
+      cardsEl.innerHTML = '';
+      feedbackEl.textContent = '';
+      cards.forEach((card, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'card';
+        btn.type = 'button';
+        btn.innerHTML = `
+          <div class="icon">${card.icon}</div>
+          <div class="text">${card.text}</div>
+          <div class="sub">${idx + 1 === 1 ? '点这里试试' : '看看是不是它'}</div>
+        `;
+        btn.addEventListener('pointerdown', () => btn.classList.add('pressed'));
+        btn.addEventListener('pointerup', () => btn.classList.remove('pressed'));
+        btn.addEventListener('pointerleave', () => btn.classList.remove('pressed'));
+        btn.addEventListener('click', () => chooseCard(btn, card));
+        cardsEl.appendChild(btn);
+      });
+
+      updateHeader();
+    }
+
+    function chooseCard(btn, card) {
+      if (state.busy) return;
+      state.busy = true;
+      btn.classList.remove('pressed');
+      const isCorrect = card.key === state.currentAnswer;
+      if (isCorrect) {
+        btn.classList.add('correct');
+        feedbackEl.textContent = '真棒！';
+        playSuccessMelody();
+        sparkleFlash(btn);
+        starBurst(window.innerWidth * 0.5, window.innerHeight * 0.45, 16);
+        state.stars = Math.min(5, state.stars + 1);
+        updateHeader();
+        setTimeout(() => {
+          state.index += 1;
+          if (state.index >= roundPlan.length) {
+            showResult();
+          } else {
+            state.busy = false;
+            buildRound();
+          }
+        }, 900);
+      } else {
+        btn.classList.add('wrong');
+        feedbackEl.textContent = '再试一次';
+        setToast('再试一次');
+        playTryAgain();
+        setTimeout(() => {
+          btn.classList.remove('wrong');
+          state.busy = false;
+        }, 420);
+      }
+    }
+
+    function showResult() {
+      const earned = state.stars;
+      resultStars.textContent = '★★★★★'.slice(0, earned) + '☆☆☆☆☆'.slice(0, 5 - earned);
+      const praise = earned >= 4 ? '你认识了很多情绪朋友！' : earned >= 2 ? '你已经会很多啦，继续加油！' : '你很认真，下一次会更棒！';
+      resultText.textContent = `${praise}`;
+      resultOverlay.classList.remove('hidden');
+      setTimeout(() => starBurst(window.innerWidth * 0.5, window.innerHeight * 0.35, 22), 120);
+    }
+
+    function startGame() {
+      ensureAudio();
+      startOverlay.classList.add('hidden');
+      resultOverlay.classList.add('hidden');
+      state.index = 0;
+      state.stars = 0;
+      state.busy = false;
+      updateHeader();
+      buildRound();
+      setToast('找对情境就能得到星星！', 1500);
+    }
+
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('restartBtn').addEventListener('click', () => {
+      startOverlay.classList.add('hidden');
+      resultOverlay.classList.add('hidden');
+      startGame();
+    });
+
+    window.addEventListener('pointerdown', ensureAudio, { passive: true });
+  </script>
+</body>
+</html>

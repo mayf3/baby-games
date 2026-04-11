@@ -17,7 +17,7 @@
 ### 优先级 2 - 3D 入门（第一批）
 - [x] 013-3D气球捕捉 (3D Balloon Pop) - 3D空间手眼协调 [3D/Three.js] - 2026-04-07 ✅
 - [ ] 014-3D星星收集 (3D Star Collector) - 3D空间数字认知 [3D/Three.js]
-- [ ] 015-3D颜色泡泡 (3D Color Bubbles) - 3D颜色认知升级 [3D/Three.js]
+- [x] 015-3D颜色泡泡 (3D Color Bubbles) - 3D颜色认知升级 [3D/Three.js] - 2026-04-11 ✅
 
 ### 优先级 3 - 3D 中等复杂度
 - [ ] 016-3D积木搭建 (3D Block Builder) - 空间创造力 [3D/Three.js]
