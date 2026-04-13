@@ -200,5 +200,16 @@
     "path": "games/015-3d-color-bubbles/index.html",
     "difficulty": "简单",
     "dimension": "3D"
+  },
+  {
+    "id": "023-direction-explorer",
+    "title": "方位小探险",
+    "emoji": "🧭",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "跟着小探险家学习上下左右、斜向等方位概念！通过点击方向按钮锻炼空间方位认知能力，三个难度等级从简单到挑战",
+    "path": "games/023-direction-explorer/index.html",
+    "difficulty": "简单"
   }
 ]

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>方位小探险 - Direction Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* 顶部信息栏 */
+        .top-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .score-board {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .level-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .level-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .level-btn.easy {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .level-btn.medium {
+            background: #FF9800;
+            color: white;
+        }
+
+        .level-btn.hard {
+            background: #F44336;
+            color: white;
+        }
+
+        .level-btn.active {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 方位提示区 */
+        .direction-prompt {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 50px;
+            border-radius: 30px;
+            margin-bottom: 40px;
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .direction-prompt h2 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .direction-icon {
+            font-size: 80px;
+            margin: 20px 0;
+        }
+
+        .direction-text {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        /* 方向按钮网格 */
+        .directions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 15px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .direction-btn {
+            width: 100px;
+            height: 100px;
+            border: none;
+            border-radius: 20px;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, #FFE066 0%, #FF9A3D 100%);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .direction-btn:active {
+            transform: scale(0.95);
+        }
+
+        .direction-btn.correct {
+            animation: correctAnim 0.6s;
+        }
+
+        @keyframes correctAnim {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); background: #4CAF50; }
+            100% { transform: scale(1); }
+        }
+
+        .direction-btn.wrong {
+            animation: wrongAnim 0.6s;
+        }
+
+        @keyframes wrongAnim {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); background: #F44336; }
+            75% { transform: translateX(10px); background: #F44336; }
+        }
+
+        /* 隐藏中间按钮（在简单模式） */
+        .direction-btn.hidden {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* 探险家角色 */
+        .explorer {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 60px;
+            transition: all 0.5s;
+            z-index: 50;
+        }
+
+        /* 星星粒子效果 */
+        .star {
+            position: fixed;
+            font-size: 30px;
+            pointer-events: none;
+            animation: starFloat 1s ease-out forwards;
+            z-index: 1000;
+        }
+
+        @keyframes starFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(0.5);
+            }
+        }
+
+        /* 反馈提示 */
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            font-weight: bold;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            animation: feedbackAnim 1s forwards;
+            z-index: 200;
+        }
+
+        @keyframes feedbackAnim {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .feedback.correct {
+            color: #4CAF50;
+        }
+
+        .feedback.wrong {
+            color: #F44336;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .direction-btn {
+                width: 80px;
+                height: 80px;
+                font-size: 35px;
+            }
+
+            .directions-grid {
+                gap: 10px;
+                padding: 15px;
+            }
+
+            .direction-prompt {
+                padding: 20px 30px;
+            }
+
+            .direction-prompt h2 {
+                font-size: 24px;
+            }
+
+            .direction-icon {
+                font-size: 60px;
+            }
+
+            .direction-text {
+                font-size: 28px;
+            }
+
+            .explorer {
+                font-size: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .direction-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 30px;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .score-board {
+                font-size: 20px;
+                padding: 10px 20px;
+            }
+
+            .level-btn {
+                padding: 8px 15px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- 顶部信息栏 -->
+        <div class="top-bar">
+            <div class="score-board">
+                ⭐ <span id="score">0</span>
+            </div>
+            <div class="level-selector">
+                <button class="level-btn easy active" data-level="easy">简单</button>
+                <button class="level-btn medium" data-level="medium">中等</button>
+                <button class="level-btn hard" data-level="hard">挑战</button>
+            </div>
+        </div>
+
+        <!-- 方位提示 -->
+        <div class="direction-prompt">
+            <h2>🧭 小探险家，点击</h2>
+            <div class="direction-icon" id="directionIcon">⬆️</div>
+            <div class="direction-text" id="directionText">上边</div>
+        </div>
+
+        <!-- 方向按钮网格 -->
+        <div class="directions-grid" id="directionsGrid">
+            <button class="direction-btn hidden" data-direction="left-up"></button>
+            <button class="direction-btn" data-direction="up">⬆️</button>
+            <button class="direction-btn hidden" data-direction="right-up"></button>
+            <button class="direction-btn" data-direction="left">⬅️</button>
+            <button class="direction-btn hidden" data-direction="center"></button>
+            <button class="direction-btn" data-direction="right">➡️</button>
+            <button class="direction-btn hidden" data-direction="left-down"></button>
+            <button class="direction-btn" data-direction="down">⬇️</button>
+            <button class="direction-btn hidden" data-direction="right-down"></button>
+        </div>
+
+        <!-- 探险家角色 -->
+        <div class="explorer" id="explorer">🧭</div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let score = 0;
+        let currentDirection = '';
+        let currentLevel = 'easy';
+        let consecutiveCorrect = 0;
+
+        // 方位配置
+        const directions = {
+            easy: [
+                { id: 'up', icon: '⬆️', text: '上边' },
+                { id: 'down', icon: '⬇️', text: '下边' },
+                { id: 'left', icon: '⬅️', text: '左边' },
+                { id: 'right', icon: '➡️', text: '右边' }
+            ],
+            medium: [
+                { id: 'up', icon: '⬆️', text: '上边' },
+                { id: 'down', icon: '⬇️', text: '下边' },
+                { id: 'left', icon: '⬅️', text: '左边' },
+                { id: 'right', icon: '➡️', text: '右边' },
+                { id: 'left-up', icon: '↖️', text: '左上' },
+                { id: 'right-up', icon: '↗️', text: '右上' },
+                { id: 'left-down', icon: '↙️', text: '左下' },
+                { id: 'right-down', icon: '↘️', text: '右下' }
+            ],
+            hard: [
+                { id: 'up', icon: '⬆️', text: '上边' },
+                { id: 'down', icon: '⬇️', text: '下边' },
+                { id: 'left', icon: '⬅️', text: '左边' },
+                { id: 'right', icon: '➡️', text: '右边' },
+                { id: 'left-up', icon: '↖️', text: '左上' },
+                { id: 'right-up', icon: '↗️', text: '右上' },
+                { id: 'left-down', icon: '↙️', text: '左下' },
+                { id: 'right-down', icon: '↘️', text: '右下' }
+            ]
+        };
+
+        // 音效
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            if (type === 'correct') {
+                oscillator.frequency.value = 523.25; // C5
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            } else if (type === 'wrong') {
+                oscillator.frequency.value = 196; // G3
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            } else if (type === 'star') {
+                oscillator.frequency.value = 659.25; // E5
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            }
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        // 生成新题目
+        function generateQuestion() {
+            const levelDirections = directions[currentLevel];
+            const randomIndex = Math.floor(Math.random() * levelDirections.length);
+            currentDirection = levelDirections[randomIndex];
+
+            document.getElementById('directionIcon').textContent = currentDirection.icon;
+            document.getElementById('directionText').textContent = currentDirection.text;
+
+            // 添加动画效果
+            const prompt = document.querySelector('.direction-prompt');
+            prompt.style.animation = 'none';
+            prompt.offsetHeight; // 触发重排
+            prompt.style.animation = 'pulse 2s infinite';
+        }
+
+        // 创建星星粒子
+        function createStars(x, y) {
+            for (let i = 0; i < 8; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.textContent = '⭐';
+                star.style.left = x + 'px';
+                star.style.top = y + 'px';
+                star.style.transform = `translate(${(Math.random() - 0.5) * 200}px, ${(Math.random() - 0.5) * 200}px)`;
+                document.body.appendChild(star);
+
+                setTimeout(() => star.remove(), 1000);
+            }
+            playSound('star');
+        }
+
+        // 显示反馈
+        function showFeedback(isCorrect) {
+            const feedback = document.createElement('div');
+            feedback.className = `feedback ${isCorrect ? 'correct' : 'wrong'}`;
+            feedback.textContent = isCorrect ? '太棒了！🎉' : '再试一次 💪';
+            document.body.appendChild(feedback);
+
+            setTimeout(() => feedback.remove(), 1000);
+        }
+
+        // 检查答案
+        function checkAnswer(direction) {
+            const btn = document.querySelector(`[data-direction="${direction}"]`);
+
+            if (direction === currentDirection.id) {
+                // 正确
+                score += 10;
+                consecutiveCorrect++;
+                document.getElementById('score').textContent = score;
+
+                btn.classList.add('correct');
+                playSound('correct');
+
+                const rect = btn.getBoundingClientRect();
+                createStars(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                showFeedback(true);
+
+                // 移动探险家
+                moveExplorer(direction);
+
+                setTimeout(() => {
+                    btn.classList.remove('correct');
+                    generateQuestion();
+                }, 1000);
+            } else {
+                // 错误
+                consecutiveCorrect = 0;
+                btn.classList.add('wrong');
+                playSound('wrong');
+                showFeedback(false);
+
+                setTimeout(() => {
+                    btn.classList.remove('wrong');
+                }, 600);
+            }
+        }
+
+        // 移动探险家
+        function moveExplorer(direction) {
+            const explorer = document.getElementById('explorer');
+            const transforms = {
+                'up': 'translateX(-50%) translateY(-30px)',
+                'down': 'translateX(-50%) translateY(30px)',
+                'left': 'translateX(-150%) translateY(0)',
+                'right': 'translateX(50%) translateY(0)',
+                'left-up': 'translateX(-150%) translateY(-30px)',
+                'right-up': 'translateX(50%) translateY(-30px)',
+                'left-down': 'translateX(-150%) translateY(30px)',
+                'right-down': 'translateX(50%) translateY(30px)'
+            };
+
+            explorer.style.transform = transforms[direction] || 'translateX(-50%)';
+
+            setTimeout(() => {
+                explorer.style.transform = 'translateX(-50%)';
+            }, 500);
+        }
+
+        // 切换难度
+        function setLevel(level) {
+            currentLevel = level;
+            consecutiveCorrect = 0;
+
+            // 更新按钮状态
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-level="${level}"]`).classList.add('active');
+
+            // 更新方向按钮显示
+            const buttons = document.querySelectorAll('.direction-btn');
+            buttons.forEach(btn => {
+                const direction = btn.dataset.direction;
+                if (direction === 'center') {
+                    btn.classList.add('hidden');
+                    return;
+                }
+
+                if (level === 'easy') {
+                    // 只显示上下左右
+                    if (['up', 'down', 'left', 'right'].includes(direction)) {
+                        btn.classList.remove('hidden');
+                        btn.textContent = getDirectionIcon(direction);
+                    } else {
+                        btn.classList.add('hidden');
+                    }
+                } else {
+                    // 显示所有方向
+                    btn.classList.remove('hidden');
+                    btn.textContent = getDirectionIcon(direction);
+                }
+            });
+
+            generateQuestion();
+        }
+
+        function getDirectionIcon(direction) {
+            const icons = {
+                'up': '⬆️',
+                'down': '⬇️',
+                'left': '⬅️',
+                'right': '➡️',
+                'left-up': '↖️',
+                'right-up': '↗️',
+                'left-down': '↙️',
+                'right-down': '↘️'
+            };
+            return icons[direction] || '';
+        }
+
+        // 事件监听
+        document.querySelectorAll('.direction-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!btn.classList.contains('hidden')) {
+                    checkAnswer(btn.dataset.direction);
+                }
+            });
+        });
+
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setLevel(btn.dataset.level);
+            });
+        });
+
+        // 初始化游戏
+        generateQuestion();
+    </script>
+</body>
+</html>
