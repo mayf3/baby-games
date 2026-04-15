@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D星星收集 - 宝宝游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', '幼圆', cursive;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #0a0a2e, #1a1a4e);
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #targetDisplay {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 40px;
+            border-radius: 25px;
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.4);
+            text-align: center;
+            pointer-events: auto;
+            border: 4px solid #FFD700;
+        }
+
+        #targetDisplay h2 {
+            font-size: 2rem;
+            color: #FF6B6B;
+            margin-bottom: 10px;
+        }
+
+        #targetNumber {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #4ECDC4;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+        }
+
+        #scoreDisplay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            pointer-events: auto;
+        }
+
+        #scoreDisplay .label {
+            font-size: 1rem;
+            color: #666;
+        }
+
+        #scoreDisplay .value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #FF6B6B;
+        }
+
+        #startScreen, #winScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        #startScreen h1, #winScreen h1 {
+            font-size: 3.5rem;
+            color: #FFD700;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        #startScreen p, #winScreen p {
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 600px;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+
+        .gameButton {
+            padding: 20px 60px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .gameButton:hover, .gameButton:active {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+        }
+
+        #winScreen {
+            display: none;
+        }
+
+        #winStats {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 50px;
+            border-radius: 25px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        #winStats h3 {
+            font-size: 2rem;
+            color: #4ECDC4;
+            margin-bottom: 20px;
+        }
+
+        #winStats .stat {
+            font-size: 1.5rem;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        #winStats .stat span {
+            font-size: 2rem;
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+
+        /* 彩带动画 */
+        .confetti {
+            position: fixed;
+            width: 15px;
+            height: 15px;
+            background: #f00;
+            animation: confetti-fall 3s ease-out forwards;
+            z-index: 200;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* 星星飞舞 */
+        .star-float {
+            position: fixed;
+            font-size: 2.5rem;
+            animation: star-float 3s ease-out forwards;
+            z-index: 200;
+        }
+
+        @keyframes star-float {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) scale(0);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #targetDisplay {
+                padding: 15px 30px;
+            }
+
+            #targetDisplay h2 {
+                font-size: 1.5rem;
+            }
+
+            #targetNumber {
+                font-size: 3rem;
+            }
+
+            #startScreen h1, #winScreen h1 {
+                font-size: 2.5rem;
+            }
+
+            .gameButton {
+                padding: 15px 40px;
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (orientation: portrait) and (max-width: 480px) {
+            #targetDisplay {
+                top: 10px;
+                padding: 10px 20px;
+                width: 90%;
+            }
+
+            #targetDisplay h2 {
+                font-size: 1.2rem;
+                margin-bottom: 5px;
+            }
+
+            #targetNumber {
+                font-size: 2.5rem;
+            }
+
+            #scoreDisplay {
+                top: 10px;
+                right: 10px;
+                padding: 10px 15px;
+            }
+
+            #scoreDisplay .value {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui">
+        <div id="targetDisplay">
+            <h2>收集星星！</h2>
+            <div id="targetNumber">⭐ 5</div>
+        </div>
+
+        <div id="scoreDisplay">
+            <div class="label">得分</div>
+            <div class="value" id="scoreValue">0</div>
+        </div>
+    </div>
+
+    <div id="startScreen">
+        <h1>⭐ 3D星星收集 ⭐</h1>
+        <p>在美丽的夜空中，点击收集星星吧！<br>锻炼数数能力和专注力～</p>
+        <button class="gameButton" id="startBtn">开始游戏</button>
+    </div>
+
+    <div id="winScreen">
+        <h1>🎉 太棒了！🎉</h1>
+        <div id="winStats">
+            <h3>完成统计</h3>
+            <div class="stat">收集星星：<span id="finalStars">0</span></div>
+            <div class="stat">总得分：<span id="finalScore">0</span></div>
+        </div>
+        <button class="gameButton" id="nextLevelBtn">下一关</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 游戏状态
+        const gameState = {
+            targetCount: 5,
+            collectedCount: 0,
+            score: 0,
+            level: 1,
+            isPlaying: false,
+            stars: [],
+            particles: [],
+            backgroundStars: []
+        };
+
+        // Three.js 变量
+        let scene, camera, renderer;
+        let canvas;
+
+        // 初始化 Three.js
+        function initThree() {
+            canvas = document.getElementById('gameCanvas');
+
+            // 创建场景
+            scene = new THREE.Scene();
+
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // 创建背景星星
+            createBackgroundStars();
+
+            // 添加光源
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
+
+            // 监听窗口大小变化
+            window.addEventListener('resize', onWindowResize);
+
+            // 监听点击/触摸
+            canvas.addEventListener('click', onCanvasClick);
+            canvas.addEventListener('touchstart', onCanvasTouch, { passive: false });
+        }
+
+        // 创建背景星星
+        function createBackgroundStars() {
+            const starGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+            const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+            for (let i = 0; i < 500; i++) {
+                const star = new THREE.Mesh(starGeometry, starMaterial.clone());
+
+                star.position.x = (Math.random() - 0.5) * 50;
+                star.position.y = (Math.random() - 0.5) * 50;
+                star.position.z = -Math.random() * 30 - 10;
+
+                star.material.transparent = true;
+                star.material.opacity = Math.random() * 0.8 + 0.2;
+
+                scene.add(star);
+                gameState.backgroundStars.push(star);
+            }
+        }
+
+        // 创建可收集的星星
+        function createCollectibleStar() {
+            const starGroup = new THREE.Group();
+
+            // 星星主体 - 使用球体
+            const bodyGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const bodyMaterial = new THREE.MeshPhongMaterial({
+                color: 0xFFD700,
+                emissive: 0xFFA500,
+                emissiveIntensity: 0.3,
+                shininess: 100
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            starGroup.add(body);
+
+            // 添加发光效果
+            const glowGeometry = new THREE.SphereGeometry(0.4, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xFFD700,
+                transparent: true,
+                opacity: 0.2
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            starGroup.add(glow);
+
+            // 随机位置
+            const rangeX = 3.5;
+            const rangeY = 2;
+            starGroup.position.x = (Math.random() - 0.5) * rangeX * 2;
+            starGroup.position.y = (Math.random() - 0.5) * rangeY * 2;
+            starGroup.position.z = 0;
+
+            // 随机旋转
+            starGroup.rotation.x = Math.random() * Math.PI;
+            starGroup.rotation.y = Math.random() * Math.PI;
+
+            scene.add(starGroup);
+
+            const star = {
+                mesh: starGroup,
+                glow: glow,
+                baseScale: 1,
+                pulsePhase: Math.random() * Math.PI * 2,
+                rotationSpeed: {
+                    x: (Math.random() - 0.5) * 0.02,
+                    y: (Math.random() - 0.5) * 0.02
+                },
+                floatOffset: Math.random() * Math.PI * 2,
+                collected: false
+            };
+
+            gameState.stars.push(star);
+        }
+
+        // 创建粒子效果
+        function createParticles(position) {
+            const colors = [0xFFD700, 0xFFA500, 0xFFFF00, 0xFFEC8B];
+
+            for (let i = 0; i < 15; i++) {
+                const geometry = new THREE.SphereGeometry(0.05, 8, 8);
+                const material = new THREE.MeshBasicMaterial({
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    transparent: true
+                });
+
+                const particle = new THREE.Mesh(geometry, material);
+                particle.position.copy(position);
+
+                particle.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.15,
+                    Math.random() * 0.15,
+                    (Math.random() - 0.5) * 0.15
+                );
+
+                scene.add(particle);
+
+                gameState.particles.push({
+                    mesh: particle,
+                    life: 1.0,
+                    decay: 0.02 + Math.random() * 0.02
+                });
+            }
+        }
+
+        // 处理点击
+        function onCanvasClick(event) {
+            if (!gameState.isPlaying) return;
+
+            const mouse = new THREE.Vector2(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1
+            );
+
+            checkStarClick(mouse);
+        }
+
+        // 处理触摸
+        function onCanvasTouch(event) {
+            if (!gameState.isPlaying) return;
+            event.preventDefault();
+
+            const touch = event.touches[0];
+            const mouse = new THREE.Vector2(
+                (touch.clientX / window.innerWidth) * 2 - 1,
+                -(touch.clientY / window.innerHeight) * 2 + 1
+            );
+
+            checkStarClick(mouse);
+        }
+
+        // 检查是否点击到星星
+        function checkStarClick(mouse) {
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            for (let i = gameState.stars.length - 1; i >= 0; i--) {
+                const star = gameState.stars[i];
+                if (star.collected) continue;
+
+                const intersects = raycaster.intersectObject(star.mesh, true);
+
+                if (intersects.length > 0) {
+                    collectStar(star, i);
+                    break;
+                }
+            }
+        }
+
+        // 收集星星
+        function collectStar(star, index) {
+            star.collected = true;
+
+            // 创建粒子效果
+            createParticles(star.mesh.position);
+
+            // 播放音效
+            playCollectSound();
+
+            // 移除星星
+            scene.remove(star.mesh);
+
+            // 更新游戏状态
+            gameState.collectedCount++;
+            gameState.score += 10;
+
+            // 更新UI
+            updateUI();
+
+            // 检查是否完成
+            if (gameState.collectedCount >= gameState.targetCount) {
+                setTimeout(() => {
+                    levelComplete();
+                }, 500);
+            } else {
+                // 生成新星星
+                setTimeout(() => {
+                    createCollectibleStar();
+                }, 300);
+            }
+        }
+
+        // 播放收集音效
+        function playCollectSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+            } catch (e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        // 播放胜利音效
+        function playWinSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // 播放一串上升音符
+                const notes = [523, 659, 784, 1047];
+                notes.forEach((freq, i) => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.15);
+
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + i * 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.3);
+
+                    oscillator.start(audioContext.currentTime + i * 0.15);
+                    oscillator.stop(audioContext.currentTime + i * 0.15 + 0.3);
+                });
+            } catch (e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        // 更新UI
+        function updateUI() {
+            const remaining = gameState.targetCount - gameState.collectedCount;
+            document.getElementById('targetNumber').textContent = `⭐ ${remaining}`;
+            document.getElementById('scoreValue').textContent = gameState.score;
+        }
+
+        // 关卡完成
+        function levelComplete() {
+            gameState.isPlaying = false;
+            playWinSound();
+
+            // 显示胜利界面
+            document.getElementById('finalStars').textContent = gameState.targetCount;
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('winScreen').style.display = 'flex';
+
+            // 创建庆祝效果
+            createCelebration();
+        }
+
+        // 创建庆祝效果
+        function createCelebration() {
+            // 彩带
+            const colors = ['#FF6B6B', '#4ECDC4', '#FFD700', '#FF8E53', '#95E1D3'];
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    document.body.appendChild(confetti);
+
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
+            }
+
+            // 飞舞的星星
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const star = document.createElement('div');
+                    star.className = 'star-float';
+                    star.textContent = '⭐';
+                    star.style.left = Math.random() * 100 + 'vw';
+                    star.style.bottom = '0';
+                    document.body.appendChild(star);
+
+                    setTimeout(() => star.remove(), 3000);
+                }, i * 50);
+            }
+        }
+
+        // 开始游戏
+        function startGame() {
+            // 重置状态
+            gameState.targetCount = Math.min(3 + gameState.level, 10);
+            gameState.collectedCount = 0;
+            gameState.isPlaying = true;
+
+            // 清除旧星星
+            gameState.stars.forEach(star => {
+                scene.remove(star.mesh);
+            });
+            gameState.stars = [];
+
+            // 创建初始星星
+            for (let i = 0; i < gameState.targetCount; i++) {
+                setTimeout(() => {
+                    if (gameState.isPlaying) {
+                        createCollectibleStar();
+                    }
+                }, i * 200);
+            }
+
+            // 更新UI
+            updateUI();
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('winScreen').style.display = 'none';
+        }
+
+        // 下一关
+        function nextLevel() {
+            gameState.level++;
+            startGame();
+        }
+
+        // 窗口大小变化
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() * 0.001;
+
+            // 背景星星闪烁
+            gameState.backgroundStars.forEach((star, i) => {
+                const flickerSpeed = 0.5 + Math.sin(time + i) * 0.5;
+                star.material.opacity = 0.3 + Math.sin(time * flickerSpeed + i) * 0.3;
+            });
+
+            // 可收集星星动画
+            gameState.stars.forEach(star => {
+                if (!star.collected) {
+                    // 脉冲效果
+                    const pulse = 1 + Math.sin(time * 3 + star.pulsePhase) * 0.1;
+                    star.mesh.scale.set(pulse, pulse, pulse);
+
+                    // 旋转
+                    star.mesh.rotation.x += star.rotationSpeed.x;
+                    star.mesh.rotation.y += star.rotationSpeed.y;
+
+                    // 上下浮动
+                    star.mesh.position.y += Math.sin(time + star.floatOffset) * 0.002;
+                }
+            });
+
+            // 粒子更新
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const particle = gameState.particles[i];
+                particle.mesh.position.add(particle.velocity);
+                particle.life -= particle.decay;
+                particle.mesh.material.opacity = particle.life;
+                particle.mesh.scale.setScalar(particle.life);
+
+                if (particle.life <= 0) {
+                    scene.remove(particle.mesh);
+                    gameState.particles.splice(i, 1);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // 事件监听
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('nextLevelBtn').addEventListener('click', nextLevel);
+
+        // 初始化
+        window.addEventListener('load', () => {
+            initThree();
+            animate();
+        });
+    </script>
+</body>
+</html>

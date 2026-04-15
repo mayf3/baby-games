@@ -211,5 +211,16 @@
     "description": "跟着小探险家学习上下左右、斜向等方位概念！通过点击方向按钮锻炼空间方位认知能力，三个难度等级从简单到挑战",
     "path": "games/023-direction-explorer/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "029-time-keeper",
+    "title": "时间小管家",
+    "emoji": "⏰",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "学习时间认知！三个关卡：早晚判断（白天黑夜）、活动时间配对（早上中午晚上）、认识钟表（整点时间），培养时间观念和日常生活规律认知",
+    "path": "games/029-time-keeper/index.html",
+    "difficulty": "简单"
   }
 ]
