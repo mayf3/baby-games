@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>分类小达人 - 宝宝游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: clamp(24px, 5vw, 36px);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .score-board {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            font-size: clamp(16px, 3vw, 20px);
+            flex-wrap: wrap;
+        }
+
+        .score-item {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-area {
+            width: 100%;
+            max-width: 800px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 分类篮子区域 */
+        .baskets-container {
+            display: grid;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .baskets-container.easy {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .baskets-container.medium {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .baskets-container.challenge {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (min-width: 600px) {
+            .baskets-container.challenge {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .basket {
+            background: white;
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .basket.highlight {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .basket-icon {
+            font-size: clamp(40px, 8vw, 60px);
+            margin-bottom: 8px;
+        }
+
+        .basket-label {
+            font-size: clamp(14px, 2.5vw, 18px);
+            font-weight: bold;
+            color: #333;
+        }
+
+        .basket-count {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ff6b6b;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* 物品卡片区域 */
+        .items-area {
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            padding: 20px;
+            min-height: 150px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .item-card {
+            width: clamp(70px, 15vw, 90px);
+            height: clamp(70px, 15vw, 90px);
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+            touch-action: none;
+            position: relative;
+        }
+
+        .item-card:active {
+            cursor: grabbing;
+        }
+
+        .item-card.dragging {
+            opacity: 0.5;
+            transform: scale(1.1);
+        }
+
+        .item-card.correct {
+            animation: correctAnim 0.5s ease;
+        }
+
+        .item-card.wrong {
+            animation: wrongAnim 0.5s ease;
+        }
+
+        @keyframes correctAnim {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes wrongAnim {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .item-emoji {
+            font-size: clamp(35px, 7vw, 50px);
+        }
+
+        .item-name {
+            font-size: clamp(10px, 2vw, 12px);
+            margin-top: 5px;
+            color: #666;
+            text-align: center;
+        }
+
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: clamp(14px, 2.5vw, 18px);
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+
+        /* 反馈消息 */
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 30px 50px;
+            border-radius: 20px;
+            font-size: clamp(24px, 5vw, 36px);
+            font-weight: bold;
+            color: white;
+            z-index: 1000;
+            animation: popIn 0.3s ease;
+            display: none;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.correct {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .feedback.wrong {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* 完成界面 */
+        .completion {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .completion.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .completion-content {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            text-align: center;
+            animation: scaleIn 0.5s ease;
+        }
+
+        @keyframes scaleIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        .completion-emoji {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .completion h2 {
+            font-size: clamp(24px, 5vw, 36px);
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .completion p {
+            font-size: clamp(16px, 3vw, 20px);
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .stars {
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
+        /* 难度选择界面 */
+        .difficulty-select {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+        }
+
+        .difficulty-select.hidden {
+            display: none;
+        }
+
+        .difficulty-content {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .difficulty-content h2 {
+            font-size: clamp(24px, 5vw, 32px);
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+
+        .difficulty-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .difficulty-btn {
+            padding: 20px;
+            font-size: clamp(18px, 3vw, 24px);
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .difficulty-btn.easy {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .difficulty-btn.medium {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .difficulty-btn.challenge {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .difficulty-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 拖拽元素克隆 */
+        .drag-clone {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.8;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <!-- 难度选择界面 -->
+    <div class="difficulty-select" id="difficultySelect">
+        <div class="difficulty-content">
+            <h2>🎯 选择难度</h2>
+            <div class="difficulty-btns">
+                <button class="difficulty-btn easy" onclick="startGame('easy')">
+                    🌟 简单<br>
+                    <small>2个分类，4个物品</small>
+                </button>
+                <button class="difficulty-btn medium" onclick="startGame('medium')">
+                    🌟🌟 中等<br>
+                    <small>3个分类，6个物品</small>
+                </button>
+                <button class="difficulty-btn challenge" onclick="startGame('challenge')">
+                    🌟🌟🌟 挑战<br>
+                    <small>4个分类，8个物品</small>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>📦 分类小达人</h1>
+        <div class="score-board">
+            <div class="score-item">⭐ 得分: <span id="score">0</span></div>
+            <div class="score-item">✅ 已分类: <span id="completed">0</span>/<span id="total">0</span></div>
+        </div>
+    </div>
+
+    <div class="game-area">
+        <div class="baskets-container" id="basketsContainer"></div>
+        <div class="items-area" id="itemsArea"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-secondary" onclick="showDifficulty()">🎯 换个难度</button>
+        <button class="btn btn-primary" onclick="restartGame()">🔄 重新开始</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="completion" id="completion">
+        <div class="completion-content">
+            <div class="completion-emoji">🎉</div>
+            <h2>太棒了！</h2>
+            <p>你完成了所有分类！</p>
+            <div class="stars" id="finalStars">⭐⭐⭐</div>
+            <p>最终得分: <span id="finalScore">0</span></p>
+            <button class="btn btn-primary" onclick="showDifficulty()">🎮 再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏数据
+        const categories = {
+            fruit: {
+                name: '水果',
+                icon: '🍎',
+                items: ['🍎苹果', '🍌香蕉', '🍇葡萄', '🍊橙子', '🍓草莓', '🍑桃子', '🍉西瓜', '🍋柠檬']
+            },
+            animal: {
+                name: '动物',
+                icon: '🐱',
+                items: ['🐱猫咪', '🐶狗狗', '🐰兔子', '🐻熊熊', '🐼熊猫', '🦁狮子', '🐘大象', '🦊狐狸']
+            },
+            vehicle: {
+                name: '交通工具',
+                icon: '🚗',
+                items: ['🚗汽车', '🚂火车', '✈️飞机', '🚢轮船', '🚲自行车', '🚀火箭', '🚁直升机', '🚕出租车']
+            },
+            clothes: {
+                name: '衣服',
+                icon: '👕',
+                items: ['👕T恤', '👖裤子', '👗裙子', '🧥外套', '👟鞋子', '👒帽子', '🧣围巾', '🧤手套']
+            }
+        };
+
+        const difficulties = {
+            easy: { categories: ['fruit', 'animal'], itemsPerCategory: 2 },
+            medium: { categories: ['fruit', 'animal', 'vehicle'], itemsPerCategory: 2 },
+            challenge: { categories: ['fruit', 'animal', 'vehicle', 'clothes'], itemsPerCategory: 2 }
+        };
+
+        let currentDifficulty = 'easy';
+        let score = 0;
+        let completed = 0;
+        let totalItems = 0;
+        let currentItems = [];
+        let currentCategories = [];
+
+        // 音效
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            if (type === 'correct') {
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialDecayTo = 0.01;
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+            } else if (type === 'wrong') {
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+            } else if (type === 'complete') {
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.15);
+                oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            }
+        }
+
+        function showDifficulty() {
+            document.getElementById('difficultySelect').classList.remove('hidden');
+            document.getElementById('completion').classList.remove('show');
+        }
+
+        function startGame(difficulty) {
+            currentDifficulty = difficulty;
+            score = 0;
+            completed = 0;
+            updateScore();
+
+            const config = difficulties[difficulty];
+            currentCategories = config.categories.map(cat => cat);
+            totalItems = config.categories.length * config.itemsPerCategory;
+            document.getElementById('total').textContent = totalItems;
+            document.getElementById('completed').textContent = '0';
+
+            // 生成游戏物品
+            currentItems = [];
+            config.categories.forEach(cat => {
+                const categoryItems = [...categories[cat].items];
+                // 随机选择物品
+                for (let i = 0; i < config.itemsPerCategory; i++) {
+                    const randomIndex = Math.floor(Math.random() * categoryItems.length);
+                    const item = categoryItems.splice(randomIndex, 1)[0];
+                    currentItems.push({
+                        emoji: item.split(/[名称]/)[0],
+                        name: item.split(/[名称]/)[1] || item.substring(1),
+                        category: cat
+                    });
+                }
+            });
+
+            // 打乱物品顺序
+            currentItems.sort(() => Math.random() - 0.5);
+
+            renderGame();
+            document.getElementById('difficultySelect').classList.add('hidden');
+        }
+
+        function renderGame() {
+            const basketsContainer = document.getElementById('basketsContainer');
+            const itemsArea = document.getElementById('itemsArea');
+
+            basketsContainer.className = `baskets-container ${currentDifficulty}`;
+            basketsContainer.innerHTML = '';
+            itemsArea.innerHTML = '';
+
+            // 渲染篮子
+            currentCategories.forEach(cat => {
+                const basket = document.createElement('div');
+                basket.className = 'basket';
+                basket.dataset.category = cat;
+                basket.innerHTML = `
+                    <div class="basket-count">0</div>
+                    <div class="basket-icon">${categories[cat].icon}</div>
+                    <div class="basket-label">${categories[cat].name}</div>
+                `;
+                basketsContainer.appendChild(basket);
+            });
+
+            // 渲染物品
+            currentItems.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.dataset.index = index;
+                card.dataset.category = item.category;
+                card.innerHTML = `
+                    <div class="item-emoji">${item.emoji}</div>
+                    <div class="item-name">${item.name}</div>
+                `;
+
+                // 添加拖拽功能
+                addDragFunctionality(card);
+                itemsArea.appendChild(card);
+            });
+        }
+
+        function addDragFunctionality(card) {
+            let isDragging = false;
+            let startX, startY;
+            let clone = null;
+
+            const onStart = (e) => {
+                e.preventDefault();
+                if (card.classList.contains('sorted')) return;
+
+                isDragging = true;
+                const touch = e.touches ? e.touches[0] : e;
+                startX = touch.clientX;
+                startY = touch.clientY;
+
+                card.classList.add('dragging');
+
+                // 创建克隆元素
+                clone = card.cloneNode(true);
+                clone.className = 'drag-clone';
+                clone.style.left = startX + 'px';
+                clone.style.top = startY + 'px';
+                document.body.appendChild(clone);
+
+                // 高亮所有篮子
+                document.querySelectorAll('.basket').forEach(basket => {
+                    basket.classList.add('highlight');
+                });
+            };
+
+            const onMove = (e) => {
+                if (!isDragging || !clone) return;
+                e.preventDefault();
+
+                const touch = e.touches ? e.touches[0] : e;
+                clone.style.left = touch.clientX + 'px';
+                clone.style.top = touch.clientY + 'px';
+
+                // 检测碰撞并高亮
+                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                const basket = elementBelow ? elementBelow.closest('.basket') : null;
+
+                document.querySelectorAll('.basket').forEach(b => b.classList.remove('highlight'));
+                if (basket) {
+                    basket.classList.add('highlight');
+                }
+            };
+
+            const onEnd = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                card.classList.remove('dragging');
+
+                if (clone) {
+                    const touch = e.changedTouches ? e.changedTouches[0] : e;
+                    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const basket = elementBelow ? elementBelow.closest('.basket') : null;
+
+                    if (basket) {
+                        checkAnswer(card, basket);
+                    }
+
+                    clone.remove();
+                    clone = null;
+                }
+
+                document.querySelectorAll('.basket').forEach(b => b.classList.remove('highlight'));
+            };
+
+            card.addEventListener('mousedown', onStart);
+            card.addEventListener('touchstart', onStart, { passive: false });
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('touchmove', onMove, { passive: false });
+
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchend', onEnd);
+        }
+
+        function checkAnswer(card, basket) {
+            const itemCategory = card.dataset.category;
+            const basketCategory = basket.dataset.category;
+
+            if (itemCategory === basketCategory) {
+                // 正确
+                card.classList.add('correct');
+                score += 10;
+                completed++;
+                updateScore();
+                showFeedback('correct', '✅ 太棒了！');
+                playSound('correct');
+
+                // 更新篮子计数
+                const countEl = basket.querySelector('.basket-count');
+                countEl.textContent = parseInt(countEl.textContent) + 1;
+
+                // 移除物品
+                setTimeout(() => {
+                    card.style.visibility = 'hidden';
+                    card.classList.add('sorted');
+                    card.classList.remove('correct');
+
+                    // 检查是否完成
+                    if (completed === totalItems) {
+                        setTimeout(showCompletion, 500);
+                    }
+                }, 500);
+            } else {
+                // 错误
+                card.classList.add('wrong');
+                showFeedback('wrong', '❌ 再试试！');
+                playSound('wrong');
+                score = Math.max(0, score - 5);
+                updateScore();
+
+                setTimeout(() => {
+                    card.classList.remove('wrong');
+                }, 500);
+            }
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('completed').textContent = completed;
+        }
+
+        function showFeedback(type, text) {
+            const feedback = document.getElementById('feedback');
+            feedback.className = `feedback ${type} show`;
+            feedback.textContent = text;
+
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 1000);
+        }
+
+        function showCompletion() {
+            playSound('complete');
+            document.getElementById('finalScore').textContent = score;
+
+            let stars = '⭐';
+            if (score >= totalItems * 8) stars = '⭐⭐⭐';
+            else if (score >= totalItems * 6) stars = '⭐⭐';
+
+            document.getElementById('finalStars').textContent = stars;
+            document.getElementById('completion').classList.add('show');
+
+            // 星星飞舞效果
+            createStarBurst();
+        }
+
+        function createStarBurst() {
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const star = document.createElement('div');
+                    star.textContent = '⭐';
+                    star.style.position = 'fixed';
+                    star.style.left = Math.random() * 100 + 'vw';
+                    star.style.top = '-50px';
+                    star.style.fontSize = (20 + Math.random() * 30) + 'px';
+                    star.style.zIndex = '3000';
+                    star.style.animation = `fall ${2 + Math.random() * 2}s linear forwards`;
+                    document.body.appendChild(star);
+
+                    setTimeout(() => star.remove(), 4000);
+                }, i * 100);
+            }
+        }
+
+        function restartGame() {
+            startGame(currentDifficulty);
+        }
+
+        // 添加下落动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fall {
+                to {
+                    transform: translateY(110vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 初始化
+        showDifficulty();
+    </script>
+</body>
+</html>

@@ -222,5 +222,16 @@
     "description": "学习时间认知！三个关卡：早晚判断（白天黑夜）、活动时间配对（早上中午晚上）、认识钟表（整点时间），培养时间观念和日常生活规律认知",
     "path": "games/029-time-keeper/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "030-sorting-master",
+    "title": "分类小达人",
+    "emoji": "📦",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "把物品拖拽到正确的分类篮子里！学习分类归纳能力，培养逻辑思维和认知组织能力，三个难度等级从2分类到4分类挑战",
+    "path": "games/030-sorting-master/index.html",
+    "difficulty": "简单"
   }
 ]
