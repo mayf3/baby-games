@@ -233,5 +233,17 @@
     "description": "把物品拖拽到正确的分类篮子里！学习分类归纳能力，培养逻辑思维和认知组织能力，三个难度等级从2分类到4分类挑战",
     "path": "games/030-sorting-master/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "019-3d-star-collector",
+    "title": "3D星星收集",
+    "emoji": "⭐",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "在美丽的3D夜空中驾驶小飞船收集星星！从收集1颗星星开始，逐渐增加到10颗，学习数字1-10的数量概念，培养3D空间感知能力和手眼协调能力",
+    "path": "games/019-3d-star-collector/index.html",
+    "difficulty": "简单",
+    "dimension": "3D"
   }
 ]

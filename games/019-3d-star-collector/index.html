@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D星星收集 - 宝宝游戏</title>
+    <title>3D星星收集 - 3D Star Collector</title>
     <style>
         * {
             margin: 0;
@@ -12,84 +12,89 @@
         }
 
         body {
-            font-family: 'Comic Sans MS', '幼圆', cursive;
+            font-family: 'Arial', sans-serif;
             overflow: hidden;
             background: linear-gradient(to bottom, #0a0a2e, #1a1a4e);
             touch-action: none;
+            -webkit-touch-callout: none;
             -webkit-user-select: none;
             user-select: none;
         }
 
         #gameCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
+            display: block;
+            width: 100vw;
+            height: 100vh;
         }
 
         #ui {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 10;
             pointer-events: none;
+        }
+
+        #levelDisplay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #FFD700;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
         }
 
         #targetDisplay {
             position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px 40px;
-            border-radius: 25px;
-            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.4);
-            text-align: center;
-            pointer-events: auto;
-            border: 4px solid #FFD700;
+            top: 60px;
+            left: 20px;
+            color: #87CEEB;
+            font-size: 20px;
+            text-shadow: 0 0 10px rgba(135, 206, 235, 0.8);
         }
 
-        #targetDisplay h2 {
-            font-size: 2rem;
-            color: #FF6B6B;
-            margin-bottom: 10px;
-        }
-
-        #targetNumber {
-            font-size: 4rem;
-            font-weight: bold;
-            color: #4ECDC4;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
-        }
-
-        #scoreDisplay {
+        #collectedDisplay {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 15px 25px;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            pointer-events: auto;
-        }
-
-        #scoreDisplay .label {
-            font-size: 1rem;
-            color: #666;
-        }
-
-        #scoreDisplay .value {
-            font-size: 2.5rem;
+            top: 100px;
+            left: 20px;
+            color: #FF69B4;
+            font-size: 32px;
             font-weight: bold;
-            color: #FF6B6B;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.8);
         }
 
-        #startScreen, #winScreen {
-            position: fixed;
+        #starIcons {
+            position: absolute;
+            top: 150px;
+            left: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-width: 200px;
+        }
+
+        .star-icon {
+            font-size: 30px;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+        }
+
+        .star-icon.collected {
+            opacity: 1;
+            transform: scale(1.2);
+            animation: starPop 0.5s ease;
+        }
+
+        @keyframes starPop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.5); }
+            100% { transform: scale(1.2); }
+        }
+
+        #startScreen, #winScreen, #levelScreen {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -98,166 +103,104 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(10, 10, 46, 0.95);
             z-index: 100;
             pointer-events: auto;
         }
 
-        #startScreen h1, #winScreen h1 {
-            font-size: 3.5rem;
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
             color: #FFD700;
-            margin-bottom: 30px;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
             text-align: center;
         }
 
-        #startScreen p, #winScreen p {
-            font-size: 1.5rem;
-            color: #fff;
+        .subtitle {
+            color: #87CEEB;
+            font-size: 20px;
             margin-bottom: 40px;
             text-align: center;
             max-width: 600px;
             padding: 0 20px;
-            line-height: 1.6;
         }
 
-        .gameButton {
+        .btn {
             padding: 20px 60px;
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: white;
-            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            font-size: 28px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
             border: none;
             border-radius: 50px;
+            color: #0a0a2e;
+            font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+            margin: 10px;
             transition: all 0.3s ease;
-            font-family: inherit;
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
         }
 
-        .gameButton:hover, .gameButton:active {
-            transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+        .btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
         }
 
-        #winScreen {
-            display: none;
+        .btn:active {
+            transform: scale(0.95);
         }
 
-        #winStats {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px 50px;
-            border-radius: 25px;
-            margin-bottom: 30px;
+        #winScreen h2 {
+            color: #FFD700;
+            font-size: 56px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            animation: celebration 1s ease infinite;
+        }
+
+        @keyframes celebration {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(-5deg); }
+            75% { transform: scale(1.1) rotate(5deg); }
+        }
+
+        .stars-collected {
+            color: #FF69B4;
+            font-size: 72px;
+            margin: 20px 0;
+            animation: bounce 0.5s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .level-number {
+            color: #FFD700;
+            font-size: 128px;
+            font-weight: bold;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            margin: 20px 0;
+        }
+
+        #hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
             text-align: center;
         }
 
-        #winStats h3 {
-            font-size: 2rem;
-            color: #4ECDC4;
-            margin-bottom: 20px;
-        }
-
-        #winStats .stat {
-            font-size: 1.5rem;
-            color: #666;
-            margin: 10px 0;
-        }
-
-        #winStats .stat span {
-            font-size: 2rem;
-            color: #FF6B6B;
-            font-weight: bold;
-        }
-
-        /* 彩带动画 */
-        .confetti {
-            position: fixed;
-            width: 15px;
-            height: 15px;
-            background: #f00;
-            animation: confetti-fall 3s ease-out forwards;
-            z-index: 200;
-        }
-
-        @keyframes confetti-fall {
-            0% {
-                transform: translateY(-100vh) rotate(0deg);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(100vh) rotate(720deg);
-                opacity: 0;
-            }
-        }
-
-        /* 星星飞舞 */
-        .star-float {
-            position: fixed;
-            font-size: 2.5rem;
-            animation: star-float 3s ease-out forwards;
-            z-index: 200;
-        }
-
-        @keyframes star-float {
-            0% {
-                transform: translateY(0) scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100vh) scale(0);
-                opacity: 0;
-            }
-        }
-
         @media (max-width: 768px) {
-            #targetDisplay {
-                padding: 15px 30px;
-            }
-
-            #targetDisplay h2 {
-                font-size: 1.5rem;
-            }
-
-            #targetNumber {
-                font-size: 3rem;
-            }
-
-            #startScreen h1, #winScreen h1 {
-                font-size: 2.5rem;
-            }
-
-            .gameButton {
-                padding: 15px 40px;
-                font-size: 1.5rem;
-            }
-        }
-
-        @media (orientation: portrait) and (max-width: 480px) {
-            #targetDisplay {
-                top: 10px;
-                padding: 10px 20px;
-                width: 90%;
-            }
-
-            #targetDisplay h2 {
-                font-size: 1.2rem;
-                margin-bottom: 5px;
-            }
-
-            #targetNumber {
-                font-size: 2.5rem;
-            }
-
-            #scoreDisplay {
-                top: 10px;
-                right: 10px;
-                padding: 10px 15px;
-            }
-
-            #scoreDisplay .value {
-                font-size: 1.8rem;
-            }
+            h1 { font-size: 36px; }
+            .btn { padding: 15px 40px; font-size: 24px; }
+            .level-number { font-size: 96px; }
+            #collectedDisplay { font-size: 28px; }
         }
     </style>
 </head>
@@ -265,465 +208,494 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui">
-        <div id="targetDisplay">
-            <h2>收集星星！</h2>
-            <div id="targetNumber">⭐ 5</div>
-        </div>
-
-        <div id="scoreDisplay">
-            <div class="label">得分</div>
-            <div class="value" id="scoreValue">0</div>
-        </div>
+        <div id="levelDisplay">第 <span id="levelNum">1</span> 关</div>
+        <div id="targetDisplay">收集 <span id="targetNum">1</span> 颗星星</div>
+        <div id="collectedDisplay"><span id="collectedNum">0</span> / <span id="totalNum">1</span></div>
+        <div id="starIcons"></div>
+        <div id="hint">点击屏幕移动飞船去收集星星！</div>
     </div>
 
     <div id="startScreen">
         <h1>⭐ 3D星星收集 ⭐</h1>
-        <p>在美丽的夜空中，点击收集星星吧！<br>锻炼数数能力和专注力～</p>
-        <button class="gameButton" id="startBtn">开始游戏</button>
+        <p class="subtitle">在美丽的夜空中收集星星，学习数字1-10！点击屏幕移动小飞船去触碰星星。</p>
+        <button class="btn" id="startBtn">开始游戏</button>
     </div>
 
-    <div id="winScreen">
-        <h1>🎉 太棒了！🎉</h1>
-        <div id="winStats">
-            <h3>完成统计</h3>
-            <div class="stat">收集星星：<span id="finalStars">0</span></div>
-            <div class="stat">总得分：<span id="finalScore">0</span></div>
-        </div>
-        <button class="gameButton" id="nextLevelBtn">下一关</button>
+    <div id="levelScreen" class="hidden">
+        <h1>第 <span id="levelTitleNum">1</span> 关</h1>
+        <div class="level-number" id="levelTarget">1</div>
+        <p class="subtitle">收集 <span id="levelTargetText">1</span> 颗星星！</p>
+        <button class="btn" id="levelBtn">开始</button>
+    </div>
+
+    <div id="winScreen" class="hidden">
+        <h2>🎉 太棒了！🎉</h2>
+        <p class="stars-collected">⭐ <span id="finalStars">1</span> ⭐</p>
+        <p class="subtitle">你成功收集了所有星星！</p>
+        <button class="btn" id="nextLevelBtn">下一关</button>
+        <button class="btn" id="restartBtn">重新开始</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // 游戏状态
-        const gameState = {
-            targetCount: 5,
-            collectedCount: 0,
-            score: 0,
-            level: 1,
+        // Game State
+        const state = {
+            currentLevel: 1,
+            targetStars: 1,
+            collectedStars: 0,
             isPlaying: false,
             stars: [],
-            particles: [],
-            backgroundStars: []
+            ship: null,
+            shipTarget: new THREE.Vector3(),
+            particles: []
         };
 
-        // Three.js 变量
-        let scene, camera, renderer;
-        let canvas;
+        // Audio Context
+        let audioCtx;
 
-        // 初始化 Three.js
-        function initThree() {
-            canvas = document.getElementById('gameCanvas');
-
-            // 创建场景
-            scene = new THREE.Scene();
-
-            // 创建相机
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5;
-
-            // 创建渲染器
-            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-
-            // 创建背景星星
-            createBackgroundStars();
-
-            // 添加光源
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-
-            const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-            pointLight.position.set(10, 10, 10);
-            scene.add(pointLight);
-
-            // 监听窗口大小变化
-            window.addEventListener('resize', onWindowResize);
-
-            // 监听点击/触摸
-            canvas.addEventListener('click', onCanvasClick);
-            canvas.addEventListener('touchstart', onCanvasTouch, { passive: false });
-        }
-
-        // 创建背景星星
-        function createBackgroundStars() {
-            const starGeometry = new THREE.SphereGeometry(0.02, 8, 8);
-            const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-            for (let i = 0; i < 500; i++) {
-                const star = new THREE.Mesh(starGeometry, starMaterial.clone());
-
-                star.position.x = (Math.random() - 0.5) * 50;
-                star.position.y = (Math.random() - 0.5) * 50;
-                star.position.z = -Math.random() * 30 - 10;
-
-                star.material.transparent = true;
-                star.material.opacity = Math.random() * 0.8 + 0.2;
-
-                scene.add(star);
-                gameState.backgroundStars.push(star);
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
         }
 
-        // 创建可收集的星星
-        function createCollectibleStar() {
-            const starGroup = new THREE.Group();
+        function playCollectSound() {
+            initAudio();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
 
-            // 星星主体 - 使用球体
-            const bodyGeometry = new THREE.SphereGeometry(0.3, 32, 32);
-            const bodyMaterial = new THREE.MeshPhongMaterial({
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
+
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function playWinSound() {
+            initAudio();
+            const notes = [523, 659, 784, 1047];
+            notes.forEach((freq, i) => {
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.15);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.15);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.3);
+
+                oscillator.start(audioCtx.currentTime + i * 0.15);
+                oscillator.stop(audioCtx.currentTime + i * 0.15 + 0.3);
+            });
+        }
+
+        // Three.js Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            canvas: document.getElementById('gameCanvas'),
+            antialias: true
+        });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(10, 10, 10);
+        scene.add(pointLight);
+
+        // Create starfield background
+        function createStarfield() {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+
+            for (let i = 0; i < 5000; i++) {
+                vertices.push(
+                    (Math.random() - 0.5) * 200,
+                    (Math.random() - 0.5) * 200,
+                    (Math.random() - 0.5) * 200 - 50
+                );
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.1,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            return new THREE.Points(geometry, material);
+        }
+
+        const starfield = createStarfield();
+        scene.add(starfield);
+
+        // Create collectible stars
+        function createStar(x, y, z) {
+            const group = new THREE.Group();
+
+            // Core sphere
+            const coreGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            const coreMaterial = new THREE.MeshPhongMaterial({
                 color: 0xFFD700,
                 emissive: 0xFFA500,
+                emissiveIntensity: 0.5,
+                shininess: 100
+            });
+            const core = new THREE.Mesh(coreGeometry, coreMaterial);
+            group.add(core);
+
+            // Glow effect
+            const glowGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xFFD700,
+                transparent: true,
+                opacity: 0.3
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            group.add(glow);
+
+            // Points
+            for (let i = 0; i < 5; i++) {
+                const pointGeometry = new THREE.ConeGeometry(0.1, 0.4, 4);
+                const pointMaterial = new THREE.MeshPhongMaterial({
+                    color: 0xFFFF00,
+                    emissive: 0xFFA500,
+                    emissiveIntensity: 0.8
+                });
+                const point = new THREE.Mesh(pointGeometry, pointMaterial);
+
+                const angle = (i / 5) * Math.PI * 2;
+                point.position.x = Math.cos(angle) * 0.5;
+                point.position.y = Math.sin(angle) * 0.5;
+                point.rotation.z = angle - Math.PI / 2;
+
+                group.add(point);
+            }
+
+            group.position.set(x, y, z);
+            group.userData = { isCollectible: true, rotationSpeed: Math.random() * 0.02 + 0.01 };
+
+            return group;
+        }
+
+        // Create spaceship
+        function createSpaceship() {
+            const group = new THREE.Group();
+
+            // Body
+            const bodyGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const bodyMaterial = new THREE.MeshPhongMaterial({
+                color: 0x87CEEB,
+                emissive: 0x4169E1,
                 emissiveIntensity: 0.3,
                 shininess: 100
             });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            starGroup.add(body);
+            group.add(body);
 
-            // 添加发光效果
-            const glowGeometry = new THREE.SphereGeometry(0.4, 32, 32);
-            const glowMaterial = new THREE.MeshBasicMaterial({
-                color: 0xFFD700,
+            // Cockpit
+            const cockpitGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+            const cockpitMaterial = new THREE.MeshPhongMaterial({
+                color: 0xFF69B4,
+                emissive: 0xFF1493,
+                emissiveIntensity: 0.3,
                 transparent: true,
-                opacity: 0.2
+                opacity: 0.8
             });
-            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-            starGroup.add(glow);
+            const cockpit = new THREE.Mesh(cockpitGeometry, cockpitMaterial);
+            cockpit.position.z = 0.3;
+            group.add(cockpit);
 
-            // 随机位置
-            const rangeX = 3.5;
-            const rangeY = 2;
-            starGroup.position.x = (Math.random() - 0.5) * rangeX * 2;
-            starGroup.position.y = (Math.random() - 0.5) * rangeY * 2;
-            starGroup.position.z = 0;
+            // Engine glow
+            const engineGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+            const engineMaterial = new THREE.MeshBasicMaterial({
+                color: 0xFF4500,
+                transparent: true,
+                opacity: 0.8
+            });
+            const engine = new THREE.Mesh(engineGeometry, engineMaterial);
+            engine.position.z = -0.5;
+            group.add(engine);
 
-            // 随机旋转
-            starGroup.rotation.x = Math.random() * Math.PI;
-            starGroup.rotation.y = Math.random() * Math.PI;
-
-            scene.add(starGroup);
-
-            const star = {
-                mesh: starGroup,
-                glow: glow,
-                baseScale: 1,
-                pulsePhase: Math.random() * Math.PI * 2,
-                rotationSpeed: {
-                    x: (Math.random() - 0.5) * 0.02,
-                    y: (Math.random() - 0.5) * 0.02
-                },
-                floatOffset: Math.random() * Math.PI * 2,
-                collected: false
-            };
-
-            gameState.stars.push(star);
+            group.position.set(0, 0, 5);
+            return group;
         }
 
-        // 创建粒子效果
+        // Create particle effect
         function createParticles(position) {
-            const colors = [0xFFD700, 0xFFA500, 0xFFFF00, 0xFFEC8B];
-
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 20; i++) {
                 const geometry = new THREE.SphereGeometry(0.05, 8, 8);
                 const material = new THREE.MeshBasicMaterial({
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                    transparent: true
+                    color: Math.random() > 0.5 ? 0xFFD700 : 0xFF69B4,
+                    transparent: true,
+                    opacity: 1
                 });
-
                 const particle = new THREE.Mesh(geometry, material);
-                particle.position.copy(position);
 
-                particle.velocity = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.15,
-                    Math.random() * 0.15,
-                    (Math.random() - 0.5) * 0.15
-                );
+                particle.position.copy(position);
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.2,
+                        (Math.random() - 0.5) * 0.2,
+                        (Math.random() - 0.5) * 0.2
+                    ),
+                    life: 1
+                };
 
                 scene.add(particle);
-
-                gameState.particles.push({
-                    mesh: particle,
-                    life: 1.0,
-                    decay: 0.02 + Math.random() * 0.02
-                });
+                state.particles.push(particle);
             }
         }
 
-        // 处理点击
-        function onCanvasClick(event) {
-            if (!gameState.isPlaying) return;
+        // Initialize level
+        function initLevel() {
+            // Clear existing stars
+            state.stars.forEach(star => scene.remove(star));
+            state.stars = [];
+            state.collectedStars = 0;
 
-            const mouse = new THREE.Vector2(
-                (event.clientX / window.innerWidth) * 2 - 1,
-                -(event.clientY / window.innerHeight) * 2 + 1
-            );
-
-            checkStarClick(mouse);
-        }
-
-        // 处理触摸
-        function onCanvasTouch(event) {
-            if (!gameState.isPlaying) return;
-            event.preventDefault();
-
-            const touch = event.touches[0];
-            const mouse = new THREE.Vector2(
-                (touch.clientX / window.innerWidth) * 2 - 1,
-                -(touch.clientY / window.innerHeight) * 2 + 1
-            );
-
-            checkStarClick(mouse);
-        }
-
-        // 检查是否点击到星星
-        function checkStarClick(mouse) {
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
-
-            for (let i = gameState.stars.length - 1; i >= 0; i--) {
-                const star = gameState.stars[i];
-                if (star.collected) continue;
-
-                const intersects = raycaster.intersectObject(star.mesh, true);
-
-                if (intersects.length > 0) {
-                    collectStar(star, i);
-                    break;
-                }
+            // Create stars for current level
+            const numStars = state.targetStars;
+            for (let i = 0; i < numStars; i++) {
+                const x = (Math.random() - 0.5) * 15;
+                const y = (Math.random() - 0.5) * 10;
+                const z = -Math.random() * 10 - 5;
+                const star = createStar(x, y, z);
+                scene.add(star);
+                state.stars.push(star);
             }
-        }
 
-        // 收集星星
-        function collectStar(star, index) {
-            star.collected = true;
-
-            // 创建粒子效果
-            createParticles(star.mesh.position);
-
-            // 播放音效
-            playCollectSound();
-
-            // 移除星星
-            scene.remove(star.mesh);
-
-            // 更新游戏状态
-            gameState.collectedCount++;
-            gameState.score += 10;
-
-            // 更新UI
+            // Update UI
             updateUI();
-
-            // 检查是否完成
-            if (gameState.collectedCount >= gameState.targetCount) {
-                setTimeout(() => {
-                    levelComplete();
-                }, 500);
-            } else {
-                // 生成新星星
-                setTimeout(() => {
-                    createCollectibleStar();
-                }, 300);
-            }
         }
 
-        // 播放收集音效
-        function playCollectSound() {
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
-
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.2);
-            } catch (e) {
-                console.log('Audio not supported');
-            }
-        }
-
-        // 播放胜利音效
-        function playWinSound() {
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-                // 播放一串上升音符
-                const notes = [523, 659, 784, 1047];
-                notes.forEach((freq, i) => {
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-
-                    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.15);
-
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + i * 0.15);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.3);
-
-                    oscillator.start(audioContext.currentTime + i * 0.15);
-                    oscillator.stop(audioContext.currentTime + i * 0.15 + 0.3);
-                });
-            } catch (e) {
-                console.log('Audio not supported');
-            }
-        }
-
-        // 更新UI
+        // Update UI
         function updateUI() {
-            const remaining = gameState.targetCount - gameState.collectedCount;
-            document.getElementById('targetNumber').textContent = `⭐ ${remaining}`;
-            document.getElementById('scoreValue').textContent = gameState.score;
-        }
+            document.getElementById('levelNum').textContent = state.currentLevel;
+            document.getElementById('targetNum').textContent = state.targetStars;
+            document.getElementById('collectedNum').textContent = state.collectedStars;
+            document.getElementById('totalNum').textContent = state.targetStars;
 
-        // 关卡完成
-        function levelComplete() {
-            gameState.isPlaying = false;
-            playWinSound();
-
-            // 显示胜利界面
-            document.getElementById('finalStars').textContent = gameState.targetCount;
-            document.getElementById('finalScore').textContent = gameState.score;
-            document.getElementById('winScreen').style.display = 'flex';
-
-            // 创建庆祝效果
-            createCelebration();
-        }
-
-        // 创建庆祝效果
-        function createCelebration() {
-            // 彩带
-            const colors = ['#FF6B6B', '#4ECDC4', '#FFD700', '#FF8E53', '#95E1D3'];
-            for (let i = 0; i < 50; i++) {
-                setTimeout(() => {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    confetti.style.left = Math.random() * 100 + 'vw';
-                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-                    document.body.appendChild(confetti);
-
-                    setTimeout(() => confetti.remove(), 3000);
-                }, i * 30);
-            }
-
-            // 飞舞的星星
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => {
-                    const star = document.createElement('div');
-                    star.className = 'star-float';
-                    star.textContent = '⭐';
-                    star.style.left = Math.random() * 100 + 'vw';
-                    star.style.bottom = '0';
-                    document.body.appendChild(star);
-
-                    setTimeout(() => star.remove(), 3000);
-                }, i * 50);
+            // Update star icons
+            const starIconsContainer = document.getElementById('starIcons');
+            starIconsContainer.innerHTML = '';
+            for (let i = 0; i < state.targetStars; i++) {
+                const icon = document.createElement('span');
+                icon.className = 'star-icon' + (i < state.collectedStars ? ' collected' : '');
+                icon.textContent = '⭐';
+                starIconsContainer.appendChild(icon);
             }
         }
 
-        // 开始游戏
-        function startGame() {
-            // 重置状态
-            gameState.targetCount = Math.min(3 + gameState.level, 10);
-            gameState.collectedCount = 0;
-            gameState.isPlaying = true;
+        // Collect star
+        function collectStar(star) {
+            createParticles(star.position);
+            scene.remove(star);
+            state.stars = state.stars.filter(s => s !== star);
+            state.collectedStars++;
 
-            // 清除旧星星
-            gameState.stars.forEach(star => {
-                scene.remove(star.mesh);
-            });
-            gameState.stars = [];
-
-            // 创建初始星星
-            for (let i = 0; i < gameState.targetCount; i++) {
-                setTimeout(() => {
-                    if (gameState.isPlaying) {
-                        createCollectibleStar();
-                    }
-                }, i * 200);
-            }
-
-            // 更新UI
+            playCollectSound();
             updateUI();
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('winScreen').style.display = 'none';
+
+            // Check win condition
+            if (state.collectedStars >= state.targetStars) {
+                setTimeout(() => {
+                    showWinScreen();
+                }, 500);
+            }
         }
 
-        // 下一关
-        function nextLevel() {
-            gameState.level++;
-            startGame();
+        // Check collision
+        function checkCollision() {
+            if (!state.ship) return;
+
+            const shipPosition = state.ship.position;
+
+            state.stars.forEach(star => {
+                const distance = shipPosition.distanceTo(star.position);
+                if (distance < 1) {
+                    collectStar(star);
+                }
+            });
         }
 
-        // 窗口大小变化
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        // 动画循环
+        // Animation loop
         function animate() {
             requestAnimationFrame(animate);
 
-            const time = Date.now() * 0.001;
+            // Rotate starfield
+            starfield.rotation.y += 0.0001;
 
-            // 背景星星闪烁
-            gameState.backgroundStars.forEach((star, i) => {
-                const flickerSpeed = 0.5 + Math.sin(time + i) * 0.5;
-                star.material.opacity = 0.3 + Math.sin(time * flickerSpeed + i) * 0.3;
+            // Rotate stars
+            state.stars.forEach(star => {
+                star.rotation.y += star.userData.rotationSpeed;
+                star.rotation.z += star.userData.rotationSpeed * 0.5;
+
+                // Make stars float
+                star.position.y += Math.sin(Date.now() * 0.001 + star.position.x) * 0.002;
             });
 
-            // 可收集星星动画
-            gameState.stars.forEach(star => {
-                if (!star.collected) {
-                    // 脉冲效果
-                    const pulse = 1 + Math.sin(time * 3 + star.pulsePhase) * 0.1;
-                    star.mesh.scale.set(pulse, pulse, pulse);
+            // Move ship towards target
+            if (state.ship && state.isPlaying) {
+                const direction = new THREE.Vector3().subVectors(state.shipTarget, state.ship.position);
+                const distance = direction.length();
 
-                    // 旋转
-                    star.mesh.rotation.x += star.rotationSpeed.x;
-                    star.mesh.rotation.y += star.rotationSpeed.y;
+                if (distance > 0.1) {
+                    direction.normalize();
+                    state.ship.position.add(direction.multiplyScalar(0.1));
 
-                    // 上下浮动
-                    star.mesh.position.y += Math.sin(time + star.floatOffset) * 0.002;
-                }
-            });
-
-            // 粒子更新
-            for (let i = gameState.particles.length - 1; i >= 0; i--) {
-                const particle = gameState.particles[i];
-                particle.mesh.position.add(particle.velocity);
-                particle.life -= particle.decay;
-                particle.mesh.material.opacity = particle.life;
-                particle.mesh.scale.setScalar(particle.life);
-
-                if (particle.life <= 0) {
-                    scene.remove(particle.mesh);
-                    gameState.particles.splice(i, 1);
+                    // Rotate ship to face movement direction
+                    state.ship.lookAt(state.shipTarget);
                 }
             }
+
+            // Update particles
+            state.particles = state.particles.filter(particle => {
+                particle.position.add(particle.userData.velocity);
+                particle.userData.life -= 0.02;
+                particle.material.opacity = particle.userData.life;
+
+                if (particle.userData.life <= 0) {
+                    scene.remove(particle);
+                    return false;
+                }
+                return true;
+            });
+
+            // Check collisions
+            checkCollision();
 
             renderer.render(scene, camera);
         }
 
-        // 事件监听
-        document.getElementById('startBtn').addEventListener('click', startGame);
-        document.getElementById('nextLevelBtn').addEventListener('click', nextLevel);
+        // Handle input
+        function handleInput(event) {
+            if (!state.isPlaying || !state.ship) return;
 
-        // 初始化
-        window.addEventListener('load', () => {
-            initThree();
-            animate();
+            event.preventDefault();
+
+            let x, y;
+            if (event.touches) {
+                x = event.touches[0].clientX;
+                y = event.touches[0].clientY;
+            } else {
+                x = event.clientX;
+                y = event.clientY;
+            }
+
+            // Convert to normalized device coordinates
+            const mouse = new THREE.Vector2(
+                (x / window.innerWidth) * 2 - 1,
+                -(y / window.innerHeight) * 2 + 1
+            );
+
+            // Project onto z=0 plane
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+            const target = new THREE.Vector3();
+            raycaster.ray.intersectPlane(plane, target);
+
+            // Clamp target position
+            target.x = Math.max(-8, Math.min(8, target.x));
+            target.y = Math.max(-5, Math.min(5, target.y));
+            target.z = 5;
+
+            state.shipTarget.copy(target);
+        }
+
+        // Event listeners
+        document.addEventListener('mousedown', handleInput);
+        document.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) handleInput(e);
         });
+        document.addEventListener('touchstart', handleInput);
+        document.addEventListener('touchmove', handleInput);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // UI Event handlers
+        document.getElementById('startBtn').addEventListener('click', () => {
+            initAudio();
+            document.getElementById('startScreen').classList.add('hidden');
+            showLevelScreen();
+        });
+
+        document.getElementById('levelBtn').addEventListener('click', () => {
+            document.getElementById('levelScreen').classList.add('hidden');
+            startLevel();
+        });
+
+        document.getElementById('nextLevelBtn').addEventListener('click', () => {
+            state.currentLevel++;
+            if (state.currentLevel > 10) {
+                state.currentLevel = 1;
+            }
+            state.targetStars = state.currentLevel;
+            document.getElementById('winScreen').classList.add('hidden');
+            showLevelScreen();
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            state.currentLevel = 1;
+            state.targetStars = 1;
+            document.getElementById('winScreen').classList.add('hidden');
+            showLevelScreen();
+        });
+
+        function showLevelScreen() {
+            document.getElementById('levelTitleNum').textContent = state.currentLevel;
+            document.getElementById('levelTarget').textContent = state.targetStars;
+            document.getElementById('levelTargetText').textContent = state.targetStars;
+            document.getElementById('levelScreen').classList.remove('hidden');
+        }
+
+        function startLevel() {
+            state.isPlaying = true;
+
+            // Create ship if it doesn't exist
+            if (!state.ship) {
+                state.ship = createSpaceship();
+                scene.add(state.ship);
+            }
+
+            state.ship.position.set(0, 0, 5);
+            state.shipTarget.set(0, 0, 5);
+
+            initLevel();
+        }
+
+        function showWinScreen() {
+            state.isPlaying = false;
+            playWinSound();
+            document.getElementById('finalStars').textContent = state.collectedStars;
+            document.getElementById('winScreen').classList.remove('hidden');
+        }
+
+        // Camera position
+        camera.position.z = 10;
+
+        // Start animation loop
+        animate();
     </script>
 </body>
 </html>
