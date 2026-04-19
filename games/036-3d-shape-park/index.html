@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D形状乐园 - 宝宝游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Nunito', 'Comic Sans MS', cursive, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #gameCanvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* 顶部UI */
+        .top-ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 100%);
+        }
+
+        .score-display {
+            background: rgba(255,255,255,0.95);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .level-display {
+            background: rgba(255,255,255,0.95);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #764ba2;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* 游戏信息提示 */
+        .info-panel {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            padding: 20px 30px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            max-width: 90%;
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .info-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-text {
+            font-size: 20px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        /* 开始界面 */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .game-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .game-subtitle {
+            font-size: 24px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 40px;
+        }
+
+        .level-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .level-btn {
+            background: white;
+            border: none;
+            padding: 25px 35px;
+            border-radius: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #667eea;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .level-btn:hover, .level-btn:active {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        /* 关卡完成界面 */
+        .complete-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        .complete-content {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            animation: popIn 0.5s ease;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .complete-title {
+            font-size: 42px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .complete-stars {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .complete-score {
+            font-size: 28px;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+
+        .continue-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            border-radius: 25px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(102,126,234,0.4);
+            transition: all 0.3s ease;
+        }
+
+        .continue-btn:hover, .continue-btn:active {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(102,126,234,0.6);
+        }
+
+        /* 反馈提示 */
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            z-index: 150;
+            animation: feedbackPop 1s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes feedbackPop {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+            30% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+            70% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) translateY(-50px);
+            }
+        }
+
+        /* 形状名称标签 */
+        .shape-label {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 101;
+            display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        /* 粒子容器 */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .particle {
+            position: fixed;
+            font-size: 30px;
+            animation: particleFly 1.5s ease-out forwards;
+        }
+
+        @keyframes particleFly {
+            to {
+                opacity: 0;
+                transform: translateY(-100px) rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- 顶部UI -->
+    <div class="top-ui">
+        <div class="score-display">⭐ <span id="score">0</span></div>
+        <div class="level-display">🎯 关卡 <span id="level">1</span></div>
+    </div>
+
+    <!-- 返回按钮 -->
+    <button class="back-btn" id="backBtn">←</button>
+
+    <!-- 信息面板 -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-title" id="infoTitle">欢迎来到3D形状乐园！</div>
+        <div class="info-text" id="infoText">点击形状看看它们长什么样</div>
+    </div>
+
+    <!-- 形状名称标签 -->
+    <div class="shape-label" id="shapeLabel"></div>
+
+    <!-- 开始界面 -->
+    <div class="start-screen" id="startScreen">
+        <div class="game-title">🎨 3D形状乐园 🎨</div>
+        <div class="game-subtitle">认识神奇的3D世界！</div>
+        <div class="level-buttons">
+            <button class="level-btn" onclick="game.startLevel(1)">1️⃣ 形状学习</button>
+            <button class="level-btn" onclick="game.startLevel(2)">2️⃣ 形状识别</button>
+            <button class="level-btn" onclick="game.startLevel(3)">3️⃣ 形状配对</button>
+            <button class="level-btn" onclick="game.startLevel(4)">4️⃣ 形状分类</button>
+        </div>
+    </div>
+
+    <!-- 关卡完成界面 -->
+    <div class="complete-screen" id="completeScreen">
+        <div class="complete-content">
+            <div class="complete-title">🎉 太棒了！🎉</div>
+            <div class="complete-stars" id="completeStars">⭐⭐⭐</div>
+            <div class="complete-score" id="completeScore">得分: 10</div>
+            <button class="continue-btn" id="continueBtn">继续</button>
+        </div>
+    </div>
+
+    <!-- 粒子容器 -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // 游戏配置
+        const SHAPES = {
+            sphere: { name: '球体', color: 0xff6b6b, emoji: '🔴' },
+            cube: { name: '立方体', color: 0x4ecdc4, emoji: '🟦' },
+            cylinder: { name: '圆柱体', color: 0xffe66d, emoji: '🟡' },
+            cone: { name: '圆锥体', color: 0x95e1d3, emoji: '🔺' },
+            pyramid: { name: '金字塔', color: 0xf38181, emoji: '🔶' },
+            torus: { name: '圆环体', color: 0xaa96da, emoji: '⭕' }
+        };
+
+        const SHAPE_NAMES = Object.keys(SHAPES);
+
+        class Game {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                this.shapes = [];
+                this.currentLevel = 1;
+                this.score = 0;
+                this.gameObjects = [];
+                this.targetShape = null;
+                this.matchedPairs = 0;
+                this.totalPairs = 0;
+                this.categories = { sphere: 0, cube: 0, cylinder: 0, cone: 0 };
+                this.categoryBaskets = [];
+                this.init();
+            }
+
+            init() {
+                // 初始化场景
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x87ceeb);
+
+                // 添加光照
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(5, 10, 5);
+                this.scene.add(directionalLight);
+
+                // 初始化相机
+                this.camera = new THREE.PerspectiveCamera(
+                    60,
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    1000
+                );
+                this.camera.position.set(0, 3, 8);
+                this.camera.lookAt(0, 0, 0);
+
+                // 初始化渲染器
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: document.getElementById('gameCanvas'),
+                    antialias: true
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+                // 添加地面
+                this.addGround();
+
+                // 事件监听
+                window.addEventListener('resize', () => this.onResize());
+                window.addEventListener('click', (e) => this.onClick(e));
+                window.addEventListener('touchstart', (e) => this.onTouch(e));
+
+                // 返回按钮
+                document.getElementById('backBtn').addEventListener('click', () => {
+                    this.showStartScreen();
+                });
+
+                // 继续按钮
+                document.getElementById('continueBtn').addEventListener('click', () => {
+                    this.hideCompleteScreen();
+                    this.showStartScreen();
+                });
+
+                // 开始动画
+                this.animate();
+            }
+
+            addGround() {
+                const groundGeometry = new THREE.PlaneGeometry(50, 50);
+                const groundMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x90ee90,
+                    side: THREE.DoubleSide
+                });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.position.y = -2;
+                this.scene.add(ground);
+
+                // 添加一些云朵装饰
+                for (let i = 0; i < 5; i++) {
+                    this.createCloud(
+                        (Math.random() - 0.5) * 20,
+                        4 + Math.random() * 2,
+                        -5 - Math.random() * 10
+                    );
+                }
+            }
+
+            createCloud(x, y, z) {
+                const cloudGroup = new THREE.Group();
+                const cloudMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+
+                for (let i = 0; i < 3; i++) {
+                    const cloudPart = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.5 + Math.random() * 0.3, 8, 8),
+                        cloudMaterial
+                    );
+                    cloudPart.position.set(
+                        (Math.random() - 0.5) * 1.5,
+                        (Math.random() - 0.5) * 0.5,
+                        (Math.random() - 0.5) * 1
+                    );
+                    cloudGroup.add(cloudPart);
+                }
+
+                cloudGroup.position.set(x, y, z);
+                this.scene.add(cloudGroup);
+                this.gameObjects.push({ mesh: cloudGroup, type: 'cloud' });
+            }
+
+            create3DShape(type, x, y, z, scale = 1) {
+                let geometry;
+                const config = SHAPES[type];
+
+                switch(type) {
+                    case 'sphere':
+                        geometry = new THREE.SphereGeometry(0.8, 16, 16);
+                        break;
+                    case 'cube':
+                        geometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+                        break;
+                    case 'cylinder':
+                        geometry = new THREE.CylinderGeometry(0.6, 0.6, 1.5, 16);
+                        break;
+                    case 'cone':
+                        geometry = new THREE.ConeGeometry(0.8, 1.5, 16);
+                        break;
+                    case 'pyramid':
+                        geometry = new THREE.ConeGeometry(0.8, 1.2, 4);
+                        break;
+                    case 'torus':
+                        geometry = new THREE.TorusGeometry(0.6, 0.25, 8, 16);
+                        break;
+                    default:
+                        geometry = new THREE.SphereGeometry(0.8, 16, 16);
+                }
+
+                const material = new THREE.MeshPhongMaterial({
+                    color: config.color,
+                    shininess: 100
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(x, y, z);
+                mesh.scale.set(scale, scale, scale);
+
+                this.scene.add(mesh);
+                this.shapes.push(mesh);
+
+                return mesh;
+            }
+
+            startLevel(level) {
+                this.currentLevel = level;
+                this.score = 0;
+                this.updateUI();
+                this.clearShapes();
+                this.hideStartScreen();
+                this.showBackBtn();
+                this.hideInfoPanel();
+
+                switch(level) {
+                    case 1:
+                        this.startLearningLevel();
+                        break;
+                    case 2:
+                        this.startRecognitionLevel();
+                        break;
+                    case 3:
+                        this.startMatchingLevel();
+                        break;
+                    case 4:
+                        this.startSortingLevel();
+                        break;
+                }
+            }
+
+            // 关卡1：形状学习
+            startLearningLevel() {
+                this.showInfo('形状学习', '点击形状，看看它们叫什么名字！');
+                this.shapes = [];
+
+                const positions = [
+                    [-3, 0, 0], [-1, 0, 0], [1, 0, 0], [3, 0, 0],
+                    [-2, 0, 2], [0, 0, 2], [2, 0, 2]
+                ];
+
+                SHAPE_NAMES.slice(0, 6).forEach((type, i) => {
+                    const mesh = this.create3DShape(
+                        type,
+                        positions[i][0],
+                        positions[i][1],
+                        positions[i][2]
+                    );
+                    mesh.userData.shapeType = type;
+                    mesh.userData.originalY = positions[i][1];
+
+                    // 添加自动旋转动画
+                    mesh.userData.rotationSpeed = 0.01;
+                });
+
+                this.gameObjects = this.shapes.map(mesh => ({
+                    mesh: mesh,
+                    type: 'shape',
+                    shapeType: mesh.userData.shapeType
+                }));
+            }
+
+            // 关卡2：形状识别
+            startRecognitionLevel() {
+                this.shapes = [];
+                this.score = 0;
+                this.questions = 0;
+                this.maxQuestions = 5;
+                this.nextQuestion();
+            }
+
+            nextQuestion() {
+                this.clearShapes();
+
+                if (this.questions >= this.maxQuestions) {
+                    this.completeLevel();
+                    return;
+                }
+
+                // 随机选择目标形状
+                const targetShapeType = SHAPE_NAMES[Math.floor(Math.random() * SHAPE_NAMES.length)];
+                this.targetShape = targetShapeType;
+
+                // 显示提示
+                const shapeName = SHAPES[targetShapeType].name;
+                this.showInfo('找到 ' + shapeName + '！', `点击${shapeName}获得星星`);
+
+                // 创建多个形状
+                const positions = [
+                    [-2.5, 0, 0], [-0.8, 0, 0], [0.8, 0, 0], [2.5, 0, 0]
+                ];
+
+                // 随机选择4个形状（确保包含目标形状）
+                const selectedShapes = [targetShapeType];
+                while (selectedShapes.length < 4) {
+                    const randomType = SHAPE_NAMES[Math.floor(Math.random() * SHAPE_NAMES.length)];
+                    if (!selectedShapes.includes(randomType)) {
+                        selectedShapes.push(randomType);
+                    }
+                }
+
+                // 打乱顺序
+                selectedShapes.sort(() => Math.random() - 0.5);
+
+                selectedShapes.forEach((type, i) => {
+                    const mesh = this.create3DShape(
+                        type,
+                        positions[i][0],
+                        positions[i][1],
+                        positions[i][2],
+                        1.2
+                    );
+                    mesh.userData.shapeType = type;
+                    mesh.userData.isTarget = (type === targetShapeType);
+                });
+
+                this.gameObjects = this.shapes.map(mesh => ({
+                    mesh: mesh,
+                    type: 'shape',
+                    shapeType: mesh.userData.shapeType,
+                    isTarget: mesh.userData.isTarget
+                }));
+
+                this.questions++;
+            }
+
+            // 关卡3：形状配对
+            startMatchingLevel() {
+                this.showInfo('形状配对', '找到两个相同的形状！');
+                this.shapes = [];
+                this.matchedPairs = 0;
+                this.totalPairs = 4;
+                this.selectedShape = null;
+                this.canClick = true;
+
+                // 选择4种形状，每种2个
+                const selectedShapes = SHAPE_NAMES.slice(0, 4);
+                const allShapes = [...selectedShapes, ...selectedShapes];
+                allShapes.sort(() => Math.random() - 0.5);
+
+                const positions = [
+                    [-3, 0, -2], [-1, 0, -2], [1, 0, -2], [3, 0, -2],
+                    [-3, 0, 1], [-1, 0, 1], [1, 0, 1], [3, 0, 1]
+                ];
+
+                allShapes.forEach((type, i) => {
+                    const mesh = this.create3DShape(
+                        type,
+                        positions[i][0],
+                        positions[i][1],
+                        positions[i][2],
+                        1.5
+                    );
+                    mesh.userData.shapeType = type;
+                    mesh.userData.matched = false;
+                    mesh.userData.pairId = i;
+                });
+
+                this.gameObjects = this.shapes.map(mesh => ({
+                    mesh: mesh,
+                    type: 'shape',
+                    shapeType: mesh.userData.shapeType
+                }));
+            }
+
+            // 关卡4：形状分类
+            startSortingLevel() {
+                this.showInfo('形状分类', '把形状拖到正确的篮子里！');
+                this.shapes = [];
+                this.score = 0;
+                this.categories = { sphere: 0, cube: 0, cylinder: 0, cone: 0 };
+                this.categoryTargets = { sphere: 2, cube: 2, cylinder: 2, cone: 2 };
+
+                // 创建分类篮子
+                const basketPositions = [
+                    [-3, -1, -2], [-1, -1, -2], [1, -1, -2], [3, -1, -2]
+                ];
+                const basketTypes = ['sphere', 'cube', 'cylinder', 'cone'];
+
+                basketTypes.forEach((type, i) => {
+                    this.createBasket(
+                        type,
+                        basketPositions[i][0],
+                        basketPositions[i][1],
+                        basketPositions[i][2]
+                    );
+                });
+
+                // 创建待分类的形状
+                const allShapes = [];
+                Object.keys(this.categoryTargets).forEach(type => {
+                    for (let i = 0; i < this.categoryTargets[type]; i++) {
+                        allShapes.push(type);
+                    }
+                });
+                allShapes.sort(() => Math.random() - 0.5);
+
+                const shapePositions = [
+                    [-2, 0, 2], [0, 0, 2], [2, 0, 2]
+                ];
+
+                allShapes.forEach((type, i) => {
+                    const mesh = this.create3DShape(
+                        type,
+                        shapePositions[i % 3][0] + (Math.random() - 0.5) * 2,
+                        shapePositions[i % 3][1],
+                        shapePositions[i % 3][2] + Math.floor(i / 3) * 1.5,
+                        0.8
+                    );
+                    mesh.userData.shapeType = type;
+                    mesh.userData.sorted = false;
+                });
+
+                this.gameObjects = this.shapes.map(mesh => ({
+                    mesh: mesh,
+                    type: 'shape',
+                    shapeType: mesh.userData.shapeType
+                }));
+            }
+
+            createBasket(type, x, y, z) {
+                const basketGroup = new THREE.Group();
+
+                // 篮子主体
+                const basketGeometry = new THREE.BoxGeometry(1.5, 1, 1.5);
+                const basketMaterial = new THREE.MeshPhongMaterial({
+                    color: SHAPES[type].color,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                const basket = new THREE.Mesh(basketGeometry, basketMaterial);
+                basketGroup.add(basket);
+
+                // 标签
+                const label = this.createTextLabel(SHAPES[type].name);
+                label.position.set(0, 0.8, 0);
+                basketGroup.add(label);
+
+                basketGroup.position.set(x, y, z);
+                this.scene.add(basketGroup);
+
+                this.categoryBaskets.push({
+                    group: basketGroup,
+                    type: type,
+                    position: new THREE.Vector3(x, y, z)
+                });
+            }
+
+            createTextLabel(text) {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 256;
+                canvas.height = 64;
+
+                context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                context.font = 'bold 36px Arial';
+                context.fillStyle = 'white';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const material = new THREE.SpriteMaterial({ map: texture });
+                const sprite = new THREE.Sprite(material);
+                sprite.scale.set(2, 0.5, 1);
+
+                return sprite;
+            }
+
+            clearShapes() {
+                this.shapes.forEach(shape => {
+                    this.scene.remove(shape);
+                });
+                this.shapes = [];
+                this.gameObjects = [];
+
+                // 清除分类篮子
+                this.categoryBaskets.forEach(basket => {
+                    this.scene.remove(basket.group);
+                });
+                this.categoryBaskets = [];
+            }
+
+            onClick(event) {
+                if (event.target.closest('.start-screen') || event.target.closest('.complete-screen')) {
+                    return;
+                }
+
+                this.updateMousePosition(event);
+                this.checkIntersections();
+            }
+
+            onTouch(event) {
+                if (event.target.closest('.start-screen') || event.target.closest('.complete-screen')) {
+                    return;
+                }
+
+                event.preventDefault();
+                this.updateMousePosition(event.touches[0]);
+                this.checkIntersections();
+            }
+
+            updateMousePosition(event) {
+                this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            }
+
+            checkIntersections() {
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                const intersects = this.raycaster.intersectObjects(this.shapes);
+
+                if (intersects.length > 0) {
+                    const clickedObject = intersects[0].object;
+                    this.handleShapeClick(clickedObject);
+                }
+            }
+
+            handleShapeClick(shape) {
+                const shapeType = shape.userData.shapeType;
+
+                // 播放音效
+                this.playPopSound();
+
+                // 跳跃动画
+                this.animateJump(shape);
+
+                switch(this.currentLevel) {
+                    case 1: // 学习模式
+                        this.showShapeLabel(SHAPES[shapeType].name);
+                        this.animateRotation(shape);
+                        this.score++;
+                        this.updateUI();
+                        break;
+
+                    case 2: // 识别模式
+                        if (shape.userData.isTarget) {
+                            this.showFeedback('✨ 真棒！✨');
+                            this.spawnParticles(shape);
+                            this.score += 10;
+                            this.updateUI();
+                            setTimeout(() => this.nextQuestion(), 1000);
+                        } else {
+                            this.showFeedback('❌ 再试试 ❌');
+                            this.score = Math.max(0, this.score - 2);
+                            this.updateUI();
+                        }
+                        break;
+
+                    case 3: // 配对模式
+                        if (!this.canClick || shape.userData.matched) return;
+
+                        if (!this.selectedShape) {
+                            this.selectedShape = shape;
+                            this.animateHighlight(shape);
+                        } else if (this.selectedShape === shape) {
+                            this.selectedShape = null;
+                            this.removeHighlight(shape);
+                        } else {
+                            if (this.selectedShape.userData.shapeType === shapeType) {
+                                // 配对成功
+                                this.selectedShape.userData.matched = true;
+                                shape.userData.matched = true;
+                                this.showFeedback('✨ 配对成功！✨');
+                                this.spawnParticles(shape);
+                                this.score += 10;
+                                this.matchedPairs++;
+                                this.updateUI();
+
+                                this.removeHighlight(this.selectedShape);
+                                this.selectedShape = null;
+
+                                if (this.matchedPairs >= this.totalPairs) {
+                                    setTimeout(() => this.completeLevel(), 1000);
+                                }
+                            } else {
+                                // 配对失败
+                                this.showFeedback('❌ 不一样哦 ❌');
+                                this.removeHighlight(this.selectedShape);
+                                this.selectedShape = null;
+                            }
+                        }
+                        break;
+
+                    case 4: // 分类模式
+                        if (shape.userData.sorted) return;
+
+                        // 找到最近的篮子
+                        let closestBasket = null;
+                        let minDistance = Infinity;
+
+                        this.categoryBaskets.forEach(basket => {
+                            const distance = shape.position.distanceTo(basket.position);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                closestBasket = basket;
+                            }
+                        });
+
+                        if (closestBasket && minDistance < 2) {
+                            if (closestBasket.type === shapeType) {
+                                // 正确分类
+                                shape.userData.sorted = true;
+                                this.showFeedback('✨ 太棒了！✨');
+                                this.spawnParticles(shape);
+                                this.score += 10;
+                                this.categories[shapeType]++;
+
+                                // 移动到篮子
+                                this.animateMoveToBasket(shape, closestBasket.position);
+
+                                // 检查是否全部完成
+                                const allSorted = Object.values(this.categories).reduce((a, b) => a + b, 0);
+                                if (allSorted >= 8) {
+                                    setTimeout(() => this.completeLevel(), 1000);
+                                }
+                            } else {
+                                this.showFeedback('❌ 放错地方啦 ❌');
+                                this.score = Math.max(0, this.score - 2);
+                            }
+                        } else {
+                            this.showFeedback('❌ 靠近篮子再点 ❌');
+                        }
+                        this.updateUI();
+                        break;
+                }
+            }
+
+            animateJump(shape) {
+                const startY = shape.userData.originalY || shape.position.y;
+                const jumpHeight = 0.5;
+                const jumpDuration = 300;
+                const startTime = Date.now();
+
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / jumpDuration;
+
+                    if (progress < 1) {
+                        const yOffset = Math.sin(progress * Math.PI) * jumpHeight;
+                        shape.position.y = startY + yOffset;
+                        requestAnimationFrame(animate);
+                    } else {
+                        shape.position.y = startY;
+                    }
+                };
+
+                animate();
+            }
+
+            animateRotation(shape) {
+                const rotateDuration = 2000;
+                const startTime = Date.now();
+
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / rotateDuration;
+
+                    if (progress < 1) {
+                        shape.rotation.y += 0.05;
+                        requestAnimationFrame(animate);
+                    }
+                };
+
+                animate();
+            }
+
+            animateHighlight(shape) {
+                shape.material.emissive = new THREE.Color(0xffff00);
+                shape.material.emissiveIntensity = 0.5;
+            }
+
+            removeHighlight(shape) {
+                shape.material.emissive = new THREE.Color(0x000000);
+                shape.material.emissiveIntensity = 0;
+            }
+
+            animateMoveToBasket(shape, targetPos) {
+                const startPos = shape.position.clone();
+                const duration = 500;
+                const startTime = Date.now();
+
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    shape.position.lerpVectors(startPos, targetPos, progress);
+                    shape.scale.multiplyScalar(0.95);
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        shape.visible = false;
+                    }
+                };
+
+                animate();
+            }
+
+            showShapeLabel(name) {
+                const label = document.getElementById('shapeLabel');
+                label.textContent = name;
+                label.style.display = 'block';
+
+                setTimeout(() => {
+                    label.style.display = 'none';
+                }, 2000);
+            }
+
+            showFeedback(text) {
+                const feedback = document.createElement('div');
+                feedback.className = 'feedback';
+                feedback.textContent = text;
+                document.body.appendChild(feedback);
+
+                setTimeout(() => {
+                    document.body.removeChild(feedback);
+                }, 1000);
+            }
+
+            spawnParticles(shape) {
+                const vector = shape.position.clone();
+                vector.project(this.camera);
+
+                const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+
+                const particles = document.getElementById('particles');
+
+                for (let i = 0; i < 8; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.textContent = ['⭐', '✨', '🌟'][Math.floor(Math.random() * 3)];
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    particle.style.transform = `translate(${(Math.random() - 0.5) * 100}px, ${(Math.random() - 0.5) * 100}px)`;
+                    particles.appendChild(particle);
+
+                    setTimeout(() => {
+                        particles.removeChild(particle);
+                    }, 1500);
+                }
+            }
+
+            completeLevel() {
+                const stars = this.score >= 40 ? '⭐⭐⭐' :
+                              this.score >= 20 ? '⭐⭐' : '⭐';
+
+                document.getElementById('completeStars').textContent = stars;
+                document.getElementById('completeScore').textContent = '得分: ' + this.score;
+                document.getElementById('completeScreen').style.display = 'flex';
+            }
+
+            updateUI() {
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('level').textContent = this.currentLevel;
+            }
+
+            showInfo(title, text) {
+                document.getElementById('infoTitle').textContent = title;
+                document.getElementById('infoText').textContent = text;
+                document.getElementById('infoPanel').style.display = 'block';
+            }
+
+            hideInfoPanel() {
+                document.getElementById('infoPanel').style.display = 'none';
+            }
+
+            hideStartScreen() {
+                document.getElementById('startScreen').style.display = 'none';
+            }
+
+            showStartScreen() {
+                document.getElementById('startScreen').style.display = 'flex';
+                document.getElementById('backBtn').style.display = 'none';
+                this.clearShapes();
+            }
+
+            showBackBtn() {
+                document.getElementById('backBtn').style.display = 'block';
+            }
+
+            hideCompleteScreen() {
+                document.getElementById('completeScreen').style.display = 'none';
+            }
+
+            playPopSound() {
+                // 创建简单的音效
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.3;
+
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            }
+
+            onResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                // 旋转所有形状
+                this.shapes.forEach(shape => {
+                    shape.rotation.y += 0.005;
+                    shape.rotation.x += 0.002;
+                });
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // 启动游戏
+        const game = new Game();
+    </script>
+</body>
+</html>

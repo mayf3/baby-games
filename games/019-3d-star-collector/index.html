@@ -320,7 +320,8 @@
             const geometry = new THREE.BufferGeometry();
             const vertices = [];
 
-            for (let i = 0; i < 5000; i++) {
+            // 优化：从5000减少到3000，提升低端设备性能
+            for (let i = 0; i < 3000; i++) {
                 vertices.push(
                     (Math.random() - 0.5) * 200,
                     (Math.random() - 0.5) * 200,
@@ -332,7 +333,7 @@
 
             const material = new THREE.PointsMaterial({
                 color: 0xffffff,
-                size: 0.1,
+                size: 0.12,
                 transparent: true,
                 opacity: 0.8
             });
