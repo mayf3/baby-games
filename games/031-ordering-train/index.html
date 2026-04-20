@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>排序小火车 - Ordering Train</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .game-title {
+            font-size: 28px;
+            color: #FF6B6B;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .game-instruction {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4ECDC4;
+        }
+
+        .train-track {
+            position: relative;
+            background: #8B4513;
+            border-radius: 10px;
+            padding: 20px 10px;
+            margin: 30px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .track-rails {
+            position: absolute;
+            bottom: 5px;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: repeating-linear-gradient(
+                90deg,
+                #654321,
+                #654321 20px,
+                #8B4513 20px,
+                #8B4513 30px
+            );
+        }
+
+        .train {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 10px;
+            min-height: 150px;
+            padding: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .locomotive {
+            font-size: 60px;
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-3px); }
+        }
+
+        .car {
+            background: white;
+            border: 3px solid #FF6B6B;
+            border-radius: 15px;
+            padding: 15px 10px;
+            min-width: 80px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .car.wheels {
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+
+        .wheel {
+            width: 16px;
+            height: 16px;
+            background: #333;
+            border-radius: 50%;
+            border: 2px solid #666;
+        }
+
+        .car-content {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .car-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ECDC4;
+        }
+
+        .items-pool {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .pool-title {
+            font-size: 20px;
+            color: #FF6B6B;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .pool-items {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            min-height: 80px;
+        }
+
+        .pool-item {
+            background: linear-gradient(135deg, #FFE66D 0%, #FFB347 100%);
+            border: 3px solid #FF6B6B;
+            border-radius: 15px;
+            padding: 15px 20px;
+            font-size: 36px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            user-select: none;
+            min-width: 70px;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pool-item:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .pool-item:active {
+            transform: scale(0.95);
+        }
+
+        .pool-item.selected {
+            background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+            border-color: #2ECC71;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            user-select: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+        }
+
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .success-overlay.show {
+            display: flex;
+        }
+
+        .success-message {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            text-align: center;
+            animation: popIn 0.5s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .success-emoji {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 0.6s ease infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .success-text {
+            font-size: 28px;
+            color: #FF6B6B;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .stars {
+            position: fixed;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .star {
+            position: absolute;
+            font-size: 30px;
+            animation: fall 1.5s ease-in forwards;
+        }
+
+        @keyframes fall {
+            0% {
+                opacity: 1;
+                transform: translateY(0) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(400px) rotate(360deg);
+            }
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #f0f;
+            position: absolute;
+            animation: confetti-fall 3s ease-in-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                opacity: 1;
+                transform: translateY(0) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(100vh) rotate(720deg);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .game-title {
+                font-size: 22px;
+            }
+
+            .car {
+                min-width: 60px;
+                height: 80px;
+                padding: 10px 5px;
+            }
+
+            .car-content {
+                font-size: 24px;
+            }
+
+            .car-number {
+                font-size: 18px;
+            }
+
+            .pool-item {
+                font-size: 28px;
+                padding: 10px 15px;
+                min-width: 55px;
+                min-height: 55px;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+
+            .locomotive {
+                font-size: 45px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 class="game-title">🚂 排序小火车 Ordering Train</h1>
+            <p class="game-instruction" id="instruction">点击物品,然后点击车厢按正确顺序挂车厢!</p>
+            <div class="level-info">
+                <span id="level-text">关卡 1/4</span>
+                <span id="progress-text">进度: 0/5</span>
+            </div>
+        </div>
+
+        <div class="train-track">
+            <div class="train" id="train">
+                <div class="locomotive">🚂</div>
+                <!-- 车厢会在这里动态生成 -->
+            </div>
+            <div class="track-rails"></div>
+        </div>
+
+        <div class="items-pool">
+            <div class="pool-title" id="pool-title">选择物品挂到车厢上</div>
+            <div class="pool-items" id="pool-items">
+                <!-- 物品会在这里动态生成 -->
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-secondary" id="hint-btn" onclick="showHint()">💡 提示</button>
+            <button class="btn" id="check-btn" onclick="checkOrder()">✅ 检查答案</button>
+            <button class="btn btn-secondary" id="reset-btn" onclick="resetLevel()">🔄 重新开始</button>
+        </div>
+    </div>
+
+    <div class="success-overlay" id="success-overlay">
+        <div class="success-message">
+            <div class="success-emoji">🎉</div>
+            <div class="success-text" id="success-text">太棒了!</div>
+            <p id="success-detail">完成本关!</p>
+            <button class="btn" onclick="nextLevel()">下一关 ➡️</button>
+        </div>
+    </div>
+
+    <div class="stars" id="stars"></div>
+
+    <script>
+        // 游戏数据
+        const levels = [
+            {
+                name: "数字排序",
+                instruction: "把数字按从小到大的顺序挂到车厢上! (1 → 2 → 3 → 4 → 5)",
+                items: [
+                    { content: "1", type: "number", order: 1 },
+                    { content: "2", type: "number", order: 2 },
+                    { content: "3", type: "number", order: 3 },
+                    { content: "4", type: "number", order: 4 },
+                    { content: "5", type: "number", order: 5 }
+                ]
+            },
+            {
+                name: "大小排序",
+                instruction: "把物体按从小到大的顺序挂到车厢上! (小 → 中 → 大)",
+                items: [
+                    { content: "🔵", type: "size", size: "small", order: 1, label: "小" },
+                    { content: "🔵", type: "size", size: "medium", order: 2, label: "中" },
+                    { content: "🔵", type: "size", size: "large", order: 3, label: "大" },
+                    { content: "🔵", type: "size", size: "xlarge", order: 4, label: "超大" },
+                    { content: "🔵", type: "size", size: "xxlarge", order: 5, label: "最大" }
+                ]
+            },
+            {
+                name: "长短排序",
+                instruction: "把物体按从短到长的顺序挂到车厢上! (短 → 长)",
+                items: [
+                    { content: "📍", type: "length", length: "short", order: 1, label: "短" },
+                    { content: "📍", type: "length", length: "medium", order: 2, label: "中" },
+                    { content: "📍", type: "length", length: "long", order: 3, label: "长" },
+                    { content: "📍", type: "length", length: "xlong", order: 4, label: "很长" },
+                    { content: "📍", type: "length", length: "xxlong", order: 5, label: "最长" }
+                ]
+            },
+            {
+                name: "高矮排序",
+                instruction: "把物体按从矮到高的顺序挂到车厢上! (矮 → 高)",
+                items: [
+                    { content: "🌳", type: "height", height: "short", order: 1, label: "矮" },
+                    { content: "🌳", type: "height", height: "medium", order: 2, label: "中" },
+                    { content: "🌳", type: "height", height: "tall", order: 3, label: "高" },
+                    { content: "🌳", type: "height", height: "xtall", order: 4, label: "很高" },
+                    { content: "🌳", type: "height", height: "xxtall", order: 5, label: "最高" }
+                ]
+            }
+        ];
+
+        let currentLevel = 0;
+        let selectedItem = null;
+        let carItems = [];
+        let poolItems = [];
+
+        // 音效 (使用 Web Audio API)
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            if (type === 'click') {
+                oscillator.frequency.value = 800;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } else if (type === 'success') {
+                oscillator.frequency.value = 523.25;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+
+                setTimeout(() => {
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.frequency.value = 659.25;
+                    gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    osc2.start(audioContext.currentTime);
+                    osc2.stop(audioContext.currentTime + 0.3);
+                }, 150);
+            } else if (type === 'error') {
+                oscillator.frequency.value = 200;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+            } else if (type === 'train') {
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.value = 150;
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            }
+        }
+
+        // 初始化关卡
+        function initLevel() {
+            const level = levels[currentLevel];
+            document.getElementById('level-text').textContent = `关卡 ${currentLevel + 1}/4`;
+            document.getElementById('instruction').textContent = level.instruction;
+            document.getElementById('pool-title').textContent = `选择物品挂到车厢上`;
+
+            // 清空车厢和物品池
+            carItems = new Array(level.items.length).fill(null);
+            poolItems = [...level.items];
+
+            // 打乱物品顺序
+            poolItems.sort(() => Math.random() - 0.5);
+
+            renderTrain();
+            renderPool();
+            updateProgress();
+        }
+
+        // 渲染火车
+        function renderTrain() {
+            const train = document.getElementById('train');
+            // 保留火车头
+            train.innerHTML = '<div class="locomotive">🚂</div>';
+
+            for (let i = 0; i < carItems.length; i++) {
+                const car = document.createElement('div');
+                car.className = 'car';
+                car.onclick = () => placeItem(i);
+
+                const wheels = document.createElement('div');
+                wheels.className = 'wheels';
+                wheels.innerHTML = '<div class="wheel"></div><div class="wheel"></div>';
+
+                if (carItems[i]) {
+                    const content = document.createElement('div');
+                    content.className = 'car-content';
+
+                    const item = carItems[i];
+                    if (item.type === 'number') {
+                        content.textContent = item.content;
+                        content.style.fontSize = '36px';
+                    } else if (item.type === 'size') {
+                        content.textContent = item.content;
+                        const sizes = { small: '24px', medium: '32px', large: '40px', xlarge: '48px', xxlarge: '56px' };
+                        content.style.fontSize = sizes[item.size];
+                    } else if (item.type === 'length') {
+                        content.textContent = item.content;
+                        const lengths = { short: '20px', medium: '30px', long: '40px', xlong: '50px', xxlong: '60px' };
+                        content.style.width = lengths[item.length];
+                        content.style.height = '10px';
+                        content.style.background = '#FF6B6B';
+                        content.style.borderRadius = '5px';
+                    } else if (item.type === 'height') {
+                        content.textContent = item.content;
+                        const heights = { short: '30px', medium: '45px', tall: '60px', xtall: '75px', xxtall: '90px' };
+                        content.style.fontSize = heights[item.height];
+                    }
+
+                    const number = document.createElement('div');
+                    number.className = 'car-number';
+                    number.textContent = `车厢 ${i + 1}`;
+
+                    car.appendChild(content);
+                    car.appendChild(number);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.textContent = `${i + 1}`;
+                    placeholder.style.fontSize = '24px';
+                    placeholder.style.color = '#ccc';
+                    placeholder.style.fontWeight = 'bold';
+                    car.appendChild(placeholder);
+                }
+
+                car.appendChild(wheels);
+                train.appendChild(car);
+            }
+        }
+
+        // 渲染物品池
+        function renderPool() {
+            const pool = document.getElementById('pool-items');
+            pool.innerHTML = '';
+
+            poolItems.forEach((item, index) => {
+                const poolItem = document.createElement('div');
+                poolItem.className = 'pool-item';
+                if (selectedItem === index) {
+                    poolItem.classList.add('selected');
+                }
+
+                if (item.type === 'number') {
+                    poolItem.textContent = item.content;
+                } else if (item.type === 'size') {
+                    poolItem.textContent = item.content;
+                    const sizes = { small: '28px', medium: '36px', large: '44px', xlarge: '52px', xxlarge: '60px' };
+                    poolItem.style.fontSize = sizes[item.size];
+                } else if (item.type === 'length') {
+                    poolItem.textContent = item.content;
+                    const lengths = { short: '15px', medium: '25px', long: '35px', xlong: '45px', xxlong: '55px' };
+                    poolItem.style.width = lengths[item.length];
+                    poolItem.style.height = '10px';
+                    poolItem.style.background = '#FF6B6B';
+                    poolItem.style.borderRadius = '5px';
+                    poolItem.style.minWidth = '20px';
+                } else if (item.type === 'height') {
+                    poolItem.textContent = item.content;
+                    const heights = { short: '30px', medium: '45px', tall: '60px', xtall: '75px', xxtall: '90px' };
+                    poolItem.style.fontSize = heights[item.height];
+                }
+
+                poolItem.onclick = () => selectItem(index);
+                pool.appendChild(poolItem);
+            });
+        }
+
+        // 选择物品
+        function selectItem(index) {
+            playSound('click');
+            selectedItem = index;
+            renderPool();
+        }
+
+        // 放置物品到车厢
+        function placeItem(carIndex) {
+            if (selectedItem === null) {
+                playSound('error');
+                return;
+            }
+
+            playSound('click');
+
+            // 如果车厢已有物品,放回物品池
+            if (carItems[carIndex]) {
+                poolItems.push(carItems[carIndex]);
+            }
+
+            // 放置新物品
+            carItems[carIndex] = poolItems[selectedItem];
+            poolItems.splice(selectedItem, 1);
+            selectedItem = null;
+
+            renderTrain();
+            renderPool();
+            updateProgress();
+
+            // 检查是否所有车厢都已挂载
+            if (poolItems.length === 0) {
+                setTimeout(() => checkOrder(), 500);
+            }
+        }
+
+        // 更新进度
+        function updateProgress() {
+            const filled = carItems.filter(item => item !== null).length;
+            const total = carItems.length;
+            document.getElementById('progress-text').textContent = `进度: ${filled}/${total}`;
+        }
+
+        // 检查顺序
+        function checkOrder() {
+            const level = levels[currentLevel];
+
+            // 检查是否所有车厢都已挂载
+            if (carItems.includes(null)) {
+                playSound('error');
+                alert('请先把所有物品都挂到车厢上哦!');
+                return;
+            }
+
+            // 检查顺序是否正确
+            let correct = true;
+            for (let i = 0; i < carItems.length; i++) {
+                if (carItems[i].order !== i + 1) {
+                    correct = false;
+                    break;
+                }
+            }
+
+            if (correct) {
+                playSound('success');
+                playSound('train');
+                showSuccess();
+            } else {
+                playSound('error');
+                alert('顺序不对哦,再试试吧!💡 提示:应该按从小到大的顺序');
+            }
+        }
+
+        // 显示成功界面
+        function showSuccess() {
+            createStars();
+            createConfetti();
+
+            const overlay = document.getElementById('success-overlay');
+            const successText = document.getElementById('success-text');
+            const detail = document.getElementById('success-detail');
+
+            if (currentLevel < levels.length - 1) {
+                successText.textContent = '太棒了! 🎉';
+                detail.textContent = '完成本关,准备进入下一关!';
+            } else {
+                successText.textContent = '恭喜通关! 🏆';
+                detail.textContent = '你学会了排序能力,真厉害!';
+            }
+
+            overlay.classList.add('show');
+        }
+
+        // 下一关
+        function nextLevel() {
+            document.getElementById('success-overlay').classList.remove('show');
+
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+                initLevel();
+            } else {
+                // 游戏通关
+                currentLevel = 0;
+                initLevel();
+                alert('🎉 恭喜你完成所有关卡! 你已经掌握了排序能力! 🌟');
+            }
+        }
+
+        // 重置关卡
+        function resetLevel() {
+            playSound('click');
+            initLevel();
+        }
+
+        // 显示提示
+        function showHint() {
+            playSound('click');
+            const level = levels[currentLevel];
+            alert(`💡 提示:\n${level.instruction}`);
+        }
+
+        // 创建星星动画
+        function createStars() {
+            const container = document.getElementById('stars');
+            const emojis = ['⭐', '🌟', '✨', '💫', '🎉', '🎊'];
+
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    star.style.left = Math.random() * window.innerWidth + 'px';
+                    star.style.top = Math.random() * window.innerHeight * 0.3 + 'px';
+                    container.appendChild(star);
+
+                    setTimeout(() => star.remove(), 1500);
+                }, i * 100);
+            }
+        }
+
+        // 创建彩带动画
+        function createConfetti() {
+            const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#FF8E8E', '#45B7D1', '#96CEB4'];
+
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * window.innerWidth + 'px';
+                    confetti.style.top = '-10px';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    document.body.appendChild(confetti);
+
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 50);
+            }
+        }
+
+        // 初始化游戏
+        initLevel();
+    </script>
+</body>
+</html>
