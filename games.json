@@ -256,5 +256,17 @@
     "description": "帮助小火车按正确顺序挂车厢！四个关卡：数字排序(1-5)、大小排序(小→大)、长短排序(短→长)、高矮排序(矮→高)，培养排序能力和逻辑思维，为数学学习打基础",
     "path": "games/031-ordering-train/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "020-3d-block-builder",
+    "title": "3D积木搭建",
+    "emoji": "🧱",
+    "type": "creative",
+    "typeLabel": "创意类",
+    "age": "3-6岁",
+    "description": "选择不同颜色和形状的3D积木，点击地面自由搭建城堡、房子或任何想象中的东西！培养空间创造力、建构能力和平衡感，拖动旋转视角欣赏你的作品，完成后还有庆祝烟花",
+    "path": "games/020-3d-block-builder/index.html",
+    "difficulty": "简单",
+    "dimension": "3D"
   }
 ]

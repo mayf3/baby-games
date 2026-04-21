@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🧱 3D积木搭建</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', 'Noto Sans SC', sans-serif;
+            background: #87CEEB;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* UI Overlay */
+        .ui-layer {
+            position: fixed;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Block selector palette */
+        .block-palette {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px 25px 0 0;
+            padding: 15px;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 35vh;
+            overflow-y: auto;
+        }
+
+        .palette-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .palette-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            padding: 0 5px;
+        }
+
+        .palette-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 5px;
+            scrollbar-width: none;
+        }
+
+        .palette-row::-webkit-scrollbar {
+            display: none;
+        }
+
+        .block-btn {
+            flex-shrink: 0;
+            width: 60px;
+            height: 60px;
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .block-btn:active {
+            transform: scale(0.95);
+        }
+
+        .block-btn.selected {
+            border-color: #FF6B6B;
+            border-width: 4px;
+            background: #FFF5F5;
+            transform: scale(1.05);
+        }
+
+        .block-btn .block-icon {
+            font-size: 36px;
+        }
+
+        /* Action buttons */
+        .action-bar {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .action-btn {
+            width: 55px;
+            height: 55px;
+            border: none;
+            border-radius: 50%;
+            font-size: 26px;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-undo {
+            background: #FFE066;
+            color: #8B7355;
+        }
+
+        .btn-clear {
+            background: #FF6B6B;
+            color: white;
+        }
+
+        .btn-celebrate {
+            background: #4ECDC4;
+            color: white;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.9);
+            color: #666;
+        }
+
+        /* Block counter */
+        .block-counter {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            pointer-events: auto;
+        }
+
+        .block-counter .emoji {
+            font-size: 28px;
+        }
+
+        .block-counter .count {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FF6B6B;
+        }
+
+        /* Placement preview */
+        .placement-hint {
+            position: fixed;
+            bottom: 38vh;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 12px 24px;
+            font-size: 18px;
+            color: #666;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.15);
+            pointer-events: none;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1; }
+        }
+
+        /* Start screen */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, #FF6B9D 0%, #C44DFF 50%, #6BB5FF 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .overlay.hidden {
+            display: none;
+        }
+
+        .overlay h1 {
+            font-size: 42px;
+            color: white;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .overlay .block-art {
+            font-size: 70px;
+            animation: floatBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes floatBounce {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-10px) rotate(-3deg); }
+            75% { transform: translateY(-10px) rotate(3deg); }
+        }
+
+        .play-btn {
+            background: #FFD700;
+            border: none;
+            border-radius: 30px;
+            padding: 18px 50px;
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF6B6B;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #E6B800, 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .play-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #E6B800, 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .overlay .instructions {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 20px;
+            text-align: center;
+            padding: 0 20px;
+            line-height: 1.6;
+        }
+
+        /* Celebration overlay */
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .celebration.hidden {
+            display: none;
+        }
+
+        .celebration .card {
+            background: white;
+            border-radius: 30px;
+            padding: 40px 50px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 90%;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .celebration .card h2 {
+            font-size: 36px;
+            color: #FF6B9D;
+            margin-bottom: 15px;
+        }
+
+        .celebration .card .stats {
+            font-size: 24px;
+            color: #666;
+            margin: 15px 0;
+        }
+
+        .celebration .card .stars {
+            font-size: 50px;
+            margin: 15px 0;
+        }
+
+        .celebration .card .message {
+            font-size: 22px;
+            color: #666;
+            margin: 15px 0;
+        }
+
+        .celebration-btn {
+            background: #4ECDC4;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #3DA89C, 0 8px 15px rgba(0, 0, 0, 0.2);
+            margin: 5px;
+        }
+
+        .celebration-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #3DA89C, 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .celebration-btn.secondary {
+            background: #FFE066;
+            color: #8B7355;
+            box-shadow: 0 4px 0 #D4B84A, 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .celebration-btn.secondary:active {
+            box-shadow: 0 1px 0 #D4B84A, 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Firework particles */
+        .firework {
+            position: fixed;
+            z-index: 101;
+            font-size: 30px;
+            pointer-events: none;
+            animation: fireworkBurst 1s ease-out forwards;
+        }
+
+        @keyframes fireworkBurst {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.5); }
+        }
+
+        /* Place feedback */
+        .place-feedback {
+            position: fixed;
+            z-index: 50;
+            font-size: 40px;
+            pointer-events: none;
+            animation: placeAnim 0.8s ease-out forwards;
+        }
+
+        @keyframes placeAnim {
+            0% { opacity: 1; transform: translateY(0) scale(1.5); }
+            100% { opacity: 0; transform: translateY(-50px) scale(0.8); }
+        }
+
+        /* Rotate hint */
+        .rotate-hint {
+            position: fixed;
+            bottom: 38vh;
+            right: 15px;
+            z-index: 15;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 10px 15px;
+            font-size: 14px;
+            color: #666;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Start Screen -->
+    <div class="overlay" id="startScreen">
+        <div class="block-art">🧱🏗️🏰</div>
+        <h1>3D积木搭建</h1>
+        <p class="instructions">
+            选择积木，点击地面放置<br>
+            拖动旋转视角，搭建你的城堡！<br>
+            想搭什么就搭什么！✨
+        </p>
+        <button class="play-btn" id="startBtn">开始搭建！🔨</button>
+    </div>
+
+    <!-- Celebration Screen -->
+    <div class="celebration hidden" id="celebrationScreen">
+        <div class="card">
+            <h2>太棒了！🎉</h2>
+            <div class="stars">⭐⭐⭐⭐⭐</div>
+            <div class="stats" id="celebrationStats">
+                用了 <strong>0</strong> 块积木<br>
+                搭建了一个大作品！
+            </div>
+            <div class="message">你真是小小建筑师！🏗️</div>
+            <div>
+                <button class="celebration-btn secondary" id="continueBtn">继续搭建</button>
+                <button class="celebration-btn" id="newBtn">新的作品</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Block Counter -->
+    <div class="block-counter" id="blockCounter" style="display:none;">
+        <span class="emoji">🧱</span>
+        <span class="count" id="blockCount">0</span>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-bar" id="actionBar" style="display:none;">
+        <button class="action-btn btn-back" id="backBtn">🏠</button>
+        <button class="action-btn btn-undo" id="undoBtn">↩️</button>
+        <button class="action-btn btn-clear" id="clearBtn">🗑️</button>
+        <button class="action-btn btn-celebrate" id="celebrateBtn">🎉</button>
+    </div>
+
+    <!-- Placement Hint -->
+    <div class="placement-hint" id="placementHint" style="display:none;">
+        👆 点击地面放置积木
+    </div>
+
+    <!-- Rotate Hint -->
+    <div class="rotate-hint" id="rotateHint" style="display:none;">
+        🔄 拖动旋转视角
+    </div>
+
+    <!-- Block Palette -->
+    <div class="block-palette" id="blockPalette" style="display:none;">
+        <div class="palette-section">
+            <div class="palette-label">🎨 颜色</div>
+            <div class="palette-row" id="colorRow"></div>
+        </div>
+        <div class="palette-section">
+            <div class="palette-label">📦 形状</div>
+            <div class="palette-row" id="shapeRow"></div>
+        </div>
+    </div>
+
+    <!-- Three.js Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        // ===== AUDIO =====
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function ensureAudio() {
+            if (!audioCtx) audioCtx = new AudioCtx();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playPlace(pitch) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300 * (pitch || 1), audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600 * (pitch || 1), audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playUndo() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        }
+
+        function playCelebrate() {
+            if (!audioCtx) return;
+            const notes = [523, 659, 784, 1047, 784, 659];
+            notes.forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                }, i * 150);
+            });
+        }
+
+        // ===== BLOCK DEFINITIONS =====
+        const COLORS = [
+            { hex: 0xFF6B6B, name: '红色', emoji: '🔴' },
+            { hex: 0x4ECDC4, name: '青色', emoji: '🟢' },
+            { hex: 0xFFD93D, name: '黄色', emoji: '🟡' },
+            { hex: 0x95E1D3, name: '绿色', emoji: '🟢' },
+            { hex: 0xF38181, name: '粉色', emoji: '🌸' },
+            { hex: 0xAA96DA, name: '紫色', emoji: '🟣' },
+            { hex: 0xFF9A76, name: '橙色', emoji: '🟠' },
+            { hex: 0x6BB5FF, name: '蓝色', emoji: '🔵' },
+        ];
+
+        const SHAPES = [
+            { id: 'cube', name: '立方体', emoji: '📦', w: 1, h: 1, d: 1 },
+            { id: 'tall', name: '高块', emoji: '🧱', w: 1, h: 2, d: 1 },
+            { id: 'flat', name: '平板', emoji: '📋', w: 2, h: 0.5, d: 2 },
+            { id: 'wide', name: '长条', emoji: '📏', w: 2, h: 1, d: 1 },
+            { id: 'cylinder', name: '圆柱', emoji: '🗑️', w: 1, h: 1, d: 1, isCylinder: true },
+        ];
+
+        // ===== GAME STATE =====
+        let state = {
+            selectedColor: COLORS[0],
+            selectedShape: SHAPES[0],
+            blocks: [],
+            blockCount: 0,
+            cameraAngle: 0,
+            cameraHeight: 8,
+            cameraDistance: 12,
+            isDragging: false,
+            lastTouchX: 0,
+        };
+
+        // ===== THREE.JS SETUP =====
+        const scene = new THREE.Scene();
+
+        // Sky gradient
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = 2;
+        bgCanvas.height = 512;
+        const bgCtx = bgCanvas.getContext('2d');
+        const bgGrad = bgCtx.createLinearGradient(0, 0, 0, 512);
+        bgGrad.addColorStop(0, '#87CEEB');
+        bgGrad.addColorStop(0.5, '#B8E4F0');
+        bgGrad.addColorStop(1, '#E8F8FF');
+        bgCtx.fillStyle = bgGrad;
+        bgCtx.fillRect(0, 0, 2, 512);
+        const bgTexture = new THREE.CanvasTexture(bgCanvas);
+        scene.background = bgTexture;
+
+        scene.fog = new THREE.Fog(0xB8E4F0, 15, 40);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 8, 12);
+        camera.lookAt(0, 1, 0);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = false;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        // Ground - building platform
+        const groundGeo = new THREE.PlaneGeometry(20, 20);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x7EC850 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.01;
+        ground.userData.isGround = true;
+        scene.add(ground);
+
+        // Grid helper
+        const gridHelper = new THREE.GridHelper(20, 20, 0x88AA88, 0x88AA88);
+        gridHelper.position.y = 0;
+        scene.add(gridHelper);
+
+        // Sun
+        const sunGeo = new THREE.SphereGeometry(1.5, 24, 16);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFD93D });
+        const sun = new THREE.Mesh(sunGeo, sunMat);
+        sun.position.set(10, 14, -15);
+        scene.add(sun);
+
+        // Decorative clouds
+        function createCloud(x, y, z) {
+            const group = new THREE.Group();
+            const cloudMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+            for (let i = 0; i < 5; i++) {
+                const size = 0.8 + Math.random() * 1.2;
+                const cloudGeo = new THREE.SphereGeometry(size, 12, 8);
+                const part = new THREE.Mesh(cloudGeo, cloudMat);
+                part.position.set(Math.random() * 3 - 1.5, Math.random() * 0.5, Math.random() * 1 - 0.5);
+                group.add(part);
+            }
+            group.position.set(x, y, z);
+            return group;
+        }
+
+        const clouds = [];
+        for (let i = 0; i < 6; i++) {
+            const cloud = createCloud(
+                -15 + Math.random() * 30,
+                10 + Math.random() * 5,
+                -10 - Math.random() * 10
+            );
+            scene.add(cloud);
+            clouds.push(cloud);
+        }
+
+        // ===== BLOCK CREATION =====
+        function createBlock(shape, color, position) {
+            let geometry;
+            if (shape.isCylinder) {
+                geometry = new THREE.CylinderGeometry(shape.w / 2, shape.w / 2, shape.h, 16);
+            } else {
+                geometry = new THREE.BoxGeometry(shape.w, shape.h, shape.d);
+            }
+
+            const material = new THREE.MeshPhongMaterial({
+                color: color.hex,
+                shininess: 30,
+                specular: 0x444444,
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.copy(position);
+            mesh.position.y += shape.h / 2;
+            mesh.castShadow = false;
+            mesh.receiveShadow = false;
+
+            mesh.userData = {
+                type: 'block',
+                shape: shape,
+                color: color,
+            };
+
+            return mesh;
+        }
+
+        // ===== PLACEMENT LOGIC =====
+        function findPlacementPosition(ray) {
+            const intersects = ray.intersectObjects(scene.children, true);
+            
+            for (const hit of intersects) {
+                const obj = hit.object;
+                
+                // Ground placement
+                if (obj.userData.isGround) {
+                    const x = Math.round(hit.point.x);
+                    const z = Math.round(hit.point.z);
+                    return new THREE.Vector3(x, 0, z);
+                }
+                
+                // On top of block
+                if (obj.userData.type === 'block') {
+                    const block = obj;
+                    const shape = block.userData.shape;
+                    const topY = block.position.y + shape.h / 2;
+                    const x = Math.round(hit.point.x);
+                    const z = Math.round(hit.point.z);
+                    return new THREE.Vector3(x, topY, z);
+                }
+            }
+            
+            return null;
+        }
+
+        // ===== RAYCASTER =====
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        function onPointerDown(event) {
+            if (!state.running) return;
+            ensureAudio();
+
+            let clientX, clientY;
+            if (event.touches) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+
+            // Check if touching palette
+            if (clientY > window.innerHeight - 200) {
+                return;
+            }
+
+            // Check if touching action buttons
+            if (clientX > window.innerWidth - 80 && clientY < 200) {
+                return;
+            }
+
+            state.isDragging = true;
+            state.lastTouchX = clientX;
+        }
+
+        function onPointerMove(event) {
+            if (!state.isDragging) return;
+
+            let clientX;
+            if (event.touches) {
+                clientX = event.touches[0].clientX;
+            } else {
+                clientX = event.clientX;
+            }
+
+            const deltaX = clientX - state.lastTouchX;
+            state.cameraAngle -= deltaX * 0.005;
+            state.lastTouchX = clientX;
+
+            updateCamera();
+        }
+
+        function onPointerUp(event) {
+            if (!state.isDragging) return;
+            state.isDragging = false;
+
+            // If it was a quick tap (not a drag), try to place
+            let clientX, clientY;
+            if (event.changedTouches) {
+                clientX = event.changedTouches[0].clientX;
+                clientY = event.changedTouches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+
+            // Check if tapping on ground area
+            if (clientY < window.innerHeight - 200 && 
+                !(clientX > window.innerWidth - 80 && clientY < 200)) {
+                tryPlaceBlock(clientX, clientY);
+            }
+        }
+
+        function tryPlaceBlock(screenX, screenY) {
+            pointer.x = (screenX / window.innerWidth) * 2 - 1;
+            pointer.y = -(screenY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(pointer, camera);
+            const pos = findPlacementPosition(raycaster);
+
+            if (pos) {
+                placeBlock(pos);
+            }
+        }
+
+        function placeBlock(position) {
+            const block = createBlock(state.selectedShape, state.selectedColor, position);
+            scene.add(block);
+            state.blocks.push(block);
+            state.blockCount++;
+
+            // Audio
+            playPlace(0.8 + Math.random() * 0.4);
+
+            // Visual feedback
+            showPlaceFeedback(window.innerWidth / 2, window.innerHeight / 2);
+
+            // Update counter
+            document.getElementById('blockCount').textContent = state.blockCount;
+
+            // Hide hint
+            document.getElementById('placementHint').style.display = 'none';
+        }
+
+        function showPlaceFeedback(x, y) {
+            const feedback = document.createElement('div');
+            feedback.className = 'place-feedback';
+            feedback.textContent = ['✨', '⭐', '🌟', '💫'][Math.floor(Math.random() * 4)];
+            feedback.style.left = x + 'px';
+            feedback.style.top = y + 'px';
+            document.body.appendChild(feedback);
+            setTimeout(() => feedback.remove(), 800);
+        }
+
+        // ===== CAMERA CONTROL =====
+        function updateCamera() {
+            camera.position.x = Math.sin(state.cameraAngle) * state.cameraDistance;
+            camera.position.z = Math.cos(state.cameraAngle) * state.cameraDistance;
+            camera.position.y = state.cameraHeight;
+            camera.lookAt(0, 1, 0);
+        }
+
+        // ===== UI SETUP =====
+        function setupPalette() {
+            const colorRow = document.getElementById('colorRow');
+            const shapeRow = document.getElementById('shapeRow');
+
+            COLORS.forEach((color, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'block-btn' + (index === 0 ? ' selected' : '');
+                btn.innerHTML = `<span style="color:${color.hex === 0x7EC850 ? '#4CAF50' : '#'+color.hex.toString(16).padStart(6,'0')};font-size:28px;">${color.emoji}</span>`;
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#colorRow .block-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    state.selectedColor = color;
+                    ensureAudio();
+                });
+                colorRow.appendChild(btn);
+            });
+
+            SHAPES.forEach((shape, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'block-btn' + (index === 0 ? ' selected' : '');
+                btn.innerHTML = `<span class="block-icon">${shape.emoji}</span>`;
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#shapeRow .block-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    state.selectedShape = shape;
+                    ensureAudio();
+                });
+                shapeRow.appendChild(btn);
+            });
+        }
+
+        // ===== FIREWORKS =====
+        function createFirework() {
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight * 0.6;
+            const colors = ['🎆', '🎇', '✨', '💫', '⭐'];
+            
+            for (let i = 0; i < 12; i++) {
+                const fw = document.createElement('div');
+                fw.className = 'firework';
+                fw.textContent = colors[Math.floor(Math.random() * colors.length)];
+                fw.style.left = x + 'px';
+                fw.style.top = y + 'px';
+                const angle = (i / 12) * Math.PI * 2;
+                const dist = 80 + Math.random() * 100;
+                fw.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+                fw.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+                document.body.appendChild(fw);
+                setTimeout(() => fw.remove(), 1000);
+            }
+        }
+
+        // ===== GAME CONTROL =====
+        function startGame() {
+            ensureAudio();
+            state.running = true;
+            state.blocks = [];
+            state.blockCount = 0;
+            state.cameraAngle = 0;
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('blockCounter').style.display = 'flex';
+            document.getElementById('actionBar').style.display = 'flex';
+            document.getElementById('blockPalette').style.display = 'flex';
+            document.getElementById('placementHint').style.display = 'block';
+            document.getElementById('rotateHint').style.display = 'block';
+
+            document.getElementById('blockCount').textContent = '0';
+
+            setTimeout(() => {
+                document.getElementById('rotateHint').style.display = 'none';
+            }, 5000);
+        }
+
+        function undoLastBlock() {
+            if (state.blocks.length === 0) return;
+            const block = state.blocks.pop();
+            scene.remove(block);
+            state.blockCount--;
+            document.getElementById('blockCount').textContent = state.blockCount;
+            playUndo();
+        }
+
+        function clearAllBlocks() {
+            state.blocks.forEach(block => scene.remove(block));
+            state.blocks = [];
+            state.blockCount = 0;
+            document.getElementById('blockCount').textContent = '0';
+            playUndo();
+        }
+
+        function showCelebration() {
+            playCelebrate();
+            
+            document.getElementById('celebrationStats').innerHTML = 
+                `用了 <strong>${state.blockCount}</strong> 块积木<br>搭建了一个大作品！`;
+            
+            let stars = '⭐';
+            if (state.blockCount >= 5) stars = '⭐⭐';
+            if (state.blockCount >= 10) stars = '⭐⭐⭐';
+            if (state.blockCount >= 20) stars = '⭐⭐⭐⭐';
+            if (state.blockCount >= 30) stars = '⭐⭐⭐⭐⭐';
+            document.querySelector('#celebrationScreen .stars').textContent = stars;
+
+            document.getElementById('celebrationScreen').classList.remove('hidden');
+
+            // Fireworks
+            for (let i = 0; i < 5; i++) {
+                setTimeout(createFirework, i * 300);
+            }
+        }
+
+        function continueBuilding() {
+            document.getElementById('celebrationScreen').classList.add('hidden');
+        }
+
+        function newBuilding() {
+            document.getElementById('celebrationScreen').classList.add('hidden');
+            clearAllBlocks();
+        }
+
+        // ===== EVENT LISTENERS =====
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('undoBtn').addEventListener('click', undoLastBlock);
+        document.getElementById('clearBtn').addEventListener('click', clearAllBlocks);
+        document.getElementById('celebrateBtn').addEventListener('click', showCelebration);
+        document.getElementById('backBtn').addEventListener('click', () => location.href='../../index.html');
+        document.getElementById('continueBtn').addEventListener('click', continueBuilding);
+        document.getElementById('newBtn').addEventListener('click', newBuilding);
+
+        const canvas = document.getElementById('gameCanvas');
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onPointerDown(e); }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { if (state.isDragging) e.preventDefault(); onPointerMove(e); }, { passive: false });
+        canvas.addEventListener('touchend', (e) => { e.preventDefault(); onPointerUp(e); }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ===== ANIMATION LOOP =====
+        let lastTime = 0;
+        function animate(time) {
+            requestAnimationFrame(animate);
+            
+            const delta = time - lastTime;
+            lastTime = time;
+
+            // Animate clouds
+            clouds.forEach(cloud => {
+                cloud.position.x += 0.002;
+                if (cloud.position.x > 20) cloud.position.x = -20;
+            });
+
+            // Sun pulse
+            sun.scale.setScalar(1 + Math.sin(time * 0.001) * 0.05);
+
+            // Camera auto-rotate slowly when not dragging
+            if (!state.isDragging && state.running) {
+                state.cameraAngle += 0.0003;
+                updateCamera();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize
+        setupPalette();
+        animate(0);
+
+    })();
+    </script>
+</body>
+</html>

@@ -26,7 +26,7 @@
 
 ### 优先级 4 - 3D 继续开发
 - [x] 019-3D星星收集 (3D Star Collector) - 3D空间数字认知 [3D/Three.js] - 2026-04-18 ✅
-- [ ] 020-3D积木搭建 (3D Block Builder) - 空间创造力 [3D/Three.js]
+- [x] 020-3D积木搭建 (3D Block Builder) - 空间创造力 [3D/Three.js] - 2026-04-21 ✅
 - [ ] 021-3D物品探索 (3D Room Explorer) - 观察力+词汇 [3D/Three.js]
 - [ ] 022-3D投球游戏 (3D Ball Toss) - 距离感知+动作控制 [3D/Three.js]
 - [ ] 023-3D迷宫冒险 (3D Maze Adventure) - 空间推理+方向感 [3D/Three.js]
@@ -115,12 +115,13 @@ _2026-04-10 自进化分析结果：_
 - 030-分类小达人 (Sorting Master) - 2026-04-17 [2D]
 - 019-3D星星收集 (3D Star Collector) - 2026-04-18 [3D/Three.js]
 - 031-排序小火车 (Ordering Train) - 2026-04-20 [2D]
+- 020-3D积木搭建 (3D Block Builder) - 2026-04-21 [3D/Three.js]
 
 ## 游戏统计
-- 总游戏数：22（已完成）+ 12（待开发）
-- 已完成：22（18 个 2D + 4 个 3D）
-- 待开发：12（1 个 2D + 7 个 3D + 4 个 2D/3D混合）
-- 3D 游戏：4 已完成，7+ 待开发
+- 总游戏数：23（已完成）+ 11（待开发）
+- 已完成：23（18 个 2D + 5 个 3D）
+- 待开发：11（1 个 2D + 6 个 3D + 4 个 2D/3D混合）
+- 3D 游戏：5 已完成，6+ 待开发
 
 ## itch.io 发布计划
 - 精选优质 3D 游戏单独发布到 itch.io（账号：GitHub mayf3 关联）
