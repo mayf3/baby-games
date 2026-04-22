@@ -268,5 +268,16 @@
     "path": "games/020-3d-block-builder/index.html",
     "difficulty": "简单",
     "dimension": "3D"
+  },
+  {
+    "id": "035-pattern-detective",
+    "title": "模式小侦探",
+    "emoji": "🔍",
+    "type": "logic",
+    "typeLabel": "逻辑类",
+    "age": "3-6岁",
+    "description": "找规律，猜猜下一个是什么呢？学习颜色模式（红蓝红蓝）、形状模式（圆方圆方）、数字模式（123123）、大小模式（大大小小），培养模式识别和规律推理能力，为数学和逻辑思维打基础！三个难度等级，从简单2元素到挑战4元素",
+    "path": "games/035-pattern-detective/index.html",
+    "difficulty": "简单"
   }
 ]
