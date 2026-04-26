@@ -875,8 +875,8 @@
                             this.updateUI();
                             setTimeout(() => this.nextQuestion(), 1000);
                         } else {
-                            this.showFeedback('❌ 再试试 ❌');
-                            this.score = Math.max(0, this.score - 2);
+                            this.showFeedback('🤔 再找找看！');
+                            this.animateShake(shape);
                             this.updateUI();
                         }
                         break;
@@ -909,7 +909,7 @@
                                 }
                             } else {
                                 // 配对失败
-                                this.showFeedback('❌ 不一样哦 ❌');
+                                this.showFeedback('🤔 不太一样，再试试！');
                                 this.removeHighlight(this.selectedShape);
                                 this.selectedShape = null;
                             }
@@ -949,15 +949,36 @@
                                     setTimeout(() => this.completeLevel(), 1000);
                                 }
                             } else {
-                                this.showFeedback('❌ 放错地方啦 ❌');
+                                    this.showFeedback('🤔 换个篮子试试！');
                                 this.score = Math.max(0, this.score - 2);
                             }
                         } else {
-                            this.showFeedback('❌ 靠近篮子再点 ❌');
+                            this.showFeedback('🤔 靠近篮子再点哦！');
                         }
                         this.updateUI();
                         break;
                 }
+            }
+
+            animateShake(shape) {
+                const startX = shape.position.x;
+                const shakeAmount = 0.15;
+                const duration = 400;
+                const startTime = Date.now();
+
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / duration;
+
+                    if (progress < 1) {
+                        shape.position.x = startX + Math.sin(progress * Math.PI * 6) * shakeAmount * (1 - progress);
+                        requestAnimationFrame(animate);
+                    } else {
+                        shape.position.x = startX;
+                    }
+                };
+
+                animate();
             }
 
             animateJump(shape) {

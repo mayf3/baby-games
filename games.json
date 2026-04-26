@@ -279,5 +279,17 @@
     "description": "找规律，猜猜下一个是什么呢？学习颜色模式（红蓝红蓝）、形状模式（圆方圆方）、数字模式（123123）、大小模式（大大小小），培养模式识别和规律推理能力，为数学和逻辑思维打基础！三个难度等级，从简单2元素到挑战4元素",
     "path": "games/035-pattern-detective/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "036-3d-shape-park",
+    "title": "3D形状乐园",
+    "emoji": "🔮",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "认识神奇的3D立体形状！四个关卡：形状学习（点击了解球体、立方体、圆柱体等）、形状识别（找到指定的形状）、形状配对（找到两个相同的形状）、形状分类（把形状放到正确的篮子里），培养3D空间认知和立体几何基础能力",
+    "path": "games/036-3d-shape-park/index.html",
+    "difficulty": "简单",
+    "dimension": "3D"
   }
 ]
