@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<title>比较小能手 📏</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 30%, #E0C3FC 60%, #8EC5FC 100%);
+    min-height: 100vh;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  /* ===== 背景装饰 ===== */
+  .bg-deco {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .bg-deco .cloud {
+    position: absolute; font-size: 3rem; opacity: 0.3;
+    animation: floatCloud 15s ease-in-out infinite;
+  }
+  .bg-deco .cloud:nth-child(1) { top: 5%; left: 5%; animation-delay: 0s; font-size: 2.5rem; }
+  .bg-deco .cloud:nth-child(2) { top: 15%; left: 75%; animation-delay: -5s; font-size: 3.5rem; }
+  .bg-deco .cloud:nth-child(3) { top: 60%; left: 85%; animation-delay: -10s; font-size: 2rem; }
+  .bg-deco .cloud:nth-child(4) { top: 80%; left: 10%; animation-delay: -7s; font-size: 2.8rem; }
+  @keyframes floatCloud {
+    0%, 100% { transform: translateY(0) translateX(0); }
+    25% { transform: translateY(-15px) translateX(10px); }
+    50% { transform: translateY(-5px) translateX(-10px); }
+    75% { transform: translateY(-20px) translateX(5px); }
+  }
+
+  /* ===== 通用容器 ===== */
+  .screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 1; transition: opacity 0.4s, transform 0.4s;
+    padding: 1rem;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
+
+  /* ===== 开始画面 ===== */
+  #start-screen {
+    text-align: center;
+  }
+  .title-emoji { font-size: 5rem; margin-bottom: 0.5rem; animation: bounce 1.5s ease-in-out infinite; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+  .title-text {
+    font-size: 2.2rem; font-weight: 800; color: #fff;
+    text-shadow: 2px 3px 6px rgba(0,0,0,0.15);
+    margin-bottom: 0.5rem;
+  }
+  .title-sub {
+    font-size: 1.1rem; color: rgba(255,255,255,0.85);
+    margin-bottom: 2rem; line-height: 1.6;
+  }
+
+  /* 难度选择 */
+  .difficulty-btns {
+    display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.5rem;
+  }
+  .diff-btn {
+    padding: 0.8rem 1.8rem; border-radius: 2rem; border: none;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer;
+    color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .diff-btn:active { transform: scale(0.93); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .diff-btn.easy { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+  .diff-btn.medium { background: linear-gradient(135deg, #fa709a, #fee140); }
+  .diff-btn.hard { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+
+  .start-btn {
+    padding: 1rem 3rem; border-radius: 3rem; border: none;
+    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+    color: #fff; font-size: 1.5rem; font-weight: 800;
+    box-shadow: 0 6px 25px rgba(255,107,107,0.4);
+    cursor: pointer; transition: transform 0.2s;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .start-btn:active { transform: scale(0.93); }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 6px 25px rgba(255,107,107,0.4); }
+    50% { box-shadow: 0 6px 35px rgba(255,107,107,0.6); }
+  }
+
+  /* ===== 游戏画面 ===== */
+  #game-screen {
+    justify-content: flex-start; padding-top: 0.5rem;
+  }
+
+  /* 顶栏 */
+  .top-bar {
+    width: 100%; max-width: 700px;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 0.5rem; padding: 0 0.5rem;
+  }
+  .progress-wrap {
+    flex: 1; height: 1.2rem; background: rgba(255,255,255,0.5);
+    border-radius: 1rem; overflow: hidden; margin: 0 0.8rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
+  }
+  .progress-bar {
+    height: 100%; background: linear-gradient(90deg, #FFD700, #FFA500);
+    border-radius: 1rem; transition: width 0.5s ease; width: 0%;
+  }
+  .score-display {
+    font-size: 1.3rem; font-weight: 800; color: #fff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+    white-space: nowrap;
+  }
+  .home-btn {
+    background: rgba(255,255,255,0.6); border: none; border-radius: 50%;
+    width: 2.5rem; height: 2.5rem; font-size: 1.3rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s;
+  }
+  .home-btn:active { transform: scale(0.9); }
+
+  /* 题目区 */
+  .question-area {
+    width: 100%; max-width: 700px;
+    background: rgba(255,255,255,0.85); border-radius: 1.5rem;
+    padding: 1rem 1.5rem; margin-bottom: 0.8rem;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+  .question-label {
+    font-size: 1.4rem; font-weight: 700; color: #555;
+    margin-bottom: 0.3rem;
+  }
+  .question-text {
+    font-size: 1.8rem; font-weight: 800; color: #333;
+  }
+  .question-hint {
+    font-size: 0.95rem; color: #999; margin-top: 0.3rem;
+  }
+
+  /* 比较展示区 */
+  .compare-area {
+    display: flex; gap: 1rem; justify-content: center; align-items: center;
+    width: 100%; max-width: 700px; margin-bottom: 0.8rem;
+    flex-wrap: nowrap;
+  }
+  .compare-card {
+    flex: 1; max-width: 300px;
+    background: rgba(255,255,255,0.9); border-radius: 1.5rem;
+    padding: 1.2rem 0.8rem; text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    cursor: pointer; transition: transform 0.3s, box-shadow 0.3s, border 0.3s;
+    border: 4px solid transparent;
+    min-height: 180px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .compare-card:active { transform: scale(0.96); }
+  .compare-card.correct {
+    border-color: #43e97b;
+    background: rgba(67,233,123,0.15);
+    animation: popCorrect 0.5s ease;
+  }
+  .compare-card.wrong {
+    border-color: #FF6B6B;
+    animation: shake 0.4s ease;
+  }
+  @keyframes popCorrect {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+  .compare-card .card-label {
+    font-size: 1rem; font-weight: 700; color: #888; margin-bottom: 0.5rem;
+  }
+  .compare-card .card-content {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap;
+  }
+  .compare-card .card-emoji {
+    font-size: 4rem; line-height: 1.1;
+  }
+  .compare-card .card-size-label {
+    font-size: 0.9rem; font-weight: 700; color: #aaa; margin-top: 0.3rem;
+  }
+
+  /* VS 分隔 */
+  .vs-badge {
+    font-size: 1.5rem; font-weight: 900; color: rgba(255,255,255,0.8);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+
+  /* ===== 完成画面 ===== */
+  #complete-screen {
+    text-align: center;
+  }
+  .complete-stars { font-size: 4rem; margin-bottom: 1rem; }
+  .complete-title {
+    font-size: 2.2rem; font-weight: 800; color: #fff;
+    text-shadow: 2px 3px 6px rgba(0,0,0,0.15);
+    margin-bottom: 0.5rem;
+  }
+  .complete-score {
+    font-size: 1.5rem; color: rgba(255,255,255,0.9); margin-bottom: 1.5rem;
+  }
+  .complete-btns {
+    display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+  }
+  .cbtn {
+    padding: 0.8rem 2rem; border-radius: 2rem; border: none;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer; color: #fff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15); transition: transform 0.2s;
+  }
+  .cbtn:active { transform: scale(0.93); }
+  .cbtn.again { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+  .cbtn.menu { background: linear-gradient(135deg, #FF6B6B, #FF8E53); }
+
+  /* ===== 星星粒子 ===== */
+  .star-particle {
+    position: fixed; font-size: 2rem; z-index: 100;
+    pointer-events: none; animation: starFly 1s ease-out forwards;
+  }
+  @keyframes starFly {
+    0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.3) rotate(360deg); }
+  }
+
+  /* ===== 反馈 Toast ===== */
+  .feedback-toast {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 200; padding: 1.5rem 2.5rem;
+    border-radius: 2rem; font-size: 2rem; font-weight: 900;
+    color: #fff; text-align: center;
+    animation: toastPop 1s ease forwards;
+    pointer-events: none;
+  }
+  .feedback-toast.correct {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+    box-shadow: 0 8px 30px rgba(67,233,123,0.4);
+  }
+  .feedback-toast.wrong {
+    background: linear-gradient(135deg, #FFB347, #FF6B6B);
+    box-shadow: 0 8px 30px rgba(255,179,71,0.4);
+  }
+  @keyframes toastPop {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    30% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    60% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+  }
+
+  /* ===== 彩带动画 ===== */
+  .confetti {
+    position: fixed; top: -10px; width: 12px; height: 12px;
+    border-radius: 2px; z-index: 150; pointer-events: none;
+    animation: confettiFall var(--dur) linear forwards;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 480px) {
+    .title-emoji { font-size: 3.5rem; }
+    .title-text { font-size: 1.6rem; }
+    .title-sub { font-size: 0.95rem; }
+    .diff-btn { padding: 0.6rem 1.3rem; font-size: 0.95rem; }
+    .start-btn { padding: 0.8rem 2.5rem; font-size: 1.2rem; }
+    .question-label { font-size: 1.1rem; }
+    .question-text { font-size: 1.4rem; }
+    .compare-card { padding: 0.8rem 0.5rem; min-height: 140px; }
+    .compare-card .card-emoji { font-size: 3rem; }
+    .vs-badge { font-size: 1.2rem; }
+    .score-display { font-size: 1.1rem; }
+  }
+  @media (min-width: 768px) {
+    .compare-card .card-emoji { font-size: 5rem; }
+    .compare-card { min-height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 背景装饰 -->
+<div class="bg-deco">
+  <div class="cloud">☁️</div>
+  <div class="cloud">☁️</div>
+  <div class="cloud">☁️</div>
+  <div class="cloud">☁️</div>
+</div>
+
+<!-- 开始画面 -->
+<div id="start-screen" class="screen">
+  <div class="title-emoji">📏</div>
+  <div class="title-text">比较小能手</div>
+  <div class="title-sub">比一比，哪个大？哪个多？哪个长？<br>学习比较大小、多少、长短、高矮！</div>
+  <div class="difficulty-btns">
+    <button class="diff-btn easy" onclick="selectDifficulty('easy')">🌱 简单</button>
+    <button class="diff-btn medium" onclick="selectDifficulty('medium')">🌸 中等</button>
+    <button class="diff-btn hard" onclick="selectDifficulty('hard')">🌟 挑战</button>
+  </div>
+  <button class="start-btn" onclick="startGame()">开始比较！ 🎉</button>
+</div>
+
+<!-- 游戏画面 -->
+<div id="game-screen" class="screen hidden">
+  <div class="top-bar">
+    <button class="home-btn" onclick="goHome()">🏠</button>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div class="score-display" id="scoreDisplay">⭐ 0</div>
+  </div>
+  <div class="question-area">
+    <div class="question-label" id="questionLabel">第 1 题</div>
+    <div class="question-text" id="questionText">谁更大？</div>
+    <div class="question-hint" id="questionHint">点击你选的那个！</div>
+  </div>
+  <div class="compare-area">
+    <div class="compare-card" id="cardA" onclick="pickCard('A')">
+      <div class="card-label" id="cardLabelA">A</div>
+      <div class="card-content" id="cardContentA"></div>
+      <div class="card-size-label" id="cardSizeA"></div>
+    </div>
+    <div class="vs-badge">VS</div>
+    <div class="compare-card" id="cardB" onclick="pickCard('B')">
+      <div class="card-label" id="cardLabelB">B</div>
+      <div class="card-content" id="cardContentB"></div>
+      <div class="card-size-label" id="cardSizeB"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 完成画面 -->
+<div id="complete-screen" class="screen hidden">
+  <div class="complete-stars" id="completeStars">🌟🌟🌟</div>
+  <div class="complete-title" id="completeTitle">太棒了！</div>
+  <div class="complete-score" id="completeScore">你答对了 8/10 题！</div>
+  <div class="complete-btns">
+    <button class="cbtn again" onclick="playAgain()">再来一次 🔄</button>
+    <button class="cbtn menu" onclick="goHome()">回首页 🏠</button>
+  </div>
+</div>
+
+<script>
+// ===== 游戏状态 =====
+let difficulty = 'easy';
+let currentRound = 0;
+let totalRounds = 8;
+let score = 0;
+let currentQuestion = null;
+let answered = false;
+
+// ===== 音效系统 =====
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSound(type) {
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+
+  if (type === 'correct') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523, now);
+    osc.frequency.setValueAtTime(659, now + 0.1);
+    osc.frequency.setValueAtTime(784, now + 0.2);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  } else if (type === 'wrong') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.setValueAtTime(250, now + 0.15);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    osc.start(now);
+    osc.stop(now + 0.4);
+  } else if (type === 'win') {
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(freq, now + i * 0.15);
+      g.gain.setValueAtTime(0.25, now + i * 0.15);
+      g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.4);
+      o.start(now + i * 0.15);
+      o.stop(now + i * 0.15 + 0.4);
+    });
+  } else if (type === 'click') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, now);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  }
+}
+
+// ===== 物品库 =====
+const itemPool = [
+  { emoji: '🍎', name: '苹果' },
+  { emoji: '🍊', name: '橘子' },
+  { emoji: '🍇', name: '葡萄' },
+  { emoji: '🍓', name: '草莓' },
+  { emoji: '🐻', name: '小熊' },
+  { emoji: '🐰', name: '小兔' },
+  { emoji: '🐱', name: '小猫' },
+  { emoji: '🐶', name: '小狗' },
+  { emoji: '🌳', name: '大树' },
+  { emoji: '🌻', name: '向日葵' },
+  { emoji: '🏠', name: '房子' },
+  { emoji: '🚗', name: '小车' },
+  { emoji: '⭐', name: '星星' },
+  { emoji: '🎈', name: '气球' },
+  { emoji: '🎂', name: '蛋糕' },
+  { emoji: '🐟', name: '小鱼' },
+  { emoji: '🦋', name: '蝴蝶' },
+  { emoji: '⚽', name: '足球' },
+];
+
+// ===== 题型定义 =====
+// 类型: size, count, length, height, weight
+const questionTypes = {
+  easy: ['size', 'height', 'count'],
+  medium: ['size', 'height', 'count', 'length'],
+  hard: ['size', 'height', 'count', 'length', 'weight'],
+};
+
+const questionTextMap = {
+  size: '哪个更大？',
+  height: '哪个更高？',
+  count: '哪个更多？',
+  length: '哪个更长？',
+  weight: '哪个更重？',
+};
+
+const questionLabelMap = {
+  size: '🅰️ 比大小',
+  height: '📏 比高矮',
+  count: '🔢 比多少',
+  length: '↔️ 比长短',
+  weight: '⚖️ 比轻重',
+};
+
+// ===== 生成题目 =====
+function generateQuestion() {
+  const types = questionTypes[difficulty];
+  const type = types[Math.floor(Math.random() * types.length)];
+
+  const item1 = itemPool[Math.floor(Math.random() * itemPool.length)];
+  let item2;
+  do {
+    item2 = itemPool[Math.floor(Math.random() * itemPool.length)];
+  } while (item2.emoji === item1.emoji);
+
+  const correctSide = Math.random() < 0.5 ? 'A' : 'B';
+
+  let cardAData, cardBData;
+
+  if (type === 'size') {
+    // 大小比较：不同大小的emoji
+    const sizes = [2.5, 4.5]; // rem
+    if (correctSide === 'A') {
+      cardAData = { emoji: item1.emoji, size: sizes[1], name: item1.name, display: item1.emoji };
+      cardBData = { emoji: item2.emoji, size: sizes[0], name: item2.name, display: item2.emoji };
+    } else {
+      cardAData = { emoji: item1.emoji, size: sizes[0], name: item1.name, display: item1.emoji };
+      cardBData = { emoji: item2.emoji, size: sizes[1], name: item2.name, display: item2.emoji };
+    }
+  } else if (type === 'height') {
+    // 高矮比较：用竖条+emoji
+    const heights = [60, 130]; // px (percentage-like)
+    const treeEmoji = ['🌳', '🌵', '🗼', '🎪', '🏗️', '🏠'];
+    const e1 = treeEmoji[Math.floor(Math.random() * treeEmoji.length)];
+    let e2;
+    do { e2 = treeEmoji[Math.floor(Math.random() * treeEmoji.length)]; } while (e2 === e1);
+    if (correctSide === 'A') {
+      cardAData = { emoji: e1, h: heights[1], name: 'A' };
+      cardBData = { emoji: e2, h: heights[0], name: 'B' };
+    } else {
+      cardAData = { emoji: e1, h: heights[0], name: 'A' };
+      cardBData = { emoji: e2, h: heights[1], name: 'B' };
+    }
+  } else if (type === 'count') {
+    // 多少比较：不同数量的emoji
+    const counts = difficulty === 'hard'
+      ? [Math.floor(Math.random() * 3) + 2, Math.floor(Math.random() * 3) + 5]
+      : [Math.floor(Math.random() * 2) + 1, Math.floor(Math.random() * 2) + 3];
+    if (correctSide === 'A') {
+      cardAData = { emoji: item1.emoji, count: counts[1], name: item1.name };
+      cardBData = { emoji: item2.emoji, count: counts[0], name: item2.name };
+    } else {
+      cardAData = { emoji: item1.emoji, count: counts[0], name: item1.name };
+      cardBData = { emoji: item2.emoji, count: counts[1], name: item2.name };
+    }
+  } else if (type === 'length') {
+    // 长短比较：不同长度的横条+火车
+    const lengths = [40, 90]; // %
+    const trainEmoji = ['🚂', '🚃', '🚄', '🚅', '🚇'];
+    const e1 = trainEmoji[Math.floor(Math.random() * trainEmoji.length)];
+    let e2;
+    do { e2 = trainEmoji[Math.floor(Math.random() * trainEmoji.length)]; } while (e2 === e1);
+    if (correctSide === 'A') {
+      cardAData = { emoji: e1, w: lengths[1], name: 'A' };
+      cardBData = { emoji: e2, w: lengths[0], name: 'B' };
+    } else {
+      cardAData = { emoji: e1, w: lengths[0], name: 'A' };
+      cardBData = { emoji: e2, w: lengths[1], name: 'B' };
+    }
+  } else if (type === 'weight') {
+    // 轻重比较：动物体重
+    const heavyAnimals = [
+      { emoji: '🐘', name: '大象', weight: 10 },
+      { emoji: '🦁', name: '狮子', weight: 8 },
+      { emoji: '🐻', name: '小熊', weight: 7 },
+      { emoji: '🦒', name: '长颈鹿', weight: 9 },
+      { emoji: '🐄', name: '奶牛', weight: 8 },
+      { emoji: '🐎', name: '小马', weight: 7 },
+      { emoji: '🐷', name: '小猪', weight: 5 },
+      { emoji: '🐑', name: '小羊', weight: 4 },
+      { emoji: '🐶', name: '小狗', weight: 3 },
+      { emoji: '🐱', name: '小猫', weight: 2 },
+      { emoji: '🐰', name: '小兔', weight: 1 },
+      { emoji: '🐭', name: '小老鼠', weight: 0.5 },
+      { emoji: '🐜', name: '小蚂蚁', weight: 0.1 },
+    ];
+    const shuffled = heavyAnimals.sort(() => Math.random() - 0.5);
+    const a1 = shuffled[0], a2 = shuffled[1];
+    const correct = a1.weight > a2.weight ? 'A' : 'B';
+    cardAData = { emoji: a1.emoji, name: a1.name, isWeight: true };
+    cardBData = { emoji: a2.emoji, name: a2.name, isWeight: true };
+    return {
+      type, correctSide: correct, cardA: cardAData, cardB: cardBData
+    };
+  }
+
+  return { type, correctSide, cardA: cardAData, cardB: cardBData };
+}
+
+// ===== 渲染卡片内容 =====
+function renderCardContent(cardId, data, type) {
+  const content = document.getElementById('cardContent' + cardId);
+  const sizeLabel = document.getElementById('cardSize' + cardId);
+  const label = document.getElementById('cardLabel' + cardId);
+  label.textContent = cardId === 'A' ? '👈 A' : '👉 B';
+  content.innerHTML = '';
+  sizeLabel.textContent = '';
+
+  if (type === 'size') {
+    const emojiSpan = document.createElement('span');
+    emojiSpan.className = 'card-emoji';
+    emojiSpan.textContent = data.emoji;
+    emojiSpan.style.fontSize = data.size + 'rem';
+    content.appendChild(emojiSpan);
+  } else if (type === 'height') {
+    // 竖向高度条
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:flex-end;justify-content:center;height:120px;';
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      display:flex;align-items:flex-end;justify-content:center;
+      background:linear-gradient(to top, #43e97b, #38f9d7);
+      border-radius:0.8rem 0.8rem 0 0;width:50px;height:${data.h}px;
+      box-shadow: 0 2px 8px rgba(67,233,123,0.3);
+      transition: height 0.5s;
+    `;
+    const em = document.createElement('span');
+    em.style.cssText = 'font-size:1.8rem;margin-bottom:4px;';
+    em.textContent = data.emoji;
+    bar.appendChild(em);
+    wrap.appendChild(bar);
+    content.appendChild(wrap);
+  } else if (type === 'count') {
+    // 显示多个emoji
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:200px;';
+    for (let i = 0; i < data.count; i++) {
+      const s = document.createElement('span');
+      s.style.cssText = 'font-size:2rem;';
+      s.textContent = data.emoji;
+      grid.appendChild(s);
+    }
+    content.appendChild(grid);
+    sizeLabel.textContent = `${data.count} 个${data.name}`;
+  } else if (type === 'length') {
+    // 横向长度条
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;justify-content:flex-start;width:100%;padding:0 0.5rem;';
+    const bar = document.createElement('div');
+    bar.style.cssText = `
+      display:flex;align-items:center;justify-content:flex-start;
+      background:linear-gradient(90deg, #fa709a, #fee140);
+      border-radius:0.8rem;height:35px;width:${data.w}%;
+      box-shadow: 0 2px 8px rgba(250,112,154,0.3);
+      padding-left:8px;
+      transition: width 0.5s;
+    `;
+    const em = document.createElement('span');
+    em.style.cssText = 'font-size:1.5rem;';
+    em.textContent = data.emoji;
+    bar.appendChild(em);
+    wrap.appendChild(bar);
+    content.appendChild(wrap);
+  } else if (type === 'weight') {
+    const emojiSpan = document.createElement('span');
+    emojiSpan.className = 'card-emoji';
+    emojiSpan.textContent = data.emoji;
+    content.appendChild(emojiSpan);
+    sizeLabel.textContent = data.name;
+  }
+}
+
+// ===== UI 操作 =====
+function selectDifficulty(diff) {
+  difficulty = diff;
+  playSound('click');
+  document.querySelectorAll('.diff-btn').forEach(b => b.style.opacity = '0.5');
+  document.querySelector(`.diff-btn.${diff}`).style.opacity = '1';
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function startGame() {
+  ensureAudio();
+  playSound('click');
+  totalRounds = difficulty === 'easy' ? 8 : difficulty === 'medium' ? 10 : 12;
+  currentRound = 0;
+  score = 0;
+  answered = false;
+  updateUI();
+  showScreen('game-screen');
+  nextQuestion();
+}
+
+function goHome() {
+  playSound('click');
+  showScreen('start-screen');
+}
+
+function playAgain() {
+  playSound('click');
+  startGame();
+}
+
+function updateUI() {
+  document.getElementById('progressBar').style.width = (currentRound / totalRounds * 100) + '%';
+  document.getElementById('scoreDisplay').textContent = '⭐ ' + score;
+}
+
+function nextQuestion() {
+  if (currentRound >= totalRounds) {
+    showComplete();
+    return;
+  }
+
+  answered = false;
+  currentQuestion = generateQuestion();
+
+  document.getElementById('questionLabel').textContent = `${questionLabelMap[currentQuestion.type]} · 第 ${currentRound + 1}/${totalRounds} 题`;
+  document.getElementById('questionText').textContent = questionTextMap[currentQuestion.type];
+  document.getElementById('questionHint').textContent = '点击你选的那个！';
+
+  renderCardContent('A', currentQuestion.cardA, currentQuestion.type);
+  renderCardContent('B', currentQuestion.cardB, currentQuestion.type);
+
+  // Reset card styles
+  document.getElementById('cardA').className = 'compare-card';
+  document.getElementById('cardB').className = 'compare-card';
+}
+
+function pickCard(side) {
+  if (answered) return;
+  answered = true;
+  playSound('click');
+
+  const isCorrect = side === currentQuestion.correctSide;
+  const card = document.getElementById('card' + side);
+
+  if (isCorrect) {
+    score++;
+    card.classList.add('correct');
+    playSound('correct');
+    showFeedback(true);
+    spawnStars(card);
+  } else {
+    card.classList.add('wrong');
+    // Highlight correct one
+    document.getElementById('card' + currentQuestion.correctSide).classList.add('correct');
+    playSound('wrong');
+    showFeedback(false);
+  }
+
+  updateUI();
+
+  setTimeout(() => {
+    currentRound++;
+    updateUI();
+    nextQuestion();
+  }, isCorrect ? 1200 : 2000);
+}
+
+function showFeedback(correct) {
+  const toast = document.createElement('div');
+  toast.className = 'feedback-toast ' + (correct ? 'correct' : 'wrong');
+  const correctMsgs = ['太棒了！🎉', '答对了！⭐', '真聪明！🌟', '好厉害！💪', '对极了！🎊'];
+  const wrongMsgs = ['差一点点哦～💪', '没关系，再想想～🤗', '加油，你可以的！🌈'];
+  toast.textContent = correct
+    ? correctMsgs[Math.floor(Math.random() * correctMsgs.length)]
+    : wrongMsgs[Math.floor(Math.random() * wrongMsgs.length)];
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 1100);
+}
+
+function spawnStars(element) {
+  const rect = element.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const emojis = ['⭐', '🌟', '✨', '💫', '🎉'];
+  for (let i = 0; i < 8; i++) {
+    const s = document.createElement('div');
+    s.className = 'star-particle';
+    s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    const tx = (Math.random() - 0.5) * 200;
+    const ty = -Math.random() * 250 - 50;
+    s.style.cssText = `left:${cx}px;top:${cy}px;--tx:${tx}px;--ty:${ty}px;`;
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 1100);
+  }
+}
+
+function showComplete() {
+  playSound('win');
+  showScreen('complete-screen');
+
+  const pct = score / totalRounds;
+  let stars, title;
+  if (pct >= 0.9) { stars = '🌟🌟🌟'; title = '比较小天才！'; }
+  else if (pct >= 0.7) { stars = '🌟🌟✨'; title = '太棒了！'; }
+  else if (pct >= 0.5) { stars = '🌟✨✨'; title = '很不错哦！'; }
+  else { stars = '🌟💪🌈'; title = '继续加油！'; }
+
+  document.getElementById('completeStars').textContent = stars;
+  document.getElementById('completeTitle').textContent = title;
+  document.getElementById('completeScore').textContent = `你答对了 ${score}/${totalRounds} 题！`;
+
+  // 彩带
+  if (pct >= 0.5) spawnConfetti();
+}
+
+function spawnConfetti() {
+  const colors = ['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#FF6B9D','#C77DFF','#FFA07A'];
+  for (let i = 0; i < 40; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    const dur = 2 + Math.random() * 2;
+    c.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      --dur: ${dur}s;
+      animation-delay: ${Math.random() * 1.5}s;
+      width: ${8 + Math.random() * 10}px;
+      height: ${8 + Math.random() * 10}px;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+    `;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), (dur + 1.5) * 1000);
+  }
+}
+
+// 初始化默认难度
+selectDifficulty('easy');
+</script>
+</body>
+</html>

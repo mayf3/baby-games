@@ -291,5 +291,16 @@
     "path": "games/036-3d-shape-park/index.html",
     "difficulty": "简单",
     "dimension": "3D"
+  },
+  {
+    "id": "034-compare-master",
+    "title": "比较小能手",
+    "emoji": "📏",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "比一比大小、多少、长短、高矮、轻重！通过对比两个物品培养比较能力和观察力，三个难度等级从简单比大小到挑战比轻重，为数学和逻辑思维打基础",
+    "path": "games/034-compare-master/index.html",
+    "difficulty": "简单"
   }
 ]
