@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>词汇小火车 - Vocabulary Train</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: clamp(28px, 5vw, 42px);
+            color: #FF6B6B;
+            text-shadow: 3px 3px 0 #FFD93D;
+            margin-bottom: 20px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        /* 关卡选择界面 */
+        .level-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .level-btn {
+            background: white;
+            border: 4px solid #FFD93D;
+            border-radius: 20px;
+            padding: 25px 15px;
+            font-size: clamp(20px, 4vw, 28px);
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 0 #FFA500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .level-btn:hover, .level-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 4px 0 #FFA500;
+        }
+
+        .level-btn .emoji {
+            display: block;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .level-btn .title {
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+
+        /* 游戏界面 */
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress {
+            font-size: clamp(18px, 3.5vw, 24px);
+            color: #4ECDC4;
+            font-weight: bold;
+        }
+
+        .back-btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #D63031;
+            transition: all 0.2s;
+        }
+
+        .back-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #D63031;
+        }
+
+        .item-display {
+            background: white;
+            border-radius: 30px;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+
+        .item-emoji {
+            font-size: 120px;
+            line-height: 1;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
+
+        .question-text {
+            font-size: clamp(20px, 4vw, 26px);
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 20px 15px;
+            font-size: clamp(18px, 3.5vw, 24px);
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn:hover, .option-btn:active {
+            transform: scale(1.05);
+        }
+
+        .option-btn.correct {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            animation: correctPulse 0.5s;
+        }
+
+        .option-btn.wrong {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+            animation: shake 0.5s;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* 火车动画 */
+        .train-container {
+            position: fixed;
+            bottom: 20px;
+            left: -200px;
+            z-index: 100;
+            transition: left 0.5s ease-out;
+        }
+
+        .train-container.moving {
+            left: calc(100% + 100px);
+        }
+
+        .train {
+            font-size: 80px;
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        /* 星星庆祝 */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .star {
+            position: absolute;
+            font-size: 40px;
+            animation: starFall 1.5s ease-out forwards;
+        }
+
+        @keyframes starFall {
+            0% {
+                transform: translateY(-50px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* 完成界面 */
+        .complete-screen {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .complete-emoji {
+            font-size: 100px;
+            margin-bottom: 20px;
+            animation: celebrate 0.5s ease-out;
+        }
+
+        @keyframes celebrate {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .complete-title {
+            font-size: clamp(32px, 6vw, 48px);
+            color: #FF6B6B;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 0 #FFD93D;
+        }
+
+        .complete-stats {
+            font-size: clamp(20px, 4vw, 28px);
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .complete-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: clamp(18px, 3.5vw, 24px);
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        .complete-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .level-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .options {
+                grid-template-columns: 1fr;
+            }
+
+            .item-emoji {
+                font-size: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚂 词汇小火车</h1>
+
+        <!-- 关卡选择界面 -->
+        <div id="menu-screen" class="screen active">
+            <div class="level-buttons">
+                <button class="level-btn" onclick="startLevel('animals')">
+                    <span class="emoji">🐱</span>
+                    <span class="title">动物</span>
+                </button>
+                <button class="level-btn" onclick="startLevel('fruits')">
+                    <span class="emoji">🍎</span>
+                    <span class="title">水果</span>
+                </button>
+                <button class="level-btn" onclick="startLevel('vegetables')">
+                    <span class="emoji">🥕</span>
+                    <span class="title">蔬菜</span>
+                </button>
+                <button class="level-btn" onclick="startLevel('transport')">
+                    <span class="emoji">🚗</span>
+                    <span class="title">交通工具</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 游戏界面 -->
+        <div id="game-screen" class="screen">
+            <div class="game-info">
+                <button class="back-btn" onclick="goBack()">🏠 返回</button>
+                <div class="progress" id="progress">第 1/5 题</div>
+            </div>
+
+            <div class="item-display">
+                <div class="item-emoji" id="item-emoji">🐱</div>
+                <div class="question-text">这是什么？</div>
+            </div>
+
+            <div class="options" id="options">
+                <button class="option-btn" onclick="checkAnswer(this, true)">猫咪</button>
+                <button class="option-btn" onclick="checkAnswer(this, false)">小狗</button>
+                <button class="option-btn" onclick="checkAnswer(this, false)">兔子</button>
+                <button class="option-btn" onclick="checkAnswer(this, false)">小鸟</button>
+            </div>
+        </div>
+
+        <!-- 完成界面 -->
+        <div id="complete-screen" class="screen">
+            <div class="complete-screen">
+                <div class="complete-emoji">🎉</div>
+                <h2 class="complete-title">太棒了！</h2>
+                <p class="complete-stats" id="complete-stats">答对 5/5 题</p>
+                <button class="complete-btn" onclick="goBack()">🏠 返回菜单</button>
+                <button class="complete-btn" onclick="restartLevel()">🔄 再玩一次</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 火车动画 -->
+    <div class="train-container" id="train">
+        <div class="train">🚃🚃🚃</div>
+    </div>
+
+    <!-- 星星容器 -->
+    <div class="stars-container" id="stars-container"></div>
+
+    <script>
+        // 游戏数据
+        const levels = {
+            animals: [
+                { emoji: '🐱', name: '猫咪', options: ['猫咪', '小狗', '兔子', '小鸟'] },
+                { emoji: '🐶', name: '小狗', options: ['猫咪', '小狗', '兔子', '小猪'] },
+                { emoji: '🐰', name: '兔子', options: ['猫咪', '小狗', '兔子', '小鸭'] },
+                { emoji: '🐦', name: '小鸟', options: ['小鸟', '小鱼', '小狗', '猫咪'] },
+                { emoji: '🐷', name: '小猪', options: ['小猪', '小狗', '兔子', '小鸟'] }
+            ],
+            fruits: [
+                { emoji: '🍎', name: '苹果', options: ['苹果', '香蕉', '橙子', '葡萄'] },
+                { emoji: '🍌', name: '香蕉', options: ['苹果', '香蕉', '橙子', '草莓'] },
+                { emoji: '🍊', name: '橙子', options: ['苹果', '香蕉', '橙子', '葡萄'] },
+                { emoji: '🍇', name: '葡萄', options: ['葡萄', '草莓', '西瓜', '苹果'] },
+                { emoji: '🍓', name: '草莓', options: ['草莓', '香蕉', '橙子', '葡萄'] }
+            ],
+            vegetables: [
+                { emoji: '🥕', name: '胡萝卜', options: ['胡萝卜', '西红柿', '黄瓜', '青菜'] },
+                { emoji: '🍅', name: '西红柿', options: ['胡萝卜', '西红柿', '黄瓜', '茄子'] },
+                { emoji: '🥒', name: '黄瓜', options: ['胡萝卜', '西红柿', '黄瓜', '青菜'] },
+                { emoji: '🥬', name: '青菜', options: ['青菜', '黄瓜', '西红柿', '茄子'] },
+                { emoji: '🍆', name: '茄子', options: ['胡萝卜', '西红柿', '黄瓜', '茄子'] }
+            ],
+            transport: [
+                { emoji: '🚗', name: '汽车', options: ['汽车', '公交车', '火车', '飞机'] },
+                { emoji: '🚌', name: '公交车', options: ['汽车', '公交车', '火车', '轮船'] },
+                { emoji: '🚂', name: '火车', options: ['汽车', '公交车', '火车', '飞机'] },
+                { emoji: '✈️', name: '飞机', options: ['飞机', '汽车', '公交车', '轮船'] },
+                { emoji: '🚢', name: '轮船', options: ['汽车', '公交车', '火车', '轮船'] }
+            ]
+        };
+
+        let currentLevel = '';
+        let currentQuestions = [];
+        let currentIndex = 0;
+        let correctCount = 0;
+        let canClick = true;
+
+        // 音效系统
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                // 正确音效：上升的音调
+                oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'wrong') {
+                // 错误音效：低沉的音调
+                oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                oscillator.start(audioCtx.currentTime);
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'complete') {
+                // 完成音效：欢快的旋律
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime + i * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.15 + 0.2);
+                    osc.start(audioCtx.currentTime + i * 0.15);
+                    osc.stop(audioCtx.currentTime + i * 0.15 + 0.2);
+                });
+            }
+        }
+
+        // 显示屏幕
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // 开始关卡
+        function startLevel(levelId) {
+            initAudio();
+            currentLevel = levelId;
+            currentQuestions = shuffleArray([...levels[levelId]]);
+            currentIndex = 0;
+            correctCount = 0;
+            canClick = true;
+            showScreen('game-screen');
+            showQuestion();
+        }
+
+        // 显示问题
+        function showQuestion() {
+            const question = currentQuestions[currentIndex];
+            document.getElementById('item-emoji').textContent = question.emoji;
+            document.getElementById('progress').textContent = `第 ${currentIndex + 1}/${currentQuestions.length} 题`;
+
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+
+            const shuffledOptions = shuffleArray([...question.options]);
+            shuffledOptions.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = option;
+                btn.onclick = () => checkAnswer(btn, option === question.name);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        // 检查答案
+        function checkAnswer(btn, isCorrect) {
+            if (!canClick) return;
+            canClick = false;
+
+            if (isCorrect) {
+                btn.classList.add('correct');
+                correctCount++;
+                playSound('correct');
+                createStars();
+                moveTrain();
+
+                setTimeout(() => {
+                    currentIndex++;
+                    if (currentIndex < currentQuestions.length) {
+                        showQuestion();
+                        canClick = true;
+                    } else {
+                        showComplete();
+                    }
+                }, 1000);
+            } else {
+                btn.classList.add('wrong');
+                playSound('wrong');
+
+                setTimeout(() => {
+                    btn.classList.remove('wrong');
+                    canClick = true;
+                }, 500);
+            }
+        }
+
+        // 移动火车
+        function moveTrain() {
+            const train = document.getElementById('train');
+            train.classList.remove('moving');
+            void train.offsetWidth; // 触发重排
+            train.classList.add('moving');
+        }
+
+        // 创建星星
+        function createStars() {
+            const container = document.getElementById('stars-container');
+            const emojis = ['⭐', '🌟', '✨', '💫'];
+
+            for (let i = 0; i < 15; i++) {
+                setTimeout(() => {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    star.style.left = Math.random() * 100 + '%';
+                    star.style.animationDuration = (1 + Math.random()) + 's';
+                    container.appendChild(star);
+
+                    setTimeout(() => star.remove(), 2000);
+                }, i * 50);
+            }
+        }
+
+        // 显示完成界面
+        function showComplete() {
+            playSound('complete');
+            createStars();
+
+            document.getElementById('complete-stats').textContent =
+                `答对 ${correctCount}/${currentQuestions.length} 题`;
+            showScreen('complete-screen');
+        }
+
+        // 返回菜单
+        function goBack() {
+            showScreen('menu-screen');
+        }
+
+        // 重新开始关卡
+        function restartLevel() {
+            startLevel(currentLevel);
+        }
+
+        // 洗牌算法
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            showScreen('menu-screen');
+        });
+    </script>
+</body>
+</html>

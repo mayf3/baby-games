@@ -302,5 +302,18 @@
     "description": "比一比大小、多少、长短、高矮、轻重！通过对比两个物品培养比较能力和观察力，三个难度等级从简单比大小到挑战比轻重，为数学和逻辑思维打基础",
     "path": "games/034-compare-master/index.html",
     "difficulty": "简单"
+  },
+  {
+    "id": "038-vocabulary-train",
+    "title": "词汇小火车",
+    "emoji": "🚂",
+    "type": "language",
+    "typeLabel": "语言类",
+    "age": "3-6岁",
+    "description": "学习认识各种物品的名称！四个关卡：动物（猫咪、小狗、兔子、小鸟）、水果（苹果、香蕉、橙子、葡萄）、蔬菜（胡萝卜、西红柿、黄瓜、青菜）、交通工具（汽车、公交车、火车、飞机），通过图文配对游戏培养词汇学习能力和物体认知能力",
+    "path": "games/038-vocabulary-train/index.html",
+    "difficulty": "简单",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-4.7)"
   }
 ]
