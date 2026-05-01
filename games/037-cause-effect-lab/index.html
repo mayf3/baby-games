@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<title>因果实验室 🔬</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #d299c2 100%);
+    min-height: 100vh;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  /* ===== 背景装饰 ===== */
+  .bg-deco {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; overflow: hidden;
+  }
+  .bg-deco .item {
+    position: absolute; opacity: 0.15; animation: floatItem 20s ease-in-out infinite;
+  }
+  .bg-deco .item:nth-child(1) { top: 5%; left: 8%; font-size: 2.5rem; animation-delay: 0s; }
+  .bg-deco .item:nth-child(2) { top: 12%; left: 80%; font-size: 2rem; animation-delay: -4s; }
+  .bg-deco .item:nth-child(3) { top: 70%; left: 90%; font-size: 2.8rem; animation-delay: -8s; }
+  .bg-deco .item:nth-child(4) { top: 85%; left: 5%; font-size: 2.2rem; animation-delay: -12s; }
+  .bg-deco .item:nth-child(5) { top: 50%; left: 50%; font-size: 2rem; animation-delay: -6s; }
+  .bg-deco .item:nth-child(6) { top: 30%; left: 25%; font-size: 2.5rem; animation-delay: -15s; }
+  @keyframes floatItem {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-12px) rotate(5deg); }
+    50% { transform: translateY(-3px) rotate(-3deg); }
+    75% { transform: translateY(-18px) rotate(3deg); }
+  }
+
+  /* ===== 通用容器 ===== */
+  .screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 1; transition: opacity 0.4s, transform 0.4s;
+    padding: 1rem;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
+
+  /* ===== 开始画面 ===== */
+  #start-screen { text-align: center; }
+  .title-emoji { font-size: 5rem; margin-bottom: 0.5rem; animation: bounce 1.5s ease-in-out infinite; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+  .title-text {
+    font-size: 2.2rem; font-weight: 800; color: #fff;
+    text-shadow: 2px 3px 6px rgba(0,0,0,0.15);
+    margin-bottom: 0.5rem;
+  }
+  .title-sub {
+    font-size: 1.1rem; color: rgba(255,255,255,0.85);
+    margin-bottom: 2rem; line-height: 1.6;
+  }
+  .difficulty-btns {
+    display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1.5rem;
+  }
+  .diff-btn {
+    padding: 0.8rem 1.8rem; border-radius: 2rem; border: none;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer;
+    color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .diff-btn:active { transform: scale(0.93); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .diff-btn.easy { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+  .diff-btn.medium { background: linear-gradient(135deg, #fa709a, #fee140); }
+  .diff-btn.hard { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+  .start-btn {
+    padding: 1rem 3rem; border-radius: 3rem; border: none;
+    font-size: 1.3rem; font-weight: 800; cursor: pointer; color: #fff;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    box-shadow: 0 6px 20px rgba(245,87,108,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .start-btn:active { transform: scale(0.95); }
+
+  /* ===== 游戏画面 ===== */
+  #game-screen { padding: 0.5rem; justify-content: flex-start; padding-top: 1rem; }
+
+  /* 顶部状态栏 */
+  .top-bar {
+    width: 100%; max-width: 600px; display: flex; justify-content: space-between;
+    align-items: center; padding: 0.3rem 0; margin-bottom: 0.5rem;
+  }
+  .progress-bar {
+    flex: 1; height: 12px; background: rgba(255,255,255,0.4);
+    border-radius: 6px; margin: 0 0.8rem; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, #43e97b, #38f9d7);
+    border-radius: 6px; transition: width 0.5s ease;
+  }
+  .level-badge {
+    background: rgba(255,255,255,0.5); border-radius: 1rem;
+    padding: 0.3rem 0.8rem; font-size: 0.9rem; font-weight: 700; color: #555;
+    white-space: nowrap;
+  }
+  .star-count {
+    font-size: 1.1rem; font-weight: 700; color: #FFD700;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2); white-space: nowrap;
+  }
+
+  /* 题目文字 */
+  .question-text {
+    font-size: 1.3rem; font-weight: 700; color: #fff;
+    text-shadow: 1px 2px 4px rgba(0,0,0,0.15);
+    text-align: center; margin-bottom: 0.8rem; max-width: 500px;
+    line-height: 1.5;
+  }
+
+  /* 场景容器 */
+  .scene-container {
+    width: 100%; max-width: 600px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 1.5rem; padding: 1.2rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    margin-bottom: 0.8rem;
+    min-height: 200px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+
+  /* 场景内容 */
+  .scene-visual {
+    font-size: 5rem; margin-bottom: 0.5rem;
+    transition: all 0.6s ease;
+    position: relative;
+  }
+  .scene-visual.shake {
+    animation: shake 0.5s ease;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    50% { transform: translateX(8px); }
+    75% { transform: translateX(-5px); }
+  }
+  .scene-label {
+    font-size: 1.1rem; font-weight: 600; color: #555;
+    text-align: center;
+  }
+  .scene-arrow {
+    font-size: 2rem; color: rgba(0,0,0,0.3);
+    margin: 0.5rem 0;
+    animation: arrowPulse 1s ease-in-out infinite;
+  }
+  @keyframes arrowPulse {
+    0%, 100% { transform: translateY(0); opacity: 0.3; }
+    50% { transform: translateY(5px); opacity: 0.7; }
+  }
+  .scene-result {
+    font-size: 5rem; margin-top: 0.3rem;
+    transition: all 0.6s ease;
+  }
+
+  /* 动画展示区 */
+  .animation-area {
+    width: 100%; max-width: 600px; height: 120px;
+    position: relative; margin-bottom: 0.5rem;
+  }
+
+  /* 选项区域 */
+  .options-area {
+    width: 100%; max-width: 600px;
+    display: flex; flex-wrap: wrap; gap: 0.8rem;
+    justify-content: center;
+  }
+  .option-btn {
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 1.2rem;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; border: 3px solid transparent;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .option-btn:active { transform: scale(0.93); }
+  .option-btn.selected {
+    border-color: #4CAF50;
+    box-shadow: 0 0 20px rgba(76,175,80,0.4);
+    transform: scale(1.05);
+  }
+  .option-btn .opt-emoji { font-size: 2.8rem; }
+  .option-btn .opt-label {
+    font-size: 0.85rem; font-weight: 600; color: #555;
+    margin-top: 0.3rem;
+  }
+
+  /* 操作按钮 */
+  .action-area {
+    margin-top: 0.8rem;
+    display: flex; gap: 1rem;
+  }
+  .action-btn {
+    padding: 0.7rem 2rem; border-radius: 2rem; border: none;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer; color: #fff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+  }
+  .action-btn:active { transform: scale(0.93); }
+  .action-btn.confirm {
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+  }
+  .action-btn.next {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+  }
+  .action-btn:disabled {
+    opacity: 0.5; pointer-events: none;
+  }
+
+  /* ===== 反馈动画 ===== */
+  .feedback-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; pointer-events: none; opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .feedback-overlay.show { opacity: 1; }
+  .feedback-content {
+    text-align: center;
+    animation: feedbackPop 0.5s ease;
+  }
+  @keyframes feedbackPop {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  .feedback-emoji { font-size: 5rem; }
+  .feedback-text {
+    font-size: 1.5rem; font-weight: 800; color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    margin-top: 0.5rem;
+  }
+
+  /* ===== 结果画面 ===== */
+  #result-screen { text-align: center; }
+  .result-stars { font-size: 4rem; margin-bottom: 1rem; }
+  .result-title {
+    font-size: 2rem; font-weight: 800; color: #fff;
+    text-shadow: 2px 3px 6px rgba(0,0,0,0.15);
+    margin-bottom: 0.5rem;
+  }
+  .result-desc {
+    font-size: 1.1rem; color: rgba(255,255,255,0.85);
+    margin-bottom: 2rem; line-height: 1.6;
+  }
+  .result-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+  .result-btn {
+    padding: 0.8rem 2rem; border-radius: 2rem; border: none;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer; color: #fff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+  }
+  .result-btn:active { transform: scale(0.93); }
+  .result-btn.replay { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+  .result-btn.menu { background: linear-gradient(135deg, #667eea, #764ba2); }
+
+  /* ===== 星星飞舞 ===== */
+  .star-particle {
+    position: fixed; font-size: 1.5rem; pointer-events: none; z-index: 200;
+    animation: starFly 1s ease-out forwards;
+  }
+  @keyframes starFly {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.3); }
+  }
+
+  /* ===== 因果链展示 ===== */
+  .chain-container {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.3rem; flex-wrap: wrap; margin: 0.5rem 0;
+  }
+  .chain-item {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0.5rem; border-radius: 0.8rem;
+    background: rgba(255,255,255,0.5);
+    min-width: 70px;
+  }
+  .chain-item .ci-emoji { font-size: 2.5rem; }
+  .chain-item .ci-label { font-size: 0.75rem; font-weight: 600; color: #555; margin-top: 0.2rem; }
+  .chain-arrow { font-size: 1.5rem; color: rgba(0,0,0,0.3); }
+
+  /* ===== 交互提示 ===== */
+  .hint-text {
+    font-size: 0.95rem; color: rgba(255,255,255,0.8);
+    font-weight: 600; margin-top: 0.5rem;
+    animation: hintPulse 2s ease-in-out infinite;
+  }
+  @keyframes hintPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 480px) {
+    .title-emoji { font-size: 3.5rem; }
+    .title-text { font-size: 1.7rem; }
+    .title-sub { font-size: 0.95rem; }
+    .question-text { font-size: 1.1rem; }
+    .option-btn { width: 100px; height: 100px; }
+    .option-btn .opt-emoji { font-size: 2.2rem; }
+    .scene-visual { font-size: 4rem; }
+    .scene-result { font-size: 4rem; }
+    .scene-container { min-height: 160px; padding: 0.8rem; }
+  }
+  @media (min-width: 768px) {
+    .option-btn { width: 140px; height: 140px; }
+    .option-btn .opt-emoji { font-size: 3.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 背景装饰 -->
+<div class="bg-deco">
+  <div class="item">🔬</div>
+  <div class="item">⚗️</div>
+  <div class="item">🌈</div>
+  <div class="item">⭐</div>
+  <div class="item">💡</div>
+  <div class="item">🧪</div>
+</div>
+
+<!-- ===== 开始画面 ===== -->
+<div id="start-screen" class="screen">
+  <div class="title-emoji">🔬</div>
+  <div class="title-text">因果实验室</div>
+  <div class="title-sub">探索奇妙的世界！<br>找找看，是什么引起了结果呢？🤔</div>
+  <div class="difficulty-btns">
+    <button class="diff-btn easy" onclick="startGame('easy')">🌱 简单</button>
+    <button class="diff-btn medium" onclick="startGame('medium')">🌸 中等</button>
+    <button class="diff-btn hard" onclick="startGame('hard')">🌺 挑战</button>
+  </div>
+  <button class="start-btn" onclick="startGame('easy')">开始探索！✨</button>
+</div>
+
+<!-- ===== 游戏画面 ===== -->
+<div id="game-screen" class="screen hidden">
+  <div class="top-bar">
+    <div class="level-badge" id="level-badge">第 1 关</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="star-count" id="star-count">⭐ 0</div>
+  </div>
+  <div class="question-text" id="question-text"></div>
+  <div class="scene-container" id="scene-container"></div>
+  <div class="options-area" id="options-area"></div>
+  <div class="action-area" id="action-area"></div>
+</div>
+
+<!-- ===== 反馈 ===== -->
+<div class="feedback-overlay" id="feedback-overlay">
+  <div class="feedback-content">
+    <div class="feedback-emoji" id="feedback-emoji"></div>
+    <div class="feedback-text" id="feedback-text"></div>
+  </div>
+</div>
+
+<!-- ===== 结果画面 ===== -->
+<div id="result-screen" class="screen hidden">
+  <div class="result-stars" id="result-stars"></div>
+  <div class="result-title" id="result-title"></div>
+  <div class="result-desc" id="result-desc"></div>
+  <div class="result-btns">
+    <button class="result-btn replay" onclick="goToStart()">再玩一次 🔄</button>
+    <button class="result-btn menu" onclick="goToStart()">回到首页 🏠</button>
+  </div>
+</div>
+
+<script>
+// ===== 音效系统 =====
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+}
+function playTone(freq, dur, type = 'sine', vol = 0.3) {
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + dur);
+}
+function sfxCorrect() {
+  playTone(523, 0.15); setTimeout(() => playTone(659, 0.15), 100);
+  setTimeout(() => playTone(784, 0.25), 200);
+}
+function sfxWrong() {
+  playTone(200, 0.3, 'triangle', 0.2);
+}
+function sfxClick() {
+  playTone(440, 0.08, 'sine', 0.15);
+}
+function sfxStar() {
+  playTone(880, 0.1); setTimeout(() => playTone(1047, 0.1), 80);
+  setTimeout(() => playTone(1175, 0.15), 160);
+}
+function sfxComplete() {
+  [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.3, 'sine', 0.25), i*150));
+}
+
+// ===== 游戏数据 =====
+const QUESTIONS = {
+  easy: [
+    {
+      type: 'predict',
+      question: '天上下雨了 ☁️🌧️，小明出门需要带什么呢？',
+      scene: '🌧️', sceneLabel: '下雨了',
+      options: [
+        { emoji: '☂️', label: '雨伞', correct: true },
+        { emoji: '🕶️', label: '墨镜', correct: false },
+        { emoji: '🧣', label: '围巾', correct: false }
+      ],
+      explanation: '下雨要打雨伞，这样就不会淋湿啦！☂️'
+    },
+    {
+      type: 'predict',
+      question: '太阳很大很热 ☀️，冰淇淋会怎么样呢？',
+      scene: '☀️🍦', sceneLabel: '太阳下有冰淇淋',
+      options: [
+        { emoji: '🧊', label: '冻住了', correct: false },
+        { emoji: '💧', label: '融化了', correct: true },
+        { emoji: '🎂', label: '变大了', correct: false }
+      ],
+      explanation: '太阳很热，冰淇淋会融化变成甜甜的水哦！💧'
+    },
+    {
+      type: 'predict',
+      question: '晚上很黑 🌙，我们需要什么呢？',
+      scene: '🌙', sceneLabel: '黑黑的夜晚',
+      options: [
+        { emoji: '💡', label: '灯', correct: true },
+        { emoji: '⚽', label: '球', correct: false },
+        { emoji: '🍌', label: '香蕉', correct: false }
+      ],
+      explanation: '天黑了要开灯，这样才能看见东西呀！💡'
+    },
+    {
+      type: 'predict',
+      question: '小兔子好饿 🐰，它吃了胡萝卜会怎样？',
+      scene: '🐰', sceneLabel: '饿了的小兔子',
+      options: [
+        { emoji: '😴', label: '想睡觉', correct: false },
+        { emoji: '😊', label: '吃饱了', correct: true },
+        { emoji: '😢', label: '不开心', correct: false }
+      ],
+      explanation: '吃了胡萝卜，小兔子就吃饱啦，好开心！😊'
+    },
+    {
+      type: 'predict',
+      question: '冬天来了很冷 ❄️，我们应该穿什么呢？',
+      scene: '❄️🥶', sceneLabel: '冬天好冷',
+      options: [
+        { emoji: '👗', label: '裙子', correct: false },
+        { emoji: '🩳', label: '短裤', correct: false },
+        { emoji: '🧥', label: '外套', correct: true }
+      ],
+      explanation: '冬天要穿厚厚的外套，这样就不冷了！🧥'
+    },
+    {
+      type: 'predict',
+      question: '把球往天上扔 ⬆️，球会怎么样？',
+      scene: '⬆️🏐', sceneLabel: '把球扔上去',
+      options: [
+        { emoji: '⬇️', label: '掉下来', correct: true },
+        { emoji: '✈️', label: '飞走了', correct: false },
+        { emoji: '💨', label: '消失了', correct: false }
+      ],
+      explanation: '球扔上去会掉下来，这就是重力哦！⬇️'
+    }
+  ],
+  medium: [
+    {
+      type: 'cause',
+      question: '花开了 🌸，是什么原因让它开花的呢？',
+      scene: '🌸', sceneLabel: '美丽的花开了',
+      options: [
+        { emoji: '💧☀️', label: '浇水和阳光', correct: true },
+        { emoji: '🎵', label: '听音乐', correct: false },
+        { emoji: '📚', label: '读书', correct: false }
+      ],
+      explanation: '给花浇水、晒太阳，花就会开啦！💧☀️'
+    },
+    {
+      type: 'cause',
+      question: '小朋友在哭 😢，可能是什么原因呢？',
+      scene: '😢', sceneLabel: '小朋友在哭',
+      options: [
+        { emoji: '🎁', label: '收到礼物', correct: false },
+        { emoji: '🍰', label: '吃到蛋糕', correct: false },
+        { emoji: '🤕', label: '摔倒了', correct: true }
+      ],
+      explanation: '摔倒受伤会疼，所以小朋友会哭。但是没关系的，勇敢站起来！💪'
+    },
+    {
+      type: 'predict',
+      question: '小树苗 🌱 天天浇水，将来会变成什么呢？',
+      scene: '🌱💧', sceneLabel: '给小树苗浇水',
+      options: [
+        { emoji: '🌳', label: '大树', correct: true },
+        { emoji: '🌻', label: '向日葵', correct: false },
+        { emoji: '🍄', label: '蘑菇', correct: false }
+      ],
+      explanation: '小树苗慢慢长大，会变成高高的大树！🌳'
+    },
+    {
+      type: 'cause',
+      question: '水杯翻了 🥛💦，地上怎么了？',
+      scene: '🥛💦', sceneLabel: '杯子翻了',
+      options: [
+        { emoji: '🔥', label: '着火了', correct: false },
+        { emoji: '💧', label: '地上湿了', correct: true },
+        { emoji: '❄️', label: '结冰了', correct: false }
+      ],
+      explanation: '杯子翻了，水就会流到地上，地面会变湿哦！💧'
+    },
+    {
+      type: 'predict',
+      question: '种子种在土里 🌍🌱，浇水后会怎样？',
+      scene: '🌍🌱💧', sceneLabel: '种下种子浇了水',
+      options: [
+        { emoji: '🌿', label: '发芽了', correct: true },
+        { emoji: '🪨', label: '变成石头', correct: false },
+        { emoji: '🎈', label: '飞上天', correct: false }
+      ],
+      explanation: '种子喝了水就会发芽，长出小绿苗！🌿'
+    },
+    {
+      type: 'cause',
+      question: '小鸟开心地唱歌 🐦🎵，可能是因为什么呢？',
+      scene: '🐦☀️', sceneLabel: '小鸟在唱歌',
+      options: [
+        { emoji: '🌧️', label: '下雨了', correct: false },
+        { emoji: '☀️', label: '天气晴朗', correct: true },
+        { emoji: '🌙', label: '天黑了', correct: false }
+      ],
+      explanation: '天气好的时候，小鸟特别开心，就会唱歌！☀️🎵'
+    }
+  ],
+  hard: [
+    {
+      type: 'chain',
+      question: '按正确顺序排列，看看小种子怎么长大！',
+      chain: [
+        { emoji: '🌱', label: '种下种子' },
+        { emoji: '💧', label: '浇水' },
+        { emoji: '🌿', label: '发芽' },
+        { emoji: '🌸', label: '开花' }
+      ],
+      options: [
+        { emoji: '💧', label: '浇水', chainIndex: 1 },
+        { emoji: '🌸', label: '开花', chainIndex: 3 },
+        { emoji: '🌱', label: '种下种子', chainIndex: 0 },
+        { emoji: '🌿', label: '发芽', chainIndex: 2 }
+      ],
+      explanation: '先种种子→浇水→发芽→开花，这就是植物的生长过程！🌱💧🌿🌸'
+    },
+    {
+      type: 'chain',
+      question: '下雨天出门，正确的步骤是什么呢？',
+      chain: [
+        { emoji: '🌧️', label: '下雨了' },
+        { emoji: '☂️', label: '拿雨伞' },
+        { emoji: '🚶', label: '出门' },
+        { emoji: '🏠', label: '到达' }
+      ],
+      options: [
+        { emoji: '🏠', label: '到达', chainIndex: 3 },
+        { emoji: '☂️', label: '拿雨伞', chainIndex: 1 },
+        { emoji: '🌧️', label: '下雨了', chainIndex: 0 },
+        { emoji: '🚶', label: '出门', chainIndex: 2 }
+      ],
+      explanation: '先下雨了→拿雨伞→出门→安全到达！🌧️☂️🚶🏠'
+    },
+    {
+      type: 'cause',
+      question: '为什么雪人变小了 ⛄💧？',
+      scene: '⛄➡️💧', sceneLabel: '雪人变小了',
+      options: [
+        { emoji: '☀️', label: '天变暖了', correct: true },
+        { emoji: '🌧️', label: '下雨了', correct: false },
+        { emoji: '💨', label: '被风吹了', correct: false }
+      ],
+      explanation: '天气变暖后，雪会融化，雪人就变小了！☀️'
+    },
+    {
+      type: 'chain',
+      question: '做蛋糕的正确顺序是什么呢？',
+      chain: [
+        { emoji: '🥣', label: '准备材料' },
+        { emoji: '🥄', label: '搅拌' },
+        { emoji: '🔥', label: '烤一烤' },
+        { emoji: '🎂', label: '蛋糕做好' }
+      ],
+      options: [
+        { emoji: '🎂', label: '蛋糕做好', chainIndex: 3 },
+        { emoji: '🔥', label: '烤一烤', chainIndex: 2 },
+        { emoji: '🥣', label: '准备材料', chainIndex: 0 },
+        { emoji: '🥄', label: '搅拌', chainIndex: 1 }
+      ],
+      explanation: '准备材料→搅拌→烤一烤→蛋糕做好！🥣🥄🔥🎂'
+    },
+    {
+      type: 'predict',
+      question: '如果一直不给小鱼喂食 🐟，它会怎样呢？',
+      scene: '🐟🍽️❌', sceneLabel: '不给鱼喂食',
+      options: [
+        { emoji: '💪', label: '变强壮', correct: false },
+        { emoji: '😰', label: '变瘦了', correct: true },
+        { emoji: '🎈', label: '变大了', correct: false }
+      ],
+      explanation: '不吃饭会饿肚子，小鱼也一样，要好好吃饭哦！🍚'
+    },
+    {
+      type: 'chain',
+      question: '洗衣服的正确顺序是什么呢？',
+      chain: [
+        { emoji: '👕', label: '脏衣服' },
+        { emoji: '🧺', label: '放进洗衣机' },
+        { emoji: '🌊', label: '洗一洗' },
+        { emoji: '✨', label: '晾干叠好' }
+      ],
+      options: [
+        { emoji: '✨', label: '晾干叠好', chainIndex: 3 },
+        { emoji: '🌊', label: '洗一洗', chainIndex: 2 },
+        { emoji: '👕', label: '脏衣服', chainIndex: 0 },
+        { emoji: '🧺', label: '放进洗衣机', chainIndex: 1 }
+      ],
+      explanation: '脏衣服→放洗衣机→洗一洗→晾干叠好！👕🧺🌊✨'
+    }
+  ]
+};
+
+// ===== 游戏状态 =====
+let state = {
+  difficulty: 'easy',
+  questions: [],
+  currentIndex: 0,
+  stars: 0,
+  selectedOption: null,
+  chainOrder: [],
+  answered: false,
+  chainExpectedIndex: 0
+};
+
+// ===== 画面切换 =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function goToStart() {
+  showScreen('start-screen');
+}
+
+// ===== 开始游戏 =====
+function startGame(diff) {
+  ensureAudio();
+  sfxClick();
+  state.difficulty = diff;
+  state.questions = shuffleArray([...QUESTIONS[diff]]).slice(0, 5);
+  state.currentIndex = 0;
+  state.stars = 0;
+  state.selectedOption = null;
+  state.chainOrder = [];
+  state.answered = false;
+  showScreen('game-screen');
+  renderQuestion();
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ===== 渲染题目 =====
+function renderQuestion() {
+  const q = state.questions[state.currentIndex];
+  state.selectedOption = null;
+  state.answered = false;
+  state.chainOrder = [];
+  state.chainExpectedIndex = 0;
+
+  // 更新顶部
+  document.getElementById('level-badge').textContent = `第 ${state.currentIndex + 1} / ${state.questions.length} 关`;
+  document.getElementById('progress-fill').style.width = `${(state.currentIndex / state.questions.length) * 100}%`;
+  document.getElementById('star-count').textContent = `⭐ ${state.stars}`;
+
+  // 更新题目
+  document.getElementById('question-text').textContent = q.question;
+
+  // 渲染场景
+  const sceneEl = document.getElementById('scene-container');
+  if (q.type === 'chain') {
+    renderChainScene(sceneEl, q);
+  } else {
+    renderNormalScene(sceneEl, q);
+  }
+
+  // 渲染选项
+  renderOptions(q);
+
+  // 渲染操作按钮
+  const actionArea = document.getElementById('action-area');
+  actionArea.innerHTML = '';
+}
+
+function renderNormalScene(el, q) {
+  el.innerHTML = `
+    <div class="scene-visual">${q.scene}</div>
+    <div class="scene-label">${q.sceneLabel}</div>
+  `;
+}
+
+function renderChainScene(el, q) {
+  let html = '<div class="hint-text">👇 按正确顺序点击</div>';
+  html += '<div class="chain-container" id="chain-display">';
+  // 显示空位
+  for (let i = 0; i < q.chain.length; i++) {
+    if (i > 0) html += '<div class="chain-arrow">→</div>';
+    html += `<div class="chain-item" id="chain-slot-${i}" style="opacity:0.3">
+      <div class="ci-emoji" id="chain-emoji-${i}">❓</div>
+      <div class="ci-label" id="chain-label-${i}">第${i+1}步</div>
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderOptions(q) {
+  const optionsArea = document.getElementById('options-area');
+  const shuffled = q.type === 'chain' ? shuffleArray([...q.options]) : shuffleArray([...q.options]);
+  
+  let html = '';
+  shuffled.forEach((opt, i) => {
+    if (q.type === 'chain') {
+      html += `<div class="option-btn" id="opt-${i}" onclick="selectChainOption(${i}, ${opt.chainIndex})">
+        <div class="opt-emoji">${opt.emoji}</div>
+        <div class="opt-label">${opt.label}</div>
+      </div>`;
+    } else {
+      html += `<div class="option-btn" id="opt-${i}" onclick="selectOption(${i}, ${opt.correct})">
+        <div class="opt-emoji">${opt.emoji}</div>
+        <div class="opt-label">${opt.label}</div>
+      </div>`;
+    }
+  });
+  optionsArea.innerHTML = html;
+
+  // 存储打乱后的选项
+  optionsArea._shuffled = shuffled;
+}
+
+// ===== 选择选项（普通题） =====
+function selectOption(idx, correct) {
+  if (state.answered) return;
+  sfxClick();
+
+  // 取消其他选中
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById(`opt-${idx}`).classList.add('selected');
+  state.selectedOption = idx;
+
+  // 自动判定
+  setTimeout(() => checkAnswer(correct, idx), 400);
+}
+
+// ===== 选择选项（因果链题） =====
+function selectChainOption(idx, chainIndex) {
+  if (state.answered) return;
+  
+  const optBtn = document.getElementById(`opt-${idx}`);
+  if (optBtn.classList.contains('selected')) return;
+
+  const q = state.questions[state.currentIndex];
+  
+  // 检查是否是当前需要的步骤
+  if (chainIndex === state.chainExpectedIndex) {
+    sfxClick();
+    optBtn.classList.add('selected');
+    
+    // 填入链中
+    const slot = document.getElementById(`chain-slot-${chainIndex}`);
+    const emoji = document.getElementById(`chain-emoji-${chainIndex}`);
+    const label = document.getElementById(`chain-label-${chainIndex}`);
+    slot.style.opacity = '1';
+    slot.style.transition = 'all 0.3s ease';
+    slot.style.background = 'rgba(76,175,80,0.2)';
+    
+    const chainItem = q.chain[chainIndex];
+    emoji.textContent = chainItem.emoji;
+    label.textContent = chainItem.label;
+    
+    state.chainOrder.push(chainIndex);
+    state.chainExpectedIndex++;
+
+    // 检查是否完成
+    if (state.chainExpectedIndex === q.chain.length) {
+      state.answered = true;
+      setTimeout(() => {
+        showFeedback(true);
+        state.stars += 2;
+        document.getElementById('star-count').textContent = `⭐ ${state.stars}`;
+        sfxCorrect();
+        spawnStars(8);
+        showExplanation(q.explanation);
+      }, 500);
+    }
+  } else {
+    // 选错了 - 抖动效果
+    sfxWrong();
+    optBtn.style.animation = 'shake 0.4s ease';
+    setTimeout(() => optBtn.style.animation = '', 400);
+  }
+}
+
+// ===== 检查答案 =====
+function checkAnswer(correct, idx) {
+  state.answered = true;
+  const q = state.questions[state.currentIndex];
+
+  if (correct) {
+    showFeedback(true);
+    state.stars += 2;
+    document.getElementById('star-count').textContent = `⭐ ${state.stars}`;
+    sfxCorrect();
+    spawnStars(8);
+    
+    // 标记正确选项
+    document.getElementById(`opt-${idx}`).style.background = 'rgba(76,175,80,0.3)';
+    document.getElementById(`opt-${idx}`).style.borderColor = '#4CAF50';
+  } else {
+    showFeedback(false);
+    sfxWrong();
+    
+    // 标记错误选项
+    document.getElementById(`opt-${idx}`).style.background = 'rgba(244,67,54,0.3)';
+    document.getElementById(`opt-${idx}`).style.borderColor = '#f44336';
+    
+    // 高亮正确答案
+    const shuffled = document.getElementById('options-area')._shuffled;
+    shuffled.forEach((opt, i) => {
+      if (opt.correct) {
+        document.getElementById(`opt-${i}`).style.background = 'rgba(76,175,80,0.3)';
+        document.getElementById(`opt-${i}`).style.borderColor = '#4CAF50';
+      }
+    });
+  }
+
+  showExplanation(q.explanation);
+}
+
+// ===== 显示反馈 =====
+function showFeedback(correct) {
+  const overlay = document.getElementById('feedback-overlay');
+  const emoji = document.getElementById('feedback-emoji');
+  const text = document.getElementById('feedback-text');
+
+  const correctEmojis = ['🎉', '🌟', '👏', '💪', '🎊'];
+  const correctTexts = ['太棒了！', '你真聪明！', '答对啦！', '厉害呀！', '真了不起！'];
+  const wrongEmojis = ['🤗', '😊', '💪'];
+  const wrongTexts = ['没关系，再想想哦', '加油，你可以的', '差一点点啦'];
+
+  if (correct) {
+    const i = Math.floor(Math.random() * correctEmojis.length);
+    emoji.textContent = correctEmojis[i];
+    text.textContent = correctTexts[i];
+    text.style.color = '#4CAF50';
+  } else {
+    const i = Math.floor(Math.random() * wrongEmojis.length);
+    emoji.textContent = wrongEmojis[i];
+    text.textContent = wrongTexts[i];
+    text.style.color = '#FF9800';
+  }
+
+  overlay.classList.add('show');
+  setTimeout(() => overlay.classList.remove('show'), 1500);
+}
+
+// ===== 显示解释 =====
+function showExplanation(text) {
+  const actionArea = document.getElementById('action-area');
+  actionArea.innerHTML = `
+    <div style="text-align:center;width:100%;max-width:600px;">
+      <div style="font-size:1rem;color:rgba(255,255,255,0.9);font-weight:600;margin-bottom:0.8rem;
+        background:rgba(255,255,255,0.3);padding:0.6rem 1rem;border-radius:1rem;">💡 ${text}</div>
+      <button class="action-btn next" onclick="nextQuestion()">下一题 ➡️</button>
+    </div>
+  `;
+}
+
+// ===== 下一题 =====
+function nextQuestion() {
+  sfxClick();
+  state.currentIndex++;
+  if (state.currentIndex >= state.questions.length) {
+    showResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ===== 显示结果 =====
+function showResult() {
+  sfxComplete();
+  const maxStars = state.questions.length * 2;
+  const ratio = state.stars / maxStars;
+
+  let starsDisplay = '';
+  const starCount = ratio >= 0.8 ? 3 : ratio >= 0.5 ? 2 : 1;
+  for (let i = 0; i < 3; i++) {
+    starsDisplay += i < starCount ? '⭐' : '☆';
+  }
+
+  const titles = ['小科学家！', '探索小达人！', '因果推理大师！'];
+  const descs = [
+    '你已经开始理解事物之间的因果关系了！继续加油哦！🌟',
+    '你对因果关系有很好的理解！每个实验都做得很棒！🎉',
+    '你是因果推理大师！已经能理解复杂的事物变化了！🏆'
+  ];
+
+  document.getElementById('result-stars').textContent = starsDisplay;
+  document.getElementById('result-title').textContent = starCount === 3 ? titles[2] : starCount === 2 ? titles[1] : titles[0];
+  document.getElementById('result-desc').textContent = descs[starCount - 1];
+
+  showScreen('result-screen');
+  spawnStars(15);
+}
+
+// ===== 星星粒子 =====
+function spawnStars(count) {
+  const emojis = ['⭐', '✨', '🌟', '💫'];
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const star = document.createElement('div');
+      star.className = 'star-particle';
+      star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      star.style.left = `${Math.random() * 80 + 10}%`;
+      star.style.top = `${Math.random() * 60 + 20}%`;
+      star.style.setProperty('--tx', `${(Math.random() - 0.5) * 200}px`);
+      star.style.setProperty('--ty', `${-Math.random() * 200 - 50}px`);
+      document.body.appendChild(star);
+      setTimeout(() => star.remove(), 1000);
+    }, i * 80);
+  }
+}
+</script>
+</body>
+</html>

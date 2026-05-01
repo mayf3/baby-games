@@ -315,5 +315,18 @@
     "difficulty": "简单",
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-4.7)"
+  },
+  {
+    "id": "037-cause-effect-lab",
+    "title": "因果实验室",
+    "emoji": "🔬",
+    "type": "logic",
+    "typeLabel": "逻辑类",
+    "age": "3-6岁",
+    "description": "探索奇妙的世界因果关系！预测结果（下雨要带什么？）、找出原因（花为什么会开？）、排列因果链（种子怎么长大），三个难度等级从简单预测到挑战多步骤因果推理，培养逻辑思维和科学探索精神",
+    "path": "games/037-cause-effect-lab/index.html",
+    "difficulty": "简单",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)"
   }
 ]
