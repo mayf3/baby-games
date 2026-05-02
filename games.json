@@ -328,5 +328,19 @@
     "difficulty": "简单",
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)"
+  },
+  {
+    "id": "021-3d-room-explorer",
+    "title": "3D物品探索",
+    "emoji": "🏠",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "在3D房间里探索和发现各种物品！三个房间（客厅、厨房、卧室）等你探索，根据提示找到指定物品，学习物品名称和分类，培养观察力、词汇能力和3D空间感知力，拖动旋转视角发现隐藏的宝贝",
+    "path": "games/021-3d-room-explorer/index.html",
+    "difficulty": "简单",
+    "dimension": "3D",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)"
   }
 ]

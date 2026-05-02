@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D物品探索 - 宝宝游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Nunito', 'Comic Sans MS', cursive, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        #gameCanvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* 顶部UI */
+        .top-ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 100%);
+        }
+
+        .score-display {
+            background: rgba(255,255,255,0.95);
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 17px;
+            font-weight: bold;
+            color: #43e97b;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .level-display {
+            background: rgba(255,255,255,0.95);
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 17px;
+            font-weight: bold;
+            color: #38f9d7;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        /* 任务提示 */
+        .task-panel {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.97);
+            padding: 16px 28px;
+            border-radius: 22px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            max-width: 88%;
+            animation: bounceIn 0.5s ease;
+        }
+
+        .task-emoji {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .task-text {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .task-hint {
+            font-size: 14px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: translateX(-50%) scale(0.3); opacity: 0; }
+            50% { transform: translateX(-50%) scale(1.05); }
+            70% { transform: translateX(-50%) scale(0.95); }
+            100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+
+        /* 正确反馈弹窗 */
+        .correct-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+            text-align: center;
+            animation: popUp 0.6s ease forwards;
+            pointer-events: none;
+        }
+
+        .correct-popup .emoji {
+            font-size: 80px;
+            animation: spin 1s ease;
+        }
+
+        .correct-popup .text {
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            margin-top: 8px;
+        }
+
+        .correct-popup .name-text {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            margin-top: 4px;
+        }
+
+        @keyframes popUp {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            70% { transform: translate(-50%, -50%) scale(0.9); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 错误反馈 */
+        .wrong-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+            font-size: 50px;
+            animation: shakeWrong 0.6s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes shakeWrong {
+            0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+            20% { transform: translate(-50%, -50%) rotate(-15deg); }
+            40% { transform: translate(-50%, -50%) rotate(15deg); }
+            60% { transform: translate(-50%, -50%) rotate(-10deg); }
+            80% { transform: translate(-50%, -50%) rotate(10deg); }
+        }
+
+        /* 底部控制 */
+        .bottom-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            background: rgba(255,255,255,0.95);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 开始画面 */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            transition: opacity 0.5s;
+        }
+
+        .start-screen h1 {
+            font-size: 42px;
+            color: #fff;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+        }
+
+        .start-screen .subtitle {
+            font-size: 20px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+        }
+
+        .start-btn {
+            background: #fff;
+            border: none;
+            padding: 18px 50px;
+            border-radius: 30px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #43e97b;
+            cursor: pointer;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .start-btn:active {
+            transform: scale(0.95);
+        }
+
+        .start-emoji {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .level-select {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .level-btn {
+            background: rgba(255,255,255,0.9);
+            border: 3px solid transparent;
+            padding: 14px 24px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #43e97b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .level-btn.active {
+            border-color: #FFD700;
+            background: #fff;
+            transform: scale(1.05);
+        }
+
+        /* 完成画面 */
+        .complete-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+
+        .complete-screen.show {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .complete-card {
+            background: #fff;
+            padding: 40px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+            animation: bounceIn2 0.6s ease;
+        }
+
+        @keyframes bounceIn2 {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.95); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .complete-card .emoji {
+            font-size: 80px;
+        }
+
+        .complete-card h2 {
+            font-size: 28px;
+            color: #43e97b;
+            margin: 15px 0;
+        }
+
+        .complete-card p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .stars-row {
+            font-size: 50px;
+            margin: 10px 0 20px;
+        }
+
+        .replay-btn {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            border: none;
+            padding: 16px 40px;
+            border-radius: 25px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(67,233,123,0.4);
+            transition: transform 0.2s;
+        }
+
+        .replay-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 旋转提示 */
+        .rotate-hint {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 15px;
+            font-size: 13px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .rotate-hint.show {
+            opacity: 1;
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #FFD700, #FF6B6B);
+            z-index: 100;
+            transition: width 0.5s ease;
+            border-radius: 0 3px 3px 0;
+        }
+
+        /* Canvas 粒子层 */
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 150;
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .top-ui { padding: 8px 10px; }
+            .score-display, .level-display { padding: 6px 14px; font-size: 14px; }
+            .task-panel { top: 55px; padding: 12px 20px; }
+            .task-emoji { font-size: 30px; }
+            .task-text { font-size: 16px; }
+            .start-screen h1 { font-size: 32px; }
+            .start-btn { padding: 14px 36px; font-size: 20px; }
+            .complete-card { padding: 25px; }
+            .complete-card h2 { font-size: 22px; }
+            .control-btn { padding: 10px 18px; font-size: 14px; }
+        }
+
+        @media (orientation: portrait) {
+            .task-panel { top: 50px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 开始画面 -->
+<div class="start-screen" id="startScreen">
+    <div class="start-emoji">🏠</div>
+    <h1>3D物品探索</h1>
+    <div class="subtitle">在房间里找到指定的物品吧！</div>
+    <div class="level-select">
+        <button class="level-btn active" data-level="0" onclick="selectLevel(0)">🟢 简单</button>
+        <button class="level-btn" data-level="1" onclick="selectLevel(1)">🟡 中等</button>
+        <button class="level-btn" data-level="2" onclick="selectLevel(2)">🔴 挑战</button>
+    </div>
+    <button class="start-btn" onclick="startGame()" style="margin-top:20px;">🎮 开始探索！</button>
+</div>
+
+<!-- 完成画面 -->
+<div class="complete-screen" id="completeScreen">
+    <div class="complete-card">
+        <div class="emoji">🎉</div>
+        <h2>太棒了！</h2>
+        <div class="stars-row" id="starsRow">⭐⭐⭐</div>
+        <p id="completeMsg">你找到了所有物品！</p>
+        <button class="replay-btn" onclick="restartGame()">🔄 再玩一次</button>
+    </div>
+</div>
+
+<!-- 粒子画布 -->
+<canvas id="particleCanvas"></canvas>
+
+<!-- 游戏UI -->
+<div class="top-ui" id="topUI" style="display:none;">
+    <div class="score-display">⭐ <span id="scoreText">0</span></div>
+    <div class="level-display">📍 <span id="levelText">第1关</span></div>
+</div>
+
+<div class="task-panel" id="taskPanel" style="display:none;">
+    <span class="task-emoji" id="taskEmoji">🎯</span>
+    <div class="task-text" id="taskText">找到：小熊</div>
+    <div class="task-hint" id="taskHint">点击房间里的物品</div>
+</div>
+
+<div class="bottom-controls" id="bottomControls" style="display:none;">
+    <button class="control-btn" onclick="rotateLeft()">👈 转</button>
+    <button class="control-btn" onclick="rotateRight()">转 👉</button>
+</div>
+
+<div class="rotate-hint" id="rotateHint">👆 拖动屏幕可以旋转视角哦</div>
+
+<div class="progress-bar" id="progressBar" style="width:0%"></div>
+
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// ===== 游戏状态 =====
+let scene, camera, renderer;
+let currentLevel = 0;
+let score = 0;
+let foundCount = 0;
+let totalItems = 0;
+let currentTarget = null;
+let clickableObjects = [];
+let allItems = [];
+let isAnimating = false;
+let isDragging = false;
+let previousMousePosition = { x: 0, y: 0 };
+let cameraAngle = 0;
+let targetCameraAngle = 0;
+let roomGroup;
+let particles = [];
+
+// 粒子系统
+const particleCanvas = document.getElementById('particleCanvas');
+const pCtx = particleCanvas.getContext('2d');
+
+// ===== 音效系统 =====
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function ensureAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function playSound(freq, duration, type = 'sine') {
+    ensureAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
+
+function playCorrectSound() {
+    playSound(523, 0.15);
+    setTimeout(() => playSound(659, 0.15), 100);
+    setTimeout(() => playSound(784, 0.2), 200);
+    setTimeout(() => playSound(1047, 0.3), 300);
+}
+
+function playWrongSound() {
+    playSound(200, 0.2, 'triangle');
+    setTimeout(() => playSound(160, 0.3, 'triangle'), 150);
+}
+
+function playClickSound() {
+    playSound(800, 0.08);
+}
+
+function playCompleteSound() {
+    const notes = [523, 587, 659, 698, 784, 880, 988, 1047];
+    notes.forEach((n, i) => {
+        setTimeout(() => playSound(n, 0.2), i * 100);
+    });
+}
+
+function playFoundSound() {
+    playSound(660, 0.1);
+    setTimeout(() => playSound(880, 0.15), 80);
+}
+
+// ===== 物品定义 =====
+const ITEMS = {
+    // 客厅物品 - 简单
+    livingRoom: [
+        { name: '红色沙发', emoji: '🛋️', color: 0xE74C3C, type: 'sofa', position: [-2, 0.4, -1.5] },
+        { name: '绿色植物', emoji: '🌿', color: 0x27AE60, type: 'plant', position: [2, 0.5, -1.5] },
+        { name: '蓝色台灯', emoji: '💡', color: 0x3498DB, type: 'lamp', position: [-1.5, 1.2, -2.3] },
+        { name: '黄色小熊', emoji: '🧸', color: 0xF39C12, type: 'bear', position: [0, 0.6, 0] },
+        { name: '紫色球', emoji: '⚽', color: 0x9B59B6, type: 'ball', position: [1.5, 0.3, 1] },
+        { name: '橙色书本', emoji: '📕', color: 0xE67E22, type: 'book', position: [-0.5, 0.8, -2.2] },
+    ],
+    // 厨房物品 - 中等
+    kitchen: [
+        { name: '红色苹果', emoji: '🍎', color: 0xE74C3C, type: 'apple', position: [1, 0.9, -1.8] },
+        { name: '黄色香蕉', emoji: '🍌', color: 0xF1C40F, type: 'banana', position: [-1, 0.9, -1.8] },
+        { name: '绿色西瓜', emoji: '🍉', color: 0x27AE60, type: 'watermelon', position: [0, 0.5, 0.5] },
+        { name: '蓝色杯子', emoji: '🥤', color: 0x3498DB, type: 'cup', position: [-1.5, 0.6, -0.5] },
+        { name: '橙色橙子', emoji: '🍊', color: 0xE67E22, type: 'orange', position: [1.5, 0.6, -0.5] },
+        { name: '粉色蛋糕', emoji: '🍰', color: 0xE91E63, type: 'cake', position: [0, 0.7, -1.8] },
+        { name: '白色牛奶', emoji: '🥛', color: 0xECF0F1, type: 'milk', position: [2, 0.7, -1.5] },
+        { name: '棕色面包', emoji: '🍞', color: 0xD4A574, type: 'bread', position: [-2, 0.7, -1.5] },
+    ],
+    // 卧室物品 - 挑战
+    bedroom: [
+        { name: '小猫咪', emoji: '🐱', color: 0xF39C12, type: 'cat', position: [1.5, 0.3, 1] },
+        { name: '小狗玩偶', emoji: '🐶', color: 0xD4A574, type: 'dog', position: [-1.5, 0.4, 1] },
+        { name: '小汽车', emoji: '🚗', color: 0xE74C3C, type: 'car', position: [0, 0.3, 2] },
+        { name: '小星星', emoji: '⭐', color: 0xF1C40F, type: 'star', position: [-2, 1.8, -1] },
+        { name: '小月亮', emoji: '🌙', color: 0xFFF9C4, type: 'moon', position: [2, 2, -1] },
+        { name: '红色积木', emoji: '🧱', color: 0xE74C3C, type: 'block_r', position: [-1, 0.3, -1] },
+        { name: '蓝色积木', emoji: '🟦', color: 0x3498DB, type: 'block_b', position: [1, 0.3, -1] },
+        { name: '绿色恐龙', emoji: '🦕', color: 0x27AE60, type: 'dino', position: [0.5, 0.5, -0.5] },
+        { name: '粉色兔子', emoji: '🐰', color: 0xE91E63, type: 'rabbit', position: [-0.5, 0.4, 0.5] },
+        { name: '彩虹画', emoji: '🌈', color: 0xFF6B6B, type: 'rainbow', position: [0, 2.2, -2.4] },
+    ]
+};
+
+const ROOM_CONFIGS = [
+    { name: '客厅', items: ITEMS.livingRoom, bgColor: 0xFFF8E1, wallColor: 0xFFECB3, floorColor: 0xD7CCC8 },
+    { name: '厨房', items: ITEMS.kitchen, bgColor: 0xE8F5E9, wallColor: 0xC8E6C9, floorColor: 0xBCAAA4 },
+    { name: '卧室', items: ITEMS.bedroom, bgColor: 0xE3F2FD, wallColor: 0xBBDEFB, floorColor: 0xD7CCC8 },
+];
+
+// ===== 场景创建 =====
+function initScene() {
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 3.5, 5.5);
+    camera.lookAt(0, 1, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+    // 灯光
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 8, 5);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    scene.add(dirLight);
+
+    const pointLight = new THREE.PointLight(0xFFF9C4, 0.5, 10);
+    pointLight.position.set(0, 3, 0);
+    scene.add(pointLight);
+
+    // 粒子画布
+    resizeParticleCanvas();
+
+    // 事件
+    window.addEventListener('resize', onResize);
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('pointermove', onPointerMove);
+    renderer.domElement.addEventListener('pointerup', onPointerUp);
+    renderer.domElement.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+
+    animate();
+}
+
+function resizeParticleCanvas() {
+    particleCanvas.width = window.innerWidth;
+    particleCanvas.height = window.innerHeight;
+}
+
+function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    resizeParticleCanvas();
+}
+
+// ===== 房间构建 =====
+function buildRoom(config) {
+    if (roomGroup) {
+        scene.remove(roomGroup);
+    }
+    roomGroup = new THREE.Group();
+    clickableObjects = [];
+    allItems = [];
+
+    // 地板
+    const floorGeo = new THREE.PlaneGeometry(7, 6);
+    const floorMat = new THREE.MeshLambertMaterial({ color: config.floorColor });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    roomGroup.add(floor);
+
+    // 后墙
+    const backWallGeo = new THREE.PlaneGeometry(7, 3.5);
+    const backWallMat = new THREE.MeshLambertMaterial({ color: config.wallColor });
+    const backWall = new THREE.Mesh(backWallGeo, backWallMat);
+    backWall.position.set(0, 1.75, -3);
+    backWall.receiveShadow = true;
+    roomGroup.add(backWall);
+
+    // 左墙
+    const leftWallGeo = new THREE.PlaneGeometry(6, 3.5);
+    const leftWall = new THREE.Mesh(leftWallGeo, backWallMat.clone());
+    leftWall.position.set(-3.5, 1.75, 0);
+    leftWall.rotation.y = Math.PI / 2;
+    roomGroup.add(leftWall);
+
+    // 右墙
+    const rightWall = new THREE.Mesh(leftWallGeo.clone(), backWallMat.clone());
+    rightWall.position.set(3.5, 1.75, 0);
+    rightWall.rotation.y = -Math.PI / 2;
+    roomGroup.add(rightWall);
+
+    // 踢脚线装饰
+    const baseboardGeo = new THREE.BoxGeometry(7, 0.15, 0.05);
+    const baseboardMat = new THREE.MeshLambertMaterial({ color: 0xBCAAA4 });
+    const baseboard = new THREE.Mesh(baseboardGeo, baseboardMat);
+    baseboard.position.set(0, 0.075, -2.97);
+    roomGroup.add(baseboard);
+
+    // 添加物品
+    config.items.forEach(itemData => {
+        const item = createItem(itemData);
+        if (item) {
+            roomGroup.add(item);
+        }
+    });
+
+    scene.add(roomGroup);
+
+    // 背景色
+    scene.background = new THREE.Color(config.bgColor);
+}
+
+function createItem(data) {
+    let mesh;
+    const mat = new THREE.MeshLambertMaterial({ color: data.color });
+
+    switch(data.type) {
+        case 'sofa':
+            // 沙发底座
+            const sofaGroup = new THREE.Group();
+            const sofaBase = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 0.8), mat);
+            sofaBase.castShadow = true;
+            sofaGroup.add(sofaBase);
+            const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2, 0.6, 0.15), mat.clone());
+            sofaBack.position.set(0, 0.35, -0.33);
+            sofaGroup.add(sofaBack);
+            const sofaArmL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.35, 0.8), mat.clone());
+            sofaArmL.position.set(-1, 0.17, 0);
+            sofaGroup.add(sofaArmL);
+            const sofaArmR = sofaArmL.clone();
+            sofaArmR.position.set(1, 0.17, 0);
+            sofaGroup.add(sofaArmR);
+            mesh = sofaGroup;
+            break;
+
+        case 'plant':
+            const plantGroup = new THREE.Group();
+            // 花盆
+            const potMat = new THREE.MeshLambertMaterial({ color: 0xD4A574 });
+            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.35, 12), potMat);
+            pot.position.y = 0.175;
+            plantGroup.add(pot);
+            // 绿色球体（植物）
+            const leaves = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), mat);
+            leaves.position.y = 0.55;
+            leaves.castShadow = true;
+            plantGroup.add(leaves);
+            mesh = plantGroup;
+            break;
+
+        case 'lamp':
+            const lampGroup = new THREE.Group();
+            const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.1, 12), new THREE.MeshLambertMaterial({ color: 0x888888 }));
+            lampGroup.add(lampBase);
+            const lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.6, 8), new THREE.MeshLambertMaterial({ color: 0x888888 }));
+            lampPole.position.y = 0.35;
+            lampGroup.add(lampPole);
+            const lampShade = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.25, 12, 1, true), mat);
+            lampShade.position.y = 0.7;
+            lampGroup.add(lampShade);
+            mesh = lampGroup;
+            break;
+
+        case 'bear':
+            const bearGroup = new THREE.Group();
+            // 身体
+            const bearBody = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), mat);
+            bearBody.position.y = 0.25;
+            bearBody.castShadow = true;
+            bearGroup.add(bearBody);
+            // 头
+            const bearHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 10), mat.clone());
+            bearHead.position.y = 0.55;
+            bearGroup.add(bearHead);
+            // 耳朵
+            const earMat = new THREE.MeshLambertMaterial({ color: 0xC0392B });
+            const earL = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), earMat);
+            earL.position.set(-0.12, 0.7, 0);
+            bearGroup.add(earL);
+            const earR = earL.clone();
+            earR.position.set(0.12, 0.7, 0);
+            bearGroup.add(earR);
+            // 眼睛
+            const eyeMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+            const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), eyeMat);
+            eyeL.position.set(-0.06, 0.58, 0.15);
+            bearGroup.add(eyeL);
+            const eyeR = eyeL.clone();
+            eyeR.position.set(0.06, 0.58, 0.15);
+            bearGroup.add(eyeR);
+            // 鼻子
+            const noseMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+            const nose = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), noseMat);
+            nose.position.set(0, 0.52, 0.17);
+            bearGroup.add(nose);
+            mesh = bearGroup;
+            break;
+
+        case 'ball':
+            mesh = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 14), mat);
+            mesh.position.y = 0.25;
+            mesh.castShadow = true;
+            break;
+
+        case 'book':
+            const bookMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.3), mat);
+            bookMesh.castShadow = true;
+            mesh = bookMesh;
+            break;
+
+        case 'apple':
+            const appleGroup = new THREE.Group();
+            const appleBody = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), mat);
+            appleBody.castShadow = true;
+            appleGroup.add(appleBody);
+            // 苹果梗
+            const stemMat = new THREE.MeshLambertMaterial({ color: 0x5D4037 });
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6), stemMat);
+            stem.position.y = 0.15;
+            appleGroup.add(stem);
+            // 叶子
+            const leafMat = new THREE.MeshLambertMaterial({ color: 0x27AE60 });
+            const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.06), leafMat);
+            leaf.position.set(0.04, 0.17, 0);
+            leaf.rotation.z = 0.3;
+            appleGroup.add(leaf);
+            mesh = appleGroup;
+            break;
+
+        case 'banana':
+            const bananaGeo = createBananaGeometry();
+            mesh = new THREE.Mesh(bananaGeo, mat);
+            mesh.rotation.z = 0.3;
+            mesh.castShadow = true;
+            break;
+
+        case 'watermelon':
+            const melonGroup = new THREE.Group();
+            const melonBody = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat);
+            melonBody.castShadow = true;
+            melonGroup.add(melonBody);
+            // 条纹
+            const stripeMat = new THREE.MeshLambertMaterial({ color: 0x1B5E20 });
+            for (let i = 0; i < 4; i++) {
+                const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.01, 0.4), stripeMat);
+                const angle = (i / 4) * Math.PI;
+                stripe.position.set(Math.cos(angle) * 0.15, 0.2, Math.sin(angle) * 0.15);
+                stripe.rotation.y = angle;
+                melonGroup.add(stripe);
+            }
+            mesh = melonGroup;
+            break;
+
+        case 'cup':
+            const cupGeo = new THREE.CylinderGeometry(0.1, 0.08, 0.25, 12, 1, true);
+            mesh = new THREE.Mesh(cupGeo, mat);
+            mesh.position.y = 0.125;
+            mesh.castShadow = true;
+            break;
+
+        case 'orange':
+            mesh = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), mat);
+            mesh.castShadow = true;
+            break;
+
+        case 'cake':
+            const cakeGroup = new THREE.Group();
+            const cakeBase = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.15, 16), mat);
+            cakeBase.castShadow = true;
+            cakeGroup.add(cakeBase);
+            const creamMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+            const cream = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.2, 0.03, 16), creamMat);
+            cream.position.y = 0.09;
+            cakeGroup.add(cream);
+            // 蜡烛
+            const candleMat = new THREE.MeshLambertMaterial({ color: 0xFF6B6B });
+            const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.15, 6), candleMat);
+            candle.position.y = 0.2;
+            cakeGroup.add(candle);
+            // 火焰
+            const flameMat = new THREE.MeshLambertMaterial({ color: 0xFFD700, emissive: 0xFF6600, emissiveIntensity: 0.5 });
+            const flame = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), flameMat);
+            flame.position.y = 0.29;
+            cakeGroup.add(flame);
+            mesh = cakeGroup;
+            break;
+
+        case 'milk':
+            const milkGroup = new THREE.Group();
+            const milkBody = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.3, 0.12), mat);
+            milkBody.castShadow = true;
+            milkGroup.add(milkBody);
+            // 盖子
+            const capMat = new THREE.MeshLambertMaterial({ color: 0x2196F3 });
+            const cap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.1), capMat);
+            cap.position.y = 0.175;
+            milkGroup.add(cap);
+            mesh = milkGroup;
+            break;
+
+        case 'bread':
+            const breadGeo = new THREE.SphereGeometry(0.18, 10, 8);
+            breadGeo.scale(1, 0.6, 0.7);
+            mesh = new THREE.Mesh(breadGeo, mat);
+            mesh.castShadow = true;
+            break;
+
+        case 'cat':
+            const catGroup = new THREE.Group();
+            const catBody = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), mat);
+            catBody.scale.set(1, 0.8, 1.3);
+            catBody.castShadow = true;
+            catGroup.add(catBody);
+            const catHead = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), mat.clone());
+            catHead.position.set(0, 0.08, 0.18);
+            catGroup.add(catHead);
+            // 猫耳
+            const catEarMat = new THREE.MeshLambertMaterial({ color: 0xE8A838 });
+            const catEarL = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.08, 4), catEarMat);
+            catEarL.position.set(-0.06, 0.2, 0.18);
+            catGroup.add(catEarL);
+            const catEarR = catEarL.clone();
+            catEarR.position.set(0.06, 0.2, 0.18);
+            catGroup.add(catEarR);
+            // 眼睛
+            const catEyeL = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), eyeMat || new THREE.MeshLambertMaterial({ color: 0x222222 }));
+            catEyeL.position.set(-0.04, 0.1, 0.28);
+            catGroup.add(catEyeL);
+            const catEyeR = catEyeL.clone();
+            catEyeR.position.set(0.04, 0.1, 0.28);
+            catGroup.add(catEyeR);
+            mesh = catGroup;
+            break;
+
+        case 'dog':
+            const dogGroup = new THREE.Group();
+            const dogBody = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), mat);
+            dogBody.scale.set(1, 0.9, 1.3);
+            dogBody.castShadow = true;
+            dogGroup.add(dogBody);
+            const dogHead = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), mat.clone());
+            dogHead.position.set(0, 0.08, 0.18);
+            dogGroup.add(dogHead);
+            // 鼻子
+            const dogNoseMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            const dogNose = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), dogNoseMat);
+            dogNose.position.set(0, 0.06, 0.3);
+            dogGroup.add(dogNose);
+            mesh = dogGroup;
+            break;
+
+        case 'car':
+            const carGroup = new THREE.Group();
+            const carBody = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.2), mat);
+            carBody.castShadow = true;
+            carGroup.add(carBody);
+            const carTop = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.1, 0.18), mat.clone());
+            carTop.position.set(-0.02, 0.11, 0);
+            carGroup.add(carTop);
+            // 轮子
+            const wheelMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            const wheelGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.03, 8);
+            const positions = [[-0.12, -0.06, 0.11], [-0.12, -0.06, -0.11], [0.12, -0.06, 0.11], [0.12, -0.06, -0.11]];
+            positions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.position.set(...pos);
+                wheel.rotation.x = Math.PI / 2;
+                carGroup.add(wheel);
+            });
+            mesh = carGroup;
+            break;
+
+        case 'star':
+            const starShape = createStarGeometry(0.2, 0.1, 5);
+            mesh = new THREE.Mesh(starShape, mat);
+            mesh.castShadow = true;
+            break;
+
+        case 'moon':
+            const moonGeo = new THREE.SphereGeometry(0.2, 12, 10);
+            mesh = new THREE.Mesh(moonGeo, mat);
+            // 月牙效果 - 通过缩放
+            mesh.scale.set(1, 1, 0.4);
+            mesh.castShadow = true;
+            break;
+
+        case 'block_r':
+        case 'block_b':
+            mesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), mat);
+            mesh.castShadow = true;
+            break;
+
+        case 'dino':
+            const dinoGroup = new THREE.Group();
+            const dinoBody = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), mat);
+            dinoBody.scale.set(1, 0.8, 1.4);
+            dinoBody.castShadow = true;
+            dinoGroup.add(dinoBody);
+            const dinoHead = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), mat.clone());
+            dinoHead.position.set(0, 0.12, 0.2);
+            dinoGroup.add(dinoHead);
+            // 脊背
+            const spikeMat = new THREE.MeshLambertMaterial({ color: 0x1B5E20 });
+            for (let i = 0; i < 3; i++) {
+                const spike = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.08, 4), spikeMat);
+                spike.position.set(0, 0.18, -0.05 + i * 0.08);
+                dinoGroup.add(spike);
+            }
+            mesh = dinoGroup;
+            break;
+
+        case 'rabbit':
+            const rabbitGroup = new THREE.Group();
+            const rabbitBody = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), mat);
+            rabbitBody.castShadow = true;
+            rabbitGroup.add(rabbitBody);
+            const rabbitHead = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), mat.clone());
+            rabbitHead.position.set(0, 0.15, 0.1);
+            rabbitGroup.add(rabbitHead);
+            // 长耳朵
+            const earGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.15, 6);
+            const rabbitEarL = new THREE.Mesh(earGeo, mat.clone());
+            rabbitEarL.position.set(-0.04, 0.28, 0.08);
+            rabbitEarL.rotation.z = 0.15;
+            rabbitGroup.add(rabbitEarL);
+            const rabbitEarR = new THREE.Mesh(earGeo.clone(), mat.clone());
+            rabbitEarR.position.set(0.04, 0.28, 0.08);
+            rabbitEarR.rotation.z = -0.15;
+            rabbitGroup.add(rabbitEarR);
+            mesh = rabbitGroup;
+            break;
+
+        case 'rainbow':
+            const rainbowGroup = new THREE.Group();
+            const colors = [0xFF0000, 0xFF7700, 0xFFFF00, 0x00FF00, 0x0077FF, 0x0000FF, 0x8B00FF];
+            colors.forEach((c, i) => {
+                const arcMat = new THREE.MeshLambertMaterial({ color: c });
+                const arcGeo = new THREE.TorusGeometry(0.8 - i * 0.06, 0.03, 6, 20, Math.PI);
+                const arc = new THREE.Mesh(arcGeo, arcMat);
+                arc.rotation.x = Math.PI;
+                rainbowGroup.add(arc);
+            });
+            mesh = rainbowGroup;
+            break;
+
+        default:
+            mesh = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), mat);
+            mesh.castShadow = true;
+    }
+
+    if (!mesh) return null;
+
+    mesh.position.set(data.position[0], data.position[1], data.position[2]);
+
+    // 设置用户数据
+    const setUserData = (obj) => {
+        obj.userData = {
+            name: data.name,
+            emoji: data.emoji,
+            type: data.type,
+            clickable: true,
+            found: false,
+            originalY: data.position[1],
+            hoverScale: 1
+        };
+    };
+
+    if (mesh.isGroup) {
+        mesh.traverse(child => {
+            if (child.isMesh) {
+                setUserData(child);
+                clickableObjects.push(child);
+            }
+        });
+    } else {
+        setUserData(mesh);
+        clickableObjects.push(mesh);
+    }
+
+    allItems.push({ mesh, data, found: false });
+    return mesh;
+}
+
+function createBananaGeometry() {
+    // Simple curved banana shape using a torus segment
+    const geo = new THREE.TorusGeometry(0.15, 0.04, 6, 12, Math.PI * 0.7);
+    return geo;
+}
+
+function createStarGeometry(outerR, innerR, points) {
+    const shape = new THREE.Shape();
+    for (let i = 0; i < points * 2; i++) {
+        const angle = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+        const r = i % 2 === 0 ? outerR : innerR;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        if (i === 0) shape.moveTo(x, y);
+        else shape.lineTo(x, y);
+    }
+    shape.closePath();
+    const extrudeSettings = { depth: 0.05, bevelEnabled: false };
+    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
+}
+
+// ===== 交互 =====
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function onPointerDown(e) {
+    isDragging = false;
+    previousMousePosition = { x: e.clientX, y: e.clientY };
+
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(clickableObjects, false);
+
+    if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        if (hit.userData.clickable && !hit.userData.found) {
+            handleClick(hit);
+        }
+    }
+}
+
+function onPointerMove(e) {
+    const dx = e.clientX - previousMousePosition.x;
+    const dy = e.clientY - previousMousePosition.y;
+
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        isDragging = true;
+    }
+
+    if (isDragging) {
+        targetCameraAngle += dx * 0.005;
+        targetCameraAngle = Math.max(-1.2, Math.min(1.2, targetCameraAngle));
+    }
+
+    previousMousePosition = { x: e.clientX, y: e.clientY };
+}
+
+function onPointerUp(e) {
+    // touch/click handled in pointerdown
+}
+
+function handleClick(hitObj) {
+    ensureAudio();
+
+    if (isAnimating) return;
+
+    const itemName = hitObj.userData.name;
+
+    if (currentTarget && itemName === currentTarget.name) {
+        // 正确！
+        hitObj.userData.found = true;
+        allItems.find(it => it.data.name === itemName).found = true;
+        foundCount++;
+        score += (currentLevel + 1) * 10;
+        updateScore();
+
+        playCorrectSound();
+        showCorrectFeedback(itemName, hitObj.userData.emoji);
+        spawnStars(window.innerWidth / 2, window.innerHeight / 2);
+        updateProgress();
+
+        // 标记所有同名物品的mesh
+        clickableObjects.forEach(obj => {
+            if (obj.userData.name === itemName) {
+                obj.userData.found = true;
+            }
+        });
+
+        // 下一个目标
+        setTimeout(() => {
+            if (foundCount >= totalItems) {
+                levelComplete();
+            } else {
+                pickNextTarget();
+            }
+        }, 1200);
+    } else {
+        // 错误
+        playWrongSound();
+        showWrongFeedback();
+    }
+}
+
+function rotateLeft() {
+    playClickSound();
+    targetCameraAngle -= 0.5;
+    targetCameraAngle = Math.max(-1.2, targetCameraAngle);
+}
+
+function rotateRight() {
+    playClickSound();
+    targetCameraAngle += 0.5;
+    targetCameraAngle = Math.min(1.2, targetCameraAngle);
+}
+
+// ===== 游戏流程 =====
+let selectedLevel = 0;
+
+function selectLevel(lvl) {
+    selectedLevel = lvl;
+    document.querySelectorAll('.level-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.level-btn[data-level="${lvl}"]`).classList.add('active');
+}
+
+function startGame() {
+    ensureAudio();
+    playClickSound();
+
+    currentLevel = selectedLevel;
+    score = 0;
+    foundCount = 0;
+    cameraAngle = 0;
+    targetCameraAngle = 0;
+
+    const config = ROOM_CONFIGS[currentLevel];
+    totalItems = config.items.length;
+
+    buildRoom(config);
+    updateScore();
+
+    document.getElementById('startScreen').style.opacity = '0';
+    setTimeout(() => {
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('topUI').style.display = 'flex';
+        document.getElementById('taskPanel').style.display = 'block';
+        document.getElementById('bottomControls').style.display = 'flex';
+        document.getElementById('levelText').textContent = `${config.name}`;
+        updateProgress();
+        pickNextTarget();
+    }, 400);
+}
+
+function pickNextTarget() {
+    const unfound = allItems.filter(it => !it.found);
+    if (unfound.length === 0) {
+        levelComplete();
+        return;
+    }
+
+    const pick = unfound[Math.floor(Math.random() * unfound.length)];
+    currentTarget = pick.data;
+
+    document.getElementById('taskEmoji').textContent = currentTarget.emoji;
+    document.getElementById('taskText').textContent = `找到：${currentTarget.name}`;
+
+    const remaining = totalItems - foundCount;
+    document.getElementById('taskHint').textContent = `还剩 ${remaining} 个物品`;
+
+    // 高亮目标物品动画
+    animateTargetHighlight();
+}
+
+function animateTargetHighlight() {
+    // 让目标物品有一个微微上下浮动的效果
+    const target = allItems.find(it => it.data.name === currentTarget.name);
+    if (target && !target.found) {
+        const origY = target.mesh.position.y;
+        const startTime = Date.now();
+        const animDuration = 2000;
+
+        function bounce() {
+            if (target.found || currentTarget.name !== target.data.name) return;
+            const elapsed = Date.now() - startTime;
+            const t = (elapsed % animDuration) / animDuration;
+            target.mesh.position.y = origY + Math.sin(t * Math.PI * 2) * 0.05;
+            requestAnimationFrame(bounce);
+        }
+        bounce();
+    }
+}
+
+function levelComplete() {
+    playCompleteSound();
+
+    const stars = score >= totalItems * 30 ? '⭐⭐⭐' : score >= totalItems * 20 ? '⭐⭐' : '⭐';
+    document.getElementById('starsRow').textContent = stars;
+    document.getElementById('completeMsg').textContent =
+        currentLevel < 2
+            ? `你找到了${ROOM_CONFIGS[currentLevel].name}里所有的东西！`
+            : '你太厉害了！所有房间都探索完了！';
+
+    document.getElementById('completeScreen').classList.add('show');
+    spawnStars(window.innerWidth / 2, window.innerHeight / 2);
+    setTimeout(() => spawnStars(window.innerWidth / 3, window.innerHeight / 2), 300);
+    setTimeout(() => spawnStars(window.innerWidth * 2 / 3, window.innerHeight / 2), 600);
+}
+
+function restartGame() {
+    playClickSound();
+    document.getElementById('completeScreen').classList.remove('show');
+    document.getElementById('topUI').style.display = 'none';
+    document.getElementById('taskPanel').style.display = 'none';
+    document.getElementById('bottomControls').style.display = 'none';
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('startScreen').style.display = 'flex';
+    document.getElementById('startScreen').style.opacity = '1';
+}
+
+function updateScore() {
+    document.getElementById('scoreText').textContent = score;
+}
+
+function updateProgress() {
+    const pct = Math.min(100, (foundCount / totalItems) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ===== UI 反馈 =====
+function showCorrectFeedback(name, emoji) {
+    isAnimating = true;
+    const div = document.createElement('div');
+    div.className = 'correct-popup';
+    div.innerHTML = `<div class="emoji">${emoji}</div><div class="text">找到了！</div><div class="name-text">${name}</div>`;
+    document.body.appendChild(div);
+    setTimeout(() => {
+        div.remove();
+        isAnimating = false;
+    }, 1200);
+}
+
+function showWrongFeedback() {
+    const div = document.createElement('div');
+    div.className = 'wrong-feedback';
+    div.textContent = '🤔';
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 600);
+}
+
+// ===== 粒子效果 =====
+function spawnStars(cx, cy) {
+    for (let i = 0; i < 20; i++) {
+        particles.push({
+            x: cx,
+            y: cy,
+            vx: (Math.random() - 0.5) * 12,
+            vy: (Math.random() - 0.5) * 12 - 3,
+            life: 1,
+            size: Math.random() * 8 + 4,
+            color: ['#FFD700', '#FF6B6B', '#43e97b', '#38f9d7', '#FF69B4', '#9B59B6'][Math.floor(Math.random() * 6)],
+            emoji: ['⭐', '✨', '🌟', '💫'][Math.floor(Math.random() * 4)]
+        });
+    }
+}
+
+function updateParticles() {
+    pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15;
+        p.life -= 0.02;
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+        pCtx.globalAlpha = p.life;
+        pCtx.font = `${p.size * 2}px serif`;
+        pCtx.fillText(p.emoji, p.x, p.y);
+    }
+    pCtx.globalAlpha = 1;
+}
+
+// ===== 动画循环 =====
+function animate() {
+    requestAnimationFrame(animate);
+
+    // 相机旋转
+    cameraAngle += (targetCameraAngle - cameraAngle) * 0.08;
+    const radius = 5.5;
+    camera.position.x = Math.sin(cameraAngle) * radius;
+    camera.position.z = Math.cos(cameraAngle) * radius;
+    camera.position.y = 3.5;
+    camera.lookAt(0, 1, 0);
+
+    // 物品动画
+    allItems.forEach(item => {
+        if (!item.found) {
+            item.mesh.rotation.y += 0.005;
+        }
+    });
+
+    // 粒子
+    updateParticles();
+
+    renderer.render(scene, camera);
+}
+
+// ===== 初始化 =====
+initScene();
+
+// 显示旋转提示
+setTimeout(() => {
+    document.getElementById('rotateHint').classList.add('show');
+    setTimeout(() => {
+        document.getElementById('rotateHint').classList.remove('show');
+    }, 4000);
+}, 2000);
+</script>
+</body>
+</html>
