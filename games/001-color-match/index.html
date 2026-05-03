@@ -3,39 +3,476 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>颜色配对游戏 - Color Match</title>
-    <link rel="stylesheet" href="style.css">
+    <title>颜色配对 - 宝宝游戏乐园</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --red:#ff6b6b;--blue:#4ecdc4;--yellow:#ffe66d;
+            --green:#55efc4;--orange:#ffa502;--purple:#a29bfe;
+        }
+        body{
+            font-family:-apple-system,'PingFang SC','Noto Sans SC',sans-serif;
+            background:linear-gradient(135deg,#ffecd2 0%,#fcb69f 100%);
+            min-height:100vh;display:flex;justify-content:center;
+            align-items:flex-start;padding:10px;
+            user-select:none;-webkit-user-select:none;touch-action:manipulation;
+        }
+        .container{
+            background:white;border-radius:30px;padding:20px 18px;
+            max-width:520px;width:100%;box-shadow:0 15px 50px rgba(0,0,0,0.12);
+            position:relative;overflow:hidden;
+        }
+        /* 顶部工具栏 */
+        .top-bar{
+            display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:15px;
+        }
+        .back-btn{
+            background:none;border:none;font-size:15px;color:#999;
+            cursor:pointer;padding:8px 12px;border-radius:15px;
+            transition:all .2s;font-family:inherit;font-weight:600;
+        }
+        .back-btn:hover{background:#f0f0f0;color:#666}
+        .game-title-area{text-align:center;flex:1}
+        .game-title-area h1{font-size:22px;color:#2d3436;font-weight:800}
+        .game-title-area .sub{font-size:12px;color:#aaa;margin-top:2px}
+        .sound-btn{
+            background:none;border:none;font-size:22px;cursor:pointer;
+            padding:8px;border-radius:15px;transition:all .2s;
+        }
+        .sound-btn:hover{background:#f0f0f0}
+
+        /* 分数栏 */
+        .score-bar{
+            display:flex;justify-content:center;gap:20px;
+            margin-bottom:15px;
+        }
+        .score-item{
+            display:flex;align-items:center;gap:6px;
+            font-size:16px;font-weight:700;color:#666;
+        }
+        .score-item .val{
+            background:linear-gradient(135deg,#667eea,#764ba2);
+            color:white;padding:3px 14px;border-radius:20px;
+            font-size:15px;font-weight:800;min-width:40px;text-align:center;
+        }
+        /* 进度条 */
+        .progress-wrap{
+            background:#eee;border-radius:20px;height:10px;
+            margin-bottom:15px;overflow:hidden;
+        }
+        .progress-fill{
+            height:100%;border-radius:20px;
+            background:linear-gradient(90deg,#667eea,#764ba2,#ff6b9d);
+            background-size:200% 100%;
+            animation:progressShine 2s linear infinite;
+            transition:width .5s ease;
+        }
+        @keyframes progressShine{
+            0%{background-position:200% 0}
+            100%{background-position:-200% 0}
+        }
+
+        /* 目标颜色区 */
+        .target-section{
+            text-align:center;padding:18px;
+            background:#fafafa;border-radius:22px;margin-bottom:18px;
+            position:relative;
+        }
+        .target-label{font-size:18px;color:#555;margin-bottom:12px;font-weight:600}
+        .target-label span{font-size:22px;font-weight:800}
+        .target-circle{
+            width:90px;height:90px;border-radius:50%;margin:0 auto;
+            border:5px solid rgba(0,0,0,0.08);
+            box-shadow:0 8px 25px rgba(0,0,0,0.1);
+            transition:transform .3s,box-shadow .3s;
+            position:relative;
+        }
+        .target-circle::after{
+            content:'';position:absolute;top:15%;left:20%;
+            width:25%;height:20%;border-radius:50%;
+            background:rgba(255,255,255,0.4);
+        }
+        .target-circle:hover{transform:scale(1.08)}
+        .target-emoji-hint{
+            font-size:32px;margin-top:8px;
+            animation:bounce 1.5s infinite;
+        }
+        @keyframes bounce{
+            0%,100%{transform:translateY(0)}
+            50%{transform:translateY(-8px)}
+        }
+
+        /* 游戏网格 */
+        .items-grid{
+            display:grid;grid-template-columns:repeat(3,1fr);
+            gap:12px;margin-bottom:15px;
+        }
+        .game-item{
+            aspect-ratio:1;border-radius:20px;
+            display:flex;justify-content:center;align-items:center;
+            font-size:48px;cursor:pointer;
+            transition:transform .2s,box-shadow .2s,opacity .3s;
+            box-shadow:0 4px 15px rgba(0,0,0,0.1);
+            border:3px solid transparent;position:relative;
+            -webkit-tap-highlight-color:transparent;
+        }
+        .game-item:hover{transform:translateY(-4px) scale(1.05);box-shadow:0 8px 20px rgba(0,0,0,0.15)}
+        .game-item:active{transform:scale(0.93)}
+
+        .game-item.correct{
+            border-color:#4caf50;
+            animation:correctPop .5s ease;
+        }
+        .game-item.found{
+            opacity:0.2;transform:scale(0.8);
+            pointer-events:none;
+        }
+        .game-item.wrong{
+            animation:shake .4s ease;
+        }
+        @keyframes correctPop{
+            0%{transform:scale(1)}30%{transform:scale(1.25)}100%{transform:scale(0.8)}
+        }
+        @keyframes shake{
+            0%,100%{transform:translateX(0)}
+            20%{transform:translateX(-8px)}40%{transform:translateX(8px)}
+            60%{transform:translateX(-5px)}80%{transform:translateX(5px)}
+        }
+
+        /* 消息 */
+        .message{
+            text-align:center;font-size:22px;font-weight:800;
+            min-height:32px;margin:10px 0;
+            transition:all .3s;
+        }
+        .message.success{color:#4caf50;animation:msgPop .4s ease}
+        .message.complete{color:#ff9800;animation:msgPop .5s ease}
+        @keyframes msgPop{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
+
+        /* 按钮 */
+        .btn-next{
+            display:block;width:100%;padding:16px;
+            font-size:20px;font-weight:800;color:white;
+            background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+            border:none;border-radius:18px;cursor:pointer;
+            transition:all .3s;font-family:inherit;
+            box-shadow:0 6px 20px rgba(102,126,234,0.3);
+        }
+        .btn-next:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(102,126,234,0.4)}
+        .btn-next:active{transform:translateY(0)}
+
+        /* 星星粒子 */
+        .star-particle{
+            position:fixed;font-size:24px;pointer-events:none;z-index:100;
+            animation:starFly 1s ease forwards;
+        }
+        @keyframes starFly{
+            0%{opacity:1;transform:translateY(0) scale(1) rotate(0deg)}
+            100%{opacity:0;transform:translateY(-120px) scale(0.3) rotate(360deg)}
+        }
+
+        /* 庆祝动画 */
+        .confetti{
+            position:fixed;top:-10px;pointer-events:none;z-index:99;
+            animation:confettiFall 2.5s ease forwards;
+        }
+        @keyframes confettiFall{
+            0%{opacity:1;transform:translateY(0) rotate(0deg)}
+            100%{opacity:0;transform:translateY(100vh) rotate(720deg)}
+        }
+
+        /* 响应式 */
+        @media(max-width:480px){
+            .container{padding:15px 12px;border-radius:24px}
+            .game-title-area h1{font-size:18px}
+            .items-grid{gap:10px}
+            .game-item{font-size:38px;border-radius:16px}
+            .target-circle{width:70px;height:70px}
+            .target-label{font-size:15px}
+            .target-label span{font-size:18px}
+            .btn-next{font-size:17px;padding:14px}
+        }
+        @media(max-width:360px){
+            .items-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+            .game-item{font-size:34px}
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
+<div class="container">
+    <div class="top-bar">
+        <button class="back-btn" onclick="location.href='../../index.html'">← 大厅</button>
+        <div class="game-title-area">
             <h1>🎨 颜色配对</h1>
-            <div class="stats">
-                <div class="score">得分: <span id="score">0</span></div>
-                <div class="level">关卡: <span id="level">1</span></div>
-            </div>
-        </header>
-
-        <main class="game-area">
-            <div class="target-color-section">
-                <p class="instruction">找出所有 <span id="target-color-name">红色</span> 的物品！</p>
-                <div class="target-color-display" id="target-color"></div>
-            </div>
-
-            <div class="items-grid" id="items-grid">
-                <!-- 游戏物品将通过 JavaScript 动态生成 -->
-            </div>
-
-            <div class="message" id="message"></div>
-        </main>
-
-        <button class="btn-next" id="btn-next" style="display: none;">下一关 →</button>
-
-        <footer class="footer">
-            <p>点击相同颜色的物品来得分！</p>
-        </footer>
+            <div class="sub">找出相同颜色的物品</div>
+        </div>
+        <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
     </div>
 
-    <script src="game.js"></script>
+    <div class="score-bar">
+        <div class="score-item">⭐ <span class="val" id="score">0</span></div>
+        <div class="score-item">📍 <span class="val" id="level">1</span></div>
+        <div class="score-item">🎯 <span class="val" id="foundCount">0/0</span></div>
+    </div>
+
+    <div class="progress-wrap"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+    <div class="target-section">
+        <div class="target-label">找出所有 <span id="targetName">红色</span> 的物品！</div>
+        <div class="target-circle" id="targetCircle"></div>
+        <div class="target-emoji-hint" id="targetHint"></div>
+    </div>
+
+    <div class="items-grid" id="grid"></div>
+    <div class="message" id="message"></div>
+    <button class="btn-next" id="btnNext" style="display:none">下一关 →</button>
+</div>
+
+<script>
+// === 音效系统 ===
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+let soundEnabled = true;
+
+function getAudioCtx() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    return audioCtx;
+}
+
+function playTone(freq, duration, type, vol) {
+    if (!soundEnabled) return;
+    try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + duration);
+    } catch(e) {}
+}
+
+function playCorrect() {
+    playTone(523, 0.15, 'sine', 0.2);
+    setTimeout(() => playTone(659, 0.15, 'sine', 0.2), 100);
+    setTimeout(() => playTone(784, 0.25, 'sine', 0.2), 200);
+}
+
+function playWrong() {
+    playTone(220, 0.2, 'triangle', 0.15);
+}
+
+function playComplete() {
+    [523, 587, 659, 698, 784, 880, 988, 1047].forEach((f, i) => {
+        setTimeout(() => playTone(f, 0.2, 'sine', 0.15), i * 80);
+    });
+}
+
+function playClick() {
+    playTone(440, 0.08, 'sine', 0.1);
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById('soundBtn').textContent = soundEnabled ? '🔊' : '🔇';
+}
+
+// === 颜色配置 ===
+const COLORS = {
+    red:    { name:'红色', hex:'#ff6b6b', emojis:['🍎','🍓','🍒','❤️','🌹','🧢','🚗','🔴','🎈','🧸','👗','🏮'] },
+    blue:   { name:'蓝色', hex:'#4ecdc4', emojis:['🫐','🐋','🦋','💎','🧊','🚙','👖','🌊','🔵','🐟','🐬','❄️'] },
+    yellow: { name:'黄色', hex:'#ffe66d', emojis:['🌟','🍋','🌻','🐝','🌽','🧀','🐣','⭐','🔶','🏀','🌼','蕉'] },
+    green:  { name:'绿色', hex:'#55efc4', emojis:['🍀','🥒','🐸','🥝','🌿','🦜','🍏','🥦','♻️','🐢','🐊','🌲'] },
+    orange: { name:'橙色', hex:'#ffa502', emojis:['🍊','🥕','🐯','🧡','🔥','🦊','🥭','🎃','🍁','🐱','🏕️','🏀'] },
+    purple: { name:'紫色', hex:'#a29bfe', emojis:['🍇','🍆','🦄','🔮','💜','🍭','🌜','🎭','🦚','🐙','💎','☂️'] },
+    pink:   { name:'粉色', hex:'#ff6b9d', emojis:['🌸','🐷','🦩','🩷','🎀','🍬','🌸','💖','🌺','🍩','🧁','🦩'] },
+};
+const colorKeys = Object.keys(COLORS);
+
+// === 游戏状态 ===
+let state = { score:0, level:1, target:null, found:0, total:0, items:[] };
+
+function init() {
+    state = { score:0, level:1, target:null, found:0, total:0, items:[] };
+    startLevel();
+}
+
+function startLevel() {
+    state.found = 0;
+    state.items = [];
+
+    // Pick target color (avoid repeating same color)
+    let keys = colorKeys.filter(k => k !== state.target);
+    state.target = keys[Math.floor(Math.random() * keys.length)];
+
+    const targetCount = Math.min(2 + Math.floor(state.level * 0.8), 6);
+    state.total = targetCount;
+
+    // Total grid items (need at least 9 for 3x3)
+    const totalCount = Math.max(9, targetCount + 4 + Math.min(state.level, 4));
+
+    // Generate items
+    const items = [];
+    const tEmojis = shuffle([...COLORS[state.target].emojis]);
+    for (let i = 0; i < targetCount; i++) {
+        items.push({ emoji: tEmojis[i % tEmojis.length], color: state.target });
+    }
+
+    const otherKeys = colorKeys.filter(k => k !== state.target);
+    for (let i = items.length; i < totalCount; i++) {
+        const c = otherKeys[Math.floor(Math.random() * otherKeys.length)];
+        const e = COLORS[c].emojis[Math.floor(Math.random() * COLORS[c].emojis.length)];
+        items.push({ emoji: e, color: c });
+    }
+
+    state.items = shuffle(items);
+    updateUI();
+    renderGrid();
+    showMsg('');
+    document.getElementById('btnNext').style.display = 'none';
+}
+
+function renderGrid() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    state.items.forEach((item, idx) => {
+        const el = document.createElement('div');
+        el.className = 'game-item';
+        el.style.backgroundColor = COLORS[item.color].hex;
+        el.textContent = item.emoji;
+        el.dataset.idx = idx;
+        el.addEventListener('click', onItemTap);
+        grid.appendChild(el);
+    });
+}
+
+function onItemTap(e) {
+    const el = e.currentTarget;
+    if (el.classList.contains('found')) return;
+
+    const idx = parseInt(el.dataset.idx);
+    const item = state.items[idx];
+
+    if (item.color === state.target) {
+        // Correct!
+        playCorrect();
+        el.classList.add('correct');
+        setTimeout(() => {
+            el.classList.remove('correct');
+            el.classList.add('found');
+        }, 400);
+
+        state.found++;
+        state.score += 10 + state.level * 2;
+        spawnStars(el);
+
+        if (state.found >= state.total) {
+            setTimeout(levelComplete, 600);
+        } else {
+            showMsg('太棒了！🎉', 'success');
+        }
+    } else {
+        // Wrong
+        playWrong();
+        el.classList.add('wrong');
+        setTimeout(() => el.classList.remove('wrong'), 400);
+        showMsg('再试试看哦～😊', '');
+    }
+    updateUI();
+}
+
+function levelComplete() {
+    playComplete();
+    showMsg(`✨ 第 ${state.level} 关完成！✨`, 'complete');
+    spawnConfetti(20);
+
+    const btn = document.getElementById('btnNext');
+    if (state.level >= 8) {
+        btn.textContent = '🏆 再玩一次！';
+        btn.onclick = () => { init(); };
+    } else {
+        btn.textContent = `下一关 →`;
+        btn.onclick = () => { state.level++; startLevel(); };
+    }
+    btn.style.display = 'block';
+}
+
+function updateUI() {
+    document.getElementById('score').textContent = state.score;
+    document.getElementById('level').textContent = state.level;
+    document.getElementById('foundCount').textContent = `${state.found}/${state.total}`;
+
+    const pct = state.total > 0 ? (state.found / state.total * 100) : 0;
+    document.getElementById('progress').style.width = pct + '%';
+
+    if (state.target) {
+        const c = COLORS[state.target];
+        document.getElementById('targetName').textContent = c.name;
+        document.getElementById('targetName').style.color = c.hex;
+        document.getElementById('targetCircle').style.backgroundColor = c.hex;
+        // Show a hint emoji
+        document.getElementById('targetHint').textContent = c.emojis[0];
+    }
+}
+
+function showMsg(text, cls) {
+    const el = document.getElementById('message');
+    el.textContent = text;
+    el.className = 'message' + (cls ? ' ' + cls : '');
+}
+
+// === 粒子效果 ===
+function spawnStars(el) {
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const stars = ['⭐','🌟','✨','💫','🎉'];
+    for (let i = 0; i < 6; i++) {
+        const s = document.createElement('div');
+        s.className = 'star-particle';
+        s.textContent = stars[Math.floor(Math.random() * stars.length)];
+        s.style.left = (cx + (Math.random() - 0.5) * 80) + 'px';
+        s.style.top = (cy + (Math.random() - 0.5) * 40) + 'px';
+        s.style.fontSize = (18 + Math.random() * 16) + 'px';
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 1000);
+    }
+}
+
+function spawnConfetti(count) {
+    const colors = ['#ff6b6b','#4ecdc4','#ffe66d','#a29bfe','#ff6b9d','#55efc4','#ffa502'];
+    for (let i = 0; i < count; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = (Math.random() * 100) + 'vw';
+        c.style.width = (8 + Math.random() * 10) + 'px';
+        c.style.height = (8 + Math.random() * 10) + 'px';
+        c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        c.style.borderRadius = Math.random() > 0.5 ? '50%' : '3px';
+        c.style.animationDuration = (2 + Math.random() * 2) + 's';
+        c.style.animationDelay = (Math.random() * 0.8) + 's';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 4500);
+    }
+}
+
+// === 工具函数 ===
+function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+// === 启动 ===
+init();
+</script>
 </body>
 </html>
