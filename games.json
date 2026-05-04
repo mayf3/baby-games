@@ -342,5 +342,18 @@
     "dimension": "3D",
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)"
+  },
+  {
+    "id": "042-cooperation-helper",
+    "title": "合作小帮手",
+    "emoji": "🤝",
+    "type": "social-emotional",
+    "typeLabel": "社交情感类",
+    "age": "3-6岁",
+    "description": "和爸爸妈妈一起玩游戏！两个人合作完成任务：一起搬箱子、搭桥、种花、做蛋糕、分饼干、放烟花庆祝，培养合作意识、轮流分享和团队精神，学习一起努力才能成功的道理",
+    "path": "games/042-cooperation-helper/index.html",
+    "difficulty": "简单",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)"
   }
 ]
