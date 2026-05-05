@@ -355,5 +355,19 @@
     "difficulty": "简单",
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)"
+  },
+  {
+    "id": "064-3d-ball-toss",
+    "title": "3D投球游戏",
+    "emoji": "🏀",
+    "type": "motor",
+    "typeLabel": "运动类",
+    "age": "3-6岁",
+    "description": "拖动球瞄准，松手投掷到篮子里！学习距离感知和力度控制，锻炼3D空间手眼协调和动作控制能力，三个难度等级从简单近距离到挑战远距离移动篮子，连续投进有连击奖励",
+    "path": "games/064-3d-ball-toss/index.html",
+    "difficulty": "简单",
+    "dimension": "3D",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-4.7)"
   }
 ]
