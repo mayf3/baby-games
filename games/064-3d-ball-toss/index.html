@@ -286,7 +286,7 @@
             color: white;
         }
 
-        /* Aim guide */
+        /* Aim guide - shows drag direction */
         .aim-guide {
             position: fixed;
             background: rgba(255, 100, 100, 0.5);
@@ -319,6 +319,23 @@
             background: linear-gradient(90deg, #84fab0 0%, #ffecd2 50%, #ff9a9e 100%);
             border-radius: 8px;
             transition: width 0.05s;
+        }
+
+        /* Hint text */
+        .hint-text {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            font-size: 18px;
+            color: white;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 20px;
+            border-radius: 20px;
+            pointer-events: none;
+            display: none;
+            white-space: nowrap;
         }
 
         /* Responsive */
@@ -359,7 +376,7 @@
     <!-- Start Screen -->
     <div class="start-screen" id="startScreen">
         <h1>🏀 3D投球游戏</h1>
-        <p class="subtitle">拖动球瞄准，松手投掷！<br>锻炼距离感知和手眼协调能力</p>
+        <p class="subtitle">按住屏幕向上滑动投球！<br>锻炼距离感知和手眼协调能力</p>
         <div class="level-buttons">
             <button class="level-btn easy" onclick="startGame('easy')">
                 <span class="emoji">😊</span>
@@ -414,6 +431,9 @@
         <div class="power-fill" id="powerFill"></div>
     </div>
 
+    <!-- Hint -->
+    <div class="hint-text" id="hintText">👆 按住向上滑投球！</div>
+
     <!-- 3D Canvas -->
     <canvas id="gameCanvas"></canvas>
 
@@ -428,46 +448,45 @@
             combo: 0,
             maxCombo: 0,
             isDragging: false,
-            ballInFlight: false,
             currentLevel: 'easy',
             gameStarted: false
         };
 
         // Three.js variables
         let scene, camera, renderer;
-        let ball, basket, basketRim;
+        let ball, basket;
         let dragStart = { x: 0, y: 0 };
         let dragEnd = { x: 0, y: 0 };
         let ballVelocity = { x: 0, y: 0, z: 0 };
         let isBallFlying = false;
         let animationId;
         let basketDirection = 1;
-        let basketSpeed = 0;
+        let hasScored = false; // prevent double-scoring
 
-        // Level configurations
+        // Level configurations - easier for kids
         const levelConfigs = {
             easy: {
-                basketZ: -8,
-                basketRadius: 1.5,
+                basketZ: -6,
+                basketRadius: 1.8,
                 ballRadius: 0.4,
                 basketMoves: false,
-                balls: 5
+                balls: 6
             },
             medium: {
-                basketZ: -12,
-                basketRadius: 1.3,
+                basketZ: -9,
+                basketRadius: 1.5,
                 ballRadius: 0.4,
                 basketMoves: true,
-                basketSpeed: 0.015,
-                balls: 5
+                basketSpeed: 0.012,
+                balls: 6
             },
             hard: {
-                basketZ: -15,
-                basketRadius: 1.0,
+                basketZ: -12,
+                basketRadius: 1.2,
                 ballRadius: 0.4,
                 basketMoves: true,
-                basketSpeed: 0.025,
-                balls: 5
+                basketSpeed: 0.02,
+                balls: 6
             }
         };
 
@@ -475,56 +494,56 @@
         let audioCtx;
 
         function initAudio() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
         }
 
         function playSound(type) {
             if (!audioCtx) return;
+            try {
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
 
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            if (type === 'hit') {
-                // Happy sound for successful hit
-                oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-                oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
-                oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
-                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                oscillator.start(audioCtx.currentTime);
-                oscillator.stop(audioCtx.currentTime + 0.3);
-            } else if (type === 'miss') {
-                // Soft sound for miss
-                oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
-                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                oscillator.start(audioCtx.currentTime);
-                oscillator.stop(audioCtx.currentTime + 0.2);
-            } else if (type === 'throw') {
-                // Whoosh sound
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.15);
-                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-                oscillator.start(audioCtx.currentTime);
-                oscillator.stop(audioCtx.currentTime + 0.15);
-            }
+                if (type === 'hit') {
+                    oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                    oscillator.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.4);
+                } else if (type === 'miss') {
+                    oscillator.frequency.setValueAtTime(250, audioCtx.currentTime);
+                    oscillator.frequency.setValueAtTime(200, audioCtx.currentTime + 0.15);
+                    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'throw') {
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.15);
+                    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    oscillator.start(audioCtx.currentTime);
+                    oscillator.stop(audioCtx.currentTime + 0.15);
+                }
+            } catch(e) {}
         }
 
         function initThreeJS() {
             // Scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 10, 50);
+            scene.fog = new THREE.Fog(0x87CEEB, 15, 50);
 
-            // Camera
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 3, 5);
-            camera.lookAt(0, 0, -10);
+            // Camera - raised and angled to see the ball well
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 4.5, 8);
+            camera.lookAt(0, 1.5, -6);
 
             // Renderer
             renderer = new THREE.WebGLRenderer({
@@ -556,7 +575,7 @@
             ground.receiveShadow = true;
             scene.add(ground);
 
-            // Add some decorations
+            // Decorations
             addDecorations();
 
             // Create ball
@@ -574,7 +593,6 @@
         }
 
         function addDecorations() {
-            // Add some trees in the background
             const treePositions = [
                 { x: -8, z: -15 }, { x: 8, z: -15 },
                 { x: -12, z: -20 }, { x: 12, z: -20 },
@@ -587,7 +605,6 @@
                 scene.add(tree);
             });
 
-            // Add clouds
             for (let i = 0; i < 5; i++) {
                 const cloud = createCloud();
                 cloud.position.set(
@@ -601,8 +618,6 @@
 
         function createTree() {
             const tree = new THREE.Group();
-
-            // Trunk
             const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.3, 1.5, 8);
             const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
             const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
@@ -610,7 +625,6 @@
             trunk.castShadow = true;
             tree.add(trunk);
 
-            // Foliage
             const foliageGeometry = new THREE.SphereGeometry(1, 8, 8);
             const foliageMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
             const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
@@ -641,13 +655,29 @@
             return cloud;
         }
 
+        // Ball resting position - raised up so it's visible
+        const BALL_START = { x: 0, y: 1.5, z: 4 };
+
         function createBall() {
-            const ballGeometry = new THREE.SphereGeometry(levelConfigs[gameState.currentLevel].ballRadius, 32, 32);
-            const ballMaterial = new THREE.MeshLambertMaterial({ color: 0xFF6B35 });
+            const config = levelConfigs[gameState.currentLevel];
+            const ballGeometry = new THREE.SphereGeometry(config.ballRadius, 32, 32);
+            const ballMaterial = new THREE.MeshPhongMaterial({
+                color: 0xFF6B35,
+                shininess: 80,
+                specular: 0x444444
+            });
             ball = new THREE.Mesh(ballGeometry, ballMaterial);
-            ball.position.set(0, 0, 2);
+            ball.position.set(BALL_START.x, BALL_START.y, BALL_START.z);
             ball.castShadow = true;
             scene.add(ball);
+
+            // Add a glowing ring around the ball as a hint
+            const ringGeometry = new THREE.TorusGeometry(0.6, 0.05, 8, 32);
+            const ringMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFF00, transparent: true, opacity: 0.6 });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.rotation.x = Math.PI / 2;
+            ring.name = 'ballHint';
+            ball.add(ring);
         }
 
         function createBasket() {
@@ -655,38 +685,45 @@
             basket = new THREE.Group();
 
             // Backboard
-            const backboardGeometry = new THREE.BoxGeometry(3, 2, 0.1);
-            const backboardMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            const backboardGeometry = new THREE.BoxGeometry(3, 2.5, 0.15);
+            const backboardMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
             const backboard = new THREE.Mesh(backboardGeometry, backboardMaterial);
-            backboard.position.set(0, 3, config.basketZ - 0.5);
+            backboard.position.set(0, 3.5, config.basketZ - 0.5);
             backboard.castShadow = true;
             basket.add(backboard);
 
-            // Rim (ring)
-            const rimGeometry = new THREE.TorusGeometry(config.basketRadius, 0.1, 8, 32);
-            const rimMaterial = new THREE.MeshLambertMaterial({ color: 0xFF4500 });
-            basketRim = new THREE.Mesh(rimGeometry, rimMaterial);
-            basketRim.position.set(0, 1.5, config.basketZ);
-            basketRim.rotation.x = Math.PI / 2;
-            basket.add(basketRim);
+            // Red square on backboard
+            const sqGeometry = new THREE.BoxGeometry(1.2, 0.9, 0.02);
+            const sqMaterial = new THREE.MeshBasicMaterial({ color: 0xFF4500 });
+            const sq = new THREE.Mesh(sqGeometry, sqMaterial);
+            sq.position.set(0, 2.8, config.basketZ - 0.42);
+            basket.add(sq);
 
-            // Net (simple cone)
-            const netGeometry = new THREE.ConeGeometry(config.basketRadius, 1, 32, 1, true);
+            // Rim
+            const rimGeometry = new THREE.TorusGeometry(config.basketRadius, 0.08, 12, 32);
+            const rimMaterial = new THREE.MeshPhongMaterial({ color: 0xFF4500 });
+            const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+            rim.position.set(0, 2.2, config.basketZ);
+            rim.rotation.x = Math.PI / 2;
+            basket.add(rim);
+
+            // Net
+            const netGeometry = new THREE.CylinderGeometry(config.basketRadius, config.basketRadius * 0.4, 1.0, 16, 1, true);
             const netMaterial = new THREE.MeshLambertMaterial({
                 color: 0xffffff,
                 side: THREE.DoubleSide,
                 transparent: true,
-                opacity: 0.7
+                opacity: 0.6
             });
             const net = new THREE.Mesh(netGeometry, netMaterial);
-            net.position.set(0, 1, config.basketZ);
+            net.position.set(0, 1.7, config.basketZ);
             basket.add(net);
 
             // Pole
-            const poleGeometry = new THREE.CylinderGeometry(0.15, 0.15, 4, 8);
-            const poleMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
+            const poleGeometry = new THREE.CylinderGeometry(0.12, 0.12, 5, 8);
+            const poleMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
             const pole = new THREE.Mesh(poleGeometry, poleMaterial);
-            pole.position.set(0, 0, config.basketZ - 1);
+            pole.position.set(0, 1.5, config.basketZ - 0.8);
             pole.castShadow = true;
             basket.add(pole);
 
@@ -697,45 +734,34 @@
         function setupInputHandlers() {
             const canvas = document.getElementById('gameCanvas');
 
-            // Mouse events
             canvas.addEventListener('mousedown', onPointerDown);
             canvas.addEventListener('mousemove', onPointerMove);
             canvas.addEventListener('mouseup', onPointerUp);
 
-            // Touch events
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 onPointerDown(e.touches[0]);
-            });
+            }, { passive: false });
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
                 onPointerMove(e.touches[0]);
-            });
+            }, { passive: false });
             canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
+                // Use the last known dragEnd position
                 onPointerUp(e);
-            });
+            }, { passive: false });
         }
 
         function onPointerDown(event) {
-            if (isBallFlying || gameState.ballsLeft <= 0) return;
+            if (isBallFlying || gameState.ballsLeft <= 0 || !gameState.gameStarted) return;
 
-            const rect = renderer.domElement.getBoundingClientRect();
-            const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-            // Check if clicking near the ball
-            const ballScreenPos = ball.position.clone().project(camera);
-            const distance = Math.sqrt(
-                Math.pow(x - ballScreenPos.x, 2) +
-                Math.pow(y - ballScreenPos.y, 2)
-            );
-
-            if (distance < 0.2) {
-                gameState.isDragging = true;
-                dragStart.x = event.clientX;
-                dragStart.y = event.clientY;
-            }
+            // ANY touch/click starts the drag — no need to aim at the ball
+            gameState.isDragging = true;
+            dragStart.x = event.clientX;
+            dragStart.y = event.clientY;
+            dragEnd.x = event.clientX;
+            dragEnd.y = event.clientY;
         }
 
         function onPointerMove(event) {
@@ -748,13 +774,17 @@
             const aimGuide = document.getElementById('aimGuide');
             const dx = dragStart.x - dragEnd.x;
             const dy = dragStart.y - dragEnd.y;
-            const power = Math.min(Math.sqrt(dx * dx + dy * dy) / 200, 1);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const power = Math.min(dist / 150, 1);
 
+            // Show guide at the drag start point
             aimGuide.style.display = 'block';
-            aimGuide.style.left = dragStart.x + 'px';
-            aimGuide.style.top = dragStart.y + 'px';
-            aimGuide.style.width = (20 + power * 30) + 'px';
-            aimGuide.style.height = (20 + power * 30) + 'px';
+            aimGuide.style.left = (dragStart.x - 15) + 'px';
+            aimGuide.style.top = (dragStart.y - 15) + 'px';
+            aimGuide.style.width = (30 + power * 30) + 'px';
+            aimGuide.style.height = (30 + power * 30) + 'px';
+            aimGuide.style.marginLeft = -(power * 15) + 'px';
+            aimGuide.style.marginTop = -(power * 15) + 'px';
 
             // Update power meter
             document.getElementById('powerMeter').style.display = 'block';
@@ -770,9 +800,11 @@
 
             const dx = dragStart.x - dragEnd.x;
             const dy = dragStart.y - dragEnd.y;
-            const power = Math.min(Math.sqrt(dx * dx + dy * dy) / 200, 1);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const power = Math.min(dist / 150, 1);
 
-            if (power > 0.05) {
+            // Only throw if dragged at least a bit upward
+            if (power > 0.08 && dy > 20) {
                 throwBall(dx, dy, power);
             }
         }
@@ -781,57 +813,77 @@
             if (isBallFlying || gameState.ballsLeft <= 0) return;
 
             isBallFlying = true;
+            hasScored = false;
             gameState.ballsLeft--;
             document.getElementById('ballsLeft').textContent = gameState.ballsLeft;
 
+            // Hide hint after first throw
+            document.getElementById('hintText').style.display = 'none';
+
             playSound('throw');
 
-            // Calculate velocity based on drag
-            const forwardPower = power * 0.35;
-            const upPower = power * 0.25;
-            const sidePower = (dx / Math.abs(dx || 1)) * power * 0.08;
+            // Hide the hint ring
+            const hint = ball.getObjectByName('ballHint');
+            if (hint) hint.visible = false;
+
+            const config = levelConfigs[gameState.currentLevel];
+
+            // Calculate throw direction
+            // dy > 0 means dragged upward on screen → ball goes forward + up
+            // dx controls left/right
+            const clampedDx = Math.max(-200, Math.min(200, dx));
+
+            // Main forward power: scale with drag distance
+            const forwardSpeed = power * 0.6;
+            // Upward arc: always give a nice arc
+            const upSpeed = power * 0.32;
+            // Side: based on horizontal drag
+            const sideSpeed = -(clampedDx / 200) * power * 0.15;
 
             ballVelocity = {
-                x: sidePower,
-                y: upPower,
-                z: -forwardPower
+                x: sideSpeed,
+                y: upSpeed,
+                z: -forwardSpeed
             };
         }
 
         function updateBall() {
             if (!isBallFlying) return;
 
-            // Apply gravity
-            ballVelocity.y -= 0.012;
+            // Gravity
+            ballVelocity.y -= 0.008;
 
             // Update position
             ball.position.x += ballVelocity.x;
             ball.position.y += ballVelocity.y;
             ball.position.z += ballVelocity.z;
 
-            // Rotate ball for visual effect
-            ball.rotation.x += ballVelocity.z * 0.1;
-            ball.rotation.z -= ballVelocity.x * 0.1;
+            // Spin
+            ball.rotation.x += ballVelocity.z * 0.15;
+            ball.rotation.z -= ballVelocity.x * 0.15;
 
-            // Check if ball passed through basket
+            // Score detection
             const config = levelConfigs[gameState.currentLevel];
-            const basketPos = new THREE.Vector3(0, 1.5, config.basketZ);
+            const basketX = basket.position.x;
+            const basketY = 2.2;
+            const basketZ = config.basketZ;
 
-            if (ball.position.z <= basketPos.z && ball.position.z >= basketPos.z - 0.5) {
-                const dist = Math.sqrt(
-                    Math.pow(ball.position.x - basketPos.x, 2) +
-                    Math.pow(ball.position.y - basketPos.y, 2)
+            // Check when ball passes through the rim plane
+            if (!hasScored && ball.position.z <= basketZ + 0.3 && ball.position.z >= basketZ - 0.8) {
+                const distXZ = Math.sqrt(
+                    Math.pow(ball.position.x - basketX, 2) +
+                    Math.pow(ball.position.y - basketY, 2)
                 );
 
-                if (dist < config.basketRadius * 0.8) {
-                    // Score!
+                if (distXZ < config.basketRadius * 0.9) {
+                    hasScored = true;
                     onScore();
                     return;
                 }
             }
 
-            // Check if ball hit ground or went too far
-            if (ball.position.y < -0.5 || ball.position.z < -30) {
+            // Miss: ball hit ground or went too far
+            if (ball.position.y < -0.8 || ball.position.z < -25 || Math.abs(ball.position.x) > 15) {
                 onMiss();
             }
         }
@@ -841,7 +893,6 @@
             gameState.combo++;
             gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
 
-            // Calculate score
             const baseScore = 10;
             const comboBonus = Math.min(gameState.combo - 1, 5) * 5;
             const points = baseScore + comboBonus;
@@ -849,23 +900,19 @@
             gameState.score += points;
             document.getElementById('score').textContent = gameState.score;
 
-            // Show combo
             if (gameState.combo > 1) {
-                showCombo(`🔥 x${gameState.combo}`);
+                showCombo('🔥 x' + gameState.combo);
             } else {
-                showCombo('⭐ +1');
+                showCombo('⭐ 好棒！');
             }
 
-            // Star burst effect
             createStarBurst();
-
             playSound('hit');
 
-            // Reset ball after delay
             setTimeout(() => {
                 resetBall();
                 checkGameEnd();
-            }, 1000);
+            }, 1200);
         }
 
         function onMiss() {
@@ -874,7 +921,6 @@
 
             playSound('miss');
 
-            // Reset ball after delay
             setTimeout(() => {
                 resetBall();
                 checkGameEnd();
@@ -883,10 +929,13 @@
 
         function resetBall() {
             isBallFlying = false;
-            const config = levelConfigs[gameState.currentLevel];
-            ball.position.set(0, 0, 2);
+            ball.position.set(BALL_START.x, BALL_START.y, BALL_START.z);
             ball.rotation.set(0, 0, 0);
             ballVelocity = { x: 0, y: 0, z: 0 };
+
+            // Show hint ring again
+            const hint = ball.getObjectByName('ballHint');
+            if (hint) hint.visible = true;
         }
 
         function checkGameEnd() {
@@ -913,15 +962,15 @@
             const canvas = renderer.domElement;
             const rect = canvas.getBoundingClientRect();
 
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 10; i++) {
                 const star = document.createElement('div');
                 star.className = 'star-particle';
-                star.textContent = ['⭐', '✨', '🌟', '💫'][Math.floor(Math.random() * 4)];
-                star.style.left = rect.left + rect.width / 2 + 'px';
-                star.style.top = rect.top + rect.height / 2 + 'px';
+                star.textContent = ['⭐', '✨', '🌟', '💫', '🎉'][Math.floor(Math.random() * 5)];
+                star.style.left = (rect.left + rect.width / 2) + 'px';
+                star.style.top = (rect.top + rect.height * 0.35) + 'px';
 
-                const angle = (Math.PI * 2 * i) / 8;
-                const distance = 100 + Math.random() * 100;
+                const angle = (Math.PI * 2 * i) / 10;
+                const distance = 80 + Math.random() * 120;
                 star.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
                 star.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
 
@@ -937,15 +986,29 @@
             const comboDisplay = document.getElementById('comboDisplay');
             comboDisplay.textContent = text;
             comboDisplay.classList.remove('show');
-            void comboDisplay.offsetWidth; // Trigger reflow
+            void comboDisplay.offsetWidth;
             comboDisplay.classList.add('show');
         }
+
+        // Ball hint animation (pulsing)
+        let hintPulse = 0;
 
         function animate() {
             animationId = requestAnimationFrame(animate);
 
             updateBall();
             updateBasket();
+
+            // Pulse the hint ring when ball is idle
+            if (!isBallFlying && ball) {
+                hintPulse += 0.05;
+                const hint = ball.getObjectByName('ballHint');
+                if (hint && hint.visible) {
+                    const s = 1 + Math.sin(hintPulse) * 0.15;
+                    hint.scale.set(s, s, s);
+                    hint.material.opacity = 0.4 + Math.sin(hintPulse) * 0.2;
+                }
+            }
 
             renderer.render(scene, camera);
         }
@@ -967,7 +1030,6 @@
                 combo: 0,
                 maxCombo: 0,
                 isDragging: false,
-                ballInFlight: false,
                 currentLevel: level,
                 gameStarted: true
             };
@@ -979,13 +1041,12 @@
             document.getElementById('score').textContent = '0';
             document.getElementById('ballsLeft').textContent = gameState.ballsLeft;
 
-            // Reset ball and basket
-            if (ball) {
-                scene.remove(ball);
-            }
-            if (basket) {
-                scene.remove(basket);
-            }
+            // Show hint
+            document.getElementById('hintText').style.display = 'block';
+
+            // Reset scene objects
+            if (ball) scene.remove(ball);
+            if (basket) scene.remove(basket);
 
             createBall();
             createBasket();
@@ -1007,6 +1068,8 @@
             document.getElementById('gameoverScreen').classList.remove('show');
             document.getElementById('startScreen').style.display = 'flex';
             document.getElementById('hud').style.display = 'none';
+            document.getElementById('hintText').style.display = 'none';
+            gameState.gameStarted = false;
         }
 
         function restartGame() {
