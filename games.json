@@ -18,7 +18,7 @@
     "typeLabel": "认知类",
     "age": "3-5岁",
     "description": "识别和分类圆形、方形、三角形等基本形状，培养空间认知能力",
-    "path": "games/shape-sorting/index.html",
+    "path": "games/002-shape-sorting/index.html",
     "difficulty": "简单"
   },
   {
@@ -29,7 +29,7 @@
     "typeLabel": "认知类",
     "age": "3-5岁",
     "description": "学习数字1-10，通过可爱的物品和游戏方式掌握基础数学概念",
-    "path": "games/number-fun/index.html",
+    "path": "games/003-number-fun/index.html",
     "difficulty": "简单"
   },
   {
@@ -51,7 +51,7 @@
     "typeLabel": "逻辑类",
     "age": "4-6岁",
     "description": "经典井字棋游戏，和爸爸妈妈一起玩，培养策略思维和规则意识",
-    "path": "games/tic-tac-toe/index.html",
+    "path": "games/016-tic-tac-toe/index.html",
     "difficulty": "中等"
   },
   {
@@ -62,7 +62,7 @@
     "typeLabel": "运动类",
     "age": "3-5岁",
     "description": "轻点会笑的小伙伴获得分数，锻炼精细动作控制和手眼协调能力",
-    "path": "games/fine-motor/index.html",
+    "path": "games/017-fine-motor/index.html",
     "difficulty": "简单"
   },
   {
@@ -369,5 +369,16 @@
     "dimension": "3D",
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-4.7)"
+  },
+  {
+    "id": "rhythm-monkey",
+    "title": "节奏小猴子",
+    "emoji": "🐵",
+    "type": "motor",
+    "typeLabel": "运动类",
+    "age": "3-6岁",
+    "description": "跟着小猴子打节拍，锻炼节奏感和反应能力，培养音乐天赋",
+    "path": "games/070-rhythm-monkey/index.html",
+    "difficulty": "中等"
   }
 ]
