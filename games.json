@@ -380,5 +380,19 @@
     "description": "跟着小猴子打节拍，锻炼节奏感和反应能力，培养音乐天赋",
     "path": "games/070-rhythm-monkey/index.html",
     "difficulty": "中等"
+  },
+  {
+    "id": "3d-music-box",
+    "title": "3D音乐盒",
+    "emoji": "🎵",
+    "type": "creative",
+    "typeLabel": "创意类",
+    "age": "3-6岁",
+    "description": "在魔法3D音乐盒里演奏美妙旋律！选择木琴、钢琴、鼓、竖琴四种乐器，点击彩色音柱演奏音乐。支持自由演奏、跟我学（跟着旋律弹）、录制和回放功能，培养音乐节奏感和创造力",
+    "path": "games/078-3d-music-box/index.html",
+    "difficulty": "简单",
+    "dimension": "3D",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)"
   }
 ]
