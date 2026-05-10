@@ -592,6 +592,58 @@ body {
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
 
+/* Countdown overlay */
+#countdown-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 60;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
+
+#countdown-overlay.active { display: flex; }
+
+.countdown-num {
+  font-size: min(20vw, 140px);
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 0 30px rgba(255,255,255,0.5), 0 0 60px rgba(255,215,0,0.3);
+  animation: countdownPop 0.8s ease-out;
+}
+
+@keyframes countdownPop {
+  0% { transform: scale(2); opacity: 0; }
+  30% { transform: scale(0.9); opacity: 1; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+
+/* Lane hint glow - shows which lane will need pressing */
+.lane-btn.hint {
+  animation: lane-hint 0.4s ease-out;
+}
+
+@keyframes lane-hint {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(2); }
+  100% { filter: brightness(1); }
+}
+
+/* Hit zone line */
+#hit-zone-line {
+  position: absolute;
+  bottom: 18%;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.3);
+  z-index: 9;
+  display: none;
+}
+
 /* Responsive */
 @media (max-height: 500px) {
   #monkey { font-size: 60px; bottom: 25%; }
@@ -648,6 +700,11 @@ body {
       <span>🔥</span> 连续正确有连击奖励！
     </div>
     <button class="guide-start-btn" onclick="dismissGuide()">我准备好了！🐵</button>
+  </div>
+
+  <!-- COUNTDOWN OVERLAY -->
+  <div id="countdown-overlay">
+    <div class="countdown-num" id="countdown-text">3</div>
   </div>
 
   <!-- RESULT SCREEN -->
@@ -974,14 +1031,69 @@ function startGame() {
   if (!hasPlayed) {
     $guideOverlay.classList.add('active');
   } else {
-    beginRound();
+    showCountdown();
   }
 }
 
 function dismissGuide() {
   $guideOverlay.classList.remove('active');
   localStorage.setItem('rhythm-monkey-played', '1');
-  beginRound();
+  showCountdown();
+}
+
+function showCountdown() {
+  const overlay = document.getElementById('countdown-overlay');
+  const text = document.getElementById('countdown-text');
+  overlay.classList.add('active');
+
+  let count = 3;
+  text.textContent = count;
+  text.style.animation = 'none';
+  void text.offsetWidth;
+  text.style.animation = 'countdownPop 0.8s ease-out';
+
+  // Play tick sound for each count
+  const countInterval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      text.textContent = count;
+      text.style.animation = 'none';
+      void text.offsetWidth;
+      text.style.animation = 'countdownPop 0.8s ease-out';
+      ensureAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 660;
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    } else {
+      text.textContent = '🎵 GO!';
+      text.style.animation = 'none';
+      void text.offsetWidth;
+      text.style.animation = 'countdownPop 0.8s ease-out';
+      ensureAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+      clearInterval(countInterval);
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        beginRound();
+      }, 600);
+    }
+  }, 800);
 }
 
 function beginRound() {
@@ -1010,7 +1122,7 @@ function beginRound() {
   state.songLength = song.length;
 
   const beatInterval = 60000 / settings.bpm;
-  state.startTime = performance.now() + 2000; // 2 second countdown
+  state.startTime = performance.now() + 2000; // 2 second buffer after countdown
 
   // Schedule notes
   song.forEach((lanes, beatIdx) => {
@@ -1336,7 +1448,7 @@ function spawnConfetti() {
 function playAgain() {
   $resultScreen.classList.remove('active');
   $gameScreen.classList.add('active');
-  beginRound();
+  showCountdown();
 }
 
 function goHome() {

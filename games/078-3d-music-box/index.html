@@ -271,6 +271,18 @@
             box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
         }
 
+        .celeb-btn-secondary {
+            margin-top: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px;
+            padding: 10px 30px;
+            font-size: clamp(14px, 3vw, 18px);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
         /* Note hit effect */
         .hit-effect {
             position: fixed;
@@ -406,6 +418,9 @@
         <button class="ctrl-btn" id="btn-record">⏺ 录制</button>
         <button class="ctrl-btn" id="btn-playback">▶️ 回放</button>
     </div>
+    <div class="control-row">
+        <button class="ctrl-btn" id="btn-home2">🏠 返回首页</button>
+    </div>
 </div>
 
 <!-- Recording indicator -->
@@ -423,7 +438,8 @@
         <div class="celeb-emoji">🎉🎵</div>
         <div class="celeb-text">太棒了！</div>
         <div class="celeb-sub" id="celeb-sub">你是个小音乐家！</div>
-        <button class="celeb-btn" id="btn-continue">🎵 继续演奏</button>
+        <button class="celeb-btn" id="btn-continue">🎵 继续演奏</button><br>
+        <button class="celeb-btn-secondary" id="btn-home">🏠 返回首页</button>
     </div>
 </div>
 
@@ -966,8 +982,11 @@ function startFollowMode() {
 
     // Play the melody once first
     playMelodySequence(followSequence, 0, () => {
-        // Then start follow mode
-        highlightNext();
+        // Brief pause then start follow mode
+        showModeLabel('👉 轮到你啦！');
+        setTimeout(() => {
+            highlightNext();
+        }, 1500);
     });
 }
 
@@ -1248,6 +1267,52 @@ document.getElementById('btn-playback').addEventListener('click', () => {
 
 document.getElementById('btn-continue').addEventListener('click', () => {
     document.getElementById('celebration').style.display = 'none';
+});
+
+document.getElementById('btn-home').addEventListener('click', () => {
+    document.getElementById('celebration').style.display = 'none';
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('controls').style.display = 'none';
+    document.getElementById('instrument-bar').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'flex';
+    // Reset score
+    score = 0;
+    document.getElementById('score').textContent = '0';
+    // Reset mode
+    mode = 'free';
+    followActive = false;
+    isRecording = false;
+    document.getElementById('rec-indicator').style.display = 'none';
+    document.getElementById('btn-record').classList.remove('active');
+    document.getElementById('hud-mode').textContent = '🎵 自由模式';
+    // Clear highlights
+    barLights.forEach(l => l.intensity = 0.4);
+    bars.forEach(b => b.children.forEach(c => {
+        if (c.material && c.material.emissiveIntensity !== undefined) {
+            c.material.emissiveIntensity = 0.2;
+        }
+    }));
+});
+
+document.getElementById('btn-home2').addEventListener('click', () => {
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('controls').style.display = 'none';
+    document.getElementById('instrument-bar').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'flex';
+    score = 0;
+    document.getElementById('score').textContent = '0';
+    mode = 'free';
+    followActive = false;
+    isRecording = false;
+    document.getElementById('rec-indicator').style.display = 'none';
+    document.getElementById('btn-record').classList.remove('active');
+    document.getElementById('hud-mode').textContent = '🎵 自由模式';
+    barLights.forEach(l => l.intensity = 0.4);
+    bars.forEach(b => b.children.forEach(c => {
+        if (c.material && c.material.emissiveIntensity !== undefined) {
+            c.material.emissiveIntensity = 0.2;
+        }
+    }));
 });
 
 // Instrument buttons

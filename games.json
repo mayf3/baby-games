@@ -314,7 +314,8 @@
     "path": "games/038-vocabulary-train/index.html",
     "difficulty": "简单",
     "aiGenerated": true,
-    "aiTool": "Daily Game Dev (GLM-4.7)"
+    "aiTool": "Daily Game Dev (GLM-4.7)",
+    "addedDate": "2026-04-29"
   },
   {
     "id": "037-cause-effect-lab",
@@ -327,7 +328,8 @@
     "path": "games/037-cause-effect-lab/index.html",
     "difficulty": "简单",
     "aiGenerated": true,
-    "aiTool": "Daily Game Dev (GLM-5.1)"
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-01"
   },
   {
     "id": "021-3d-room-explorer",
@@ -341,7 +343,8 @@
     "difficulty": "简单",
     "dimension": "3D",
     "aiGenerated": true,
-    "aiTool": "Daily Game Dev (GLM-5.1)"
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-02"
   },
   {
     "id": "042-cooperation-helper",
@@ -354,7 +357,8 @@
     "path": "games/042-cooperation-helper/index.html",
     "difficulty": "简单",
     "aiGenerated": true,
-    "aiTool": "Daily Game Dev (GLM-5.1)"
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-04"
   },
   {
     "id": "064-3d-ball-toss",
@@ -368,7 +372,8 @@
     "difficulty": "简单",
     "dimension": "3D",
     "aiGenerated": true,
-    "aiTool": "Daily Game Dev (GLM-4.7)"
+    "aiTool": "Daily Game Dev (GLM-4.7)",
+    "addedDate": "2026-05-05"
   },
   {
     "id": "rhythm-monkey",
@@ -379,7 +384,8 @@
     "age": "3-6岁",
     "description": "跟着小猴子打节拍，锻炼节奏感和反应能力，培养音乐天赋",
     "path": "games/070-rhythm-monkey/index.html",
-    "difficulty": "中等"
+    "difficulty": "中等",
+    "addedDate": "2026-05-08"
   },
   {
     "id": "3d-music-box",
@@ -393,6 +399,7 @@
     "difficulty": "简单",
     "dimension": "3D",
     "aiGenerated": true,
-    "aiTool": "Daily Game Dev (GLM-5.1)"
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-09"
   }
 ]
