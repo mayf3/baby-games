@@ -401,5 +401,19 @@
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)",
     "addedDate": "2026-05-09"
+  },
+  {
+    "id": "079-polite-angel",
+    "title": "礼貌小天使",
+    "emoji": "😇",
+    "type": "social-emotional",
+    "typeLabel": "社交情感类",
+    "age": "3-6岁",
+    "description": "学习日常生活中最重要的礼貌用语！四个关卡：你好与再见、请与谢谢、对不起与没关系、分享与关心，通过情境对话选择正确的礼貌表达，培养社交礼仪和情商，做一个有礼貌的好孩子",
+    "path": "games/079-polite-angel/index.html",
+    "difficulty": "简单",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-11"
   }
 ]

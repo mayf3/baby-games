@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>礼貌小天使 😇</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            background: linear-gradient(135deg, #FFF8E7 0%, #FFE4B5 40%, #FFDAB9 70%, #FFB6C1 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: manipulation;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部信息栏 */
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            z-index: 10;
+        }
+
+        .level-badge {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 700;
+            box-shadow: 0 3px 10px rgba(255,107,107,0.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .star-counter {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 700;
+            box-shadow: 0 3px 10px rgba(255,165,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 场景区域 */
+        #scene-area {
+            position: absolute;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        /* 场景背景 */
+        .scene-bg {
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .scene-bg-park {
+            background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 40%, #90EE90 70%, #3CB371 100%);
+        }
+
+        .scene-bg-home {
+            background: linear-gradient(180deg, #FFF8DC 0%, #FFEFD5 50%, #DEB887 100%);
+        }
+
+        .scene-bg-school {
+            background: linear-gradient(180deg, #E0F0FF 0%, #C8E6FF 40%, #B0D4F1 100%);
+        }
+
+        .scene-bg-playground {
+            background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 40%, #7FCDCD 70%, #5BA08E 100%);
+        }
+
+        /* 场景装饰 */
+        .scene-deco {
+            position: absolute;
+            font-size: 40px;
+            opacity: 0.6;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* 对话气泡 */
+        #speech-bubble {
+            position: relative;
+            background: white;
+            border-radius: 24px;
+            padding: 20px 28px;
+            max-width: 90%;
+            min-width: 300px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            z-index: 5;
+            text-align: center;
+            animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 15px solid white;
+        }
+
+        .situation-text {
+            font-size: 22px;
+            color: #333;
+            line-height: 1.6;
+            font-weight: 600;
+        }
+
+        /* 角色 */
+        #character-area {
+            position: relative;
+            display: flex;
+            gap: 30px;
+            align-items: flex-end;
+            justify-content: center;
+            margin-bottom: 10px;
+            z-index: 5;
+        }
+
+        .character {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            animation: bounce 1.5s ease-in-out infinite;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .char-a {
+            background: linear-gradient(135deg, #FFB6C1, #FF69B4);
+            animation-delay: 0s;
+        }
+
+        .char-b {
+            background: linear-gradient(135deg, #87CEEB, #4169E1);
+            animation-delay: 0.3s;
+        }
+
+        .char-c {
+            background: linear-gradient(135deg, #98FB98, #32CD32);
+            animation-delay: 0.6s;
+        }
+
+        .char-d {
+            background: linear-gradient(135deg, #FFD700, #FF8C00);
+            animation-delay: 0.9s;
+        }
+
+        /* 选项区域 */
+        #options-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 220px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 15px;
+            background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 20%, white 100%);
+        }
+
+        .option-btn {
+            width: calc(50% - 20px);
+            min-height: 80px;
+            border: 4px solid #E8E8E8;
+            border-radius: 20px;
+            background: white;
+            font-size: 20px;
+            font-weight: 700;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            padding: 8px 12px;
+        }
+
+        .option-btn:active {
+            transform: scale(0.95);
+        }
+
+        .option-btn:hover {
+            border-color: #FFB6C1;
+            box-shadow: 0 5px 20px rgba(255,182,193,0.3);
+        }
+
+        .option-btn.correct {
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            border-color: #4CAF50;
+            color: white;
+            animation: correctPulse 0.5s;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
+        .option-btn.wrong {
+            background: linear-gradient(135deg, #FFCDD2, #EF9A9A);
+            border-color: #EF5350;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* 反馈覆盖层 */
+        #feedback-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+        }
+
+        #feedback-overlay.show {
+            display: flex;
+        }
+
+        .feedback-card {
+            background: white;
+            border-radius: 30px;
+            padding: 35px 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 85%;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.2);
+            animation: feedbackIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes feedbackIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .feedback-emoji {
+            font-size: 70px;
+            margin-bottom: 15px;
+        }
+
+        .feedback-text {
+            font-size: 22px;
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .feedback-sub {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .feedback-btn {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 14px 40px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255,107,107,0.4);
+        }
+
+        .feedback-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 星星飞舞效果 */
+        .flying-star {
+            position: fixed;
+            font-size: 30px;
+            pointer-events: none;
+            z-index: 200;
+            animation: flyStar 1s ease-out forwards;
+        }
+
+        @keyframes flyStar {
+            0% {
+                opacity: 1;
+                transform: scale(0.5) translateY(0);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.3) translateY(-80px);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0.3) translateY(-200px) rotate(360deg);
+            }
+        }
+
+        /* 彩带动画 */
+        .confetti {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 200;
+            animation: confettiFall 1.5s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                opacity: 1;
+                transform: translateY(0) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(100vh) rotate(720deg);
+            }
+        }
+
+        /* 开始界面 */
+        #start-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #FFF8E7 0%, #FFE4B5 40%, #FFDAB9 70%, #FFB6C1 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+
+        #start-screen.hidden {
+            display: none;
+        }
+
+        .start-title {
+            font-size: 48px;
+            font-weight: 800;
+            color: #FF6B6B;
+            text-shadow: 2px 2px 0 #FFD700, 4px 4px 0 rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        .start-emoji {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1.5s ease-in-out infinite;
+        }
+
+        .start-subtitle {
+            font-size: 20px;
+            color: #888;
+            margin-bottom: 40px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 18px 60px;
+            font-size: 24px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(255,107,107,0.4);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 8px 25px rgba(255,107,107,0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 12px 35px rgba(255,107,107,0.6); }
+        }
+
+        .start-btn:active {
+            transform: scale(0.95);
+        }
+
+        .start-features {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .start-feature {
+            background: rgba(255,255,255,0.8);
+            padding: 10px 18px;
+            border-radius: 15px;
+            font-size: 14px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        /* 进度条 */
+        .progress-dots {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .progress-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #E0E0E0;
+            transition: all 0.3s;
+        }
+
+        .progress-dot.done {
+            background: #4CAF50;
+        }
+
+        .progress-dot.current {
+            background: #FF6B6B;
+            transform: scale(1.3);
+        }
+
+        /* 响应式 */
+        @media (max-width: 500px) {
+            .start-title { font-size: 36px; }
+            .start-emoji { font-size: 60px; }
+            .start-subtitle { font-size: 16px; }
+            .start-btn { font-size: 20px; padding: 14px 45px; }
+            .situation-text { font-size: 18px; }
+            .option-btn { font-size: 17px; min-height: 70px; }
+            .character { width: 70px; height: 70px; font-size: 40px; }
+            #speech-bubble { padding: 15px 20px; min-width: 260px; }
+            .feedback-emoji { font-size: 55px; }
+            .feedback-text { font-size: 18px; }
+            .feedback-card { padding: 25px 30px; }
+            .start-features { flex-wrap: wrap; justify-content: center; }
+        }
+
+        @media (min-width: 800px) {
+            .option-btn {
+                max-width: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 开始界面 -->
+        <div id="start-screen">
+            <div class="start-emoji">😇</div>
+            <div class="start-title">礼貌小天使</div>
+            <div class="start-subtitle">学会说有礼貌的话，做个人见人爱的小天使！</div>
+            <button class="start-btn" onclick="startGame()">开始学习 ✨</button>
+            <div class="start-features">
+                <span class="start-feature">🗣️ 礼貌用语</span>
+                <span class="start-feature">🤝 社交礼仪</span>
+                <span class="start-feature">😊 情商培养</span>
+            </div>
+        </div>
+
+        <!-- 游戏主界面 -->
+        <div id="top-bar">
+            <div class="level-badge" id="level-badge">🌈 第1关</div>
+            <div class="progress-dots" id="progress-dots"></div>
+            <div class="star-counter" id="star-counter">⭐ 0</div>
+        </div>
+
+        <div id="scene-area">
+            <div class="scene-bg" id="scene-bg"></div>
+            <div id="character-area"></div>
+            <div id="speech-bubble">
+                <div class="situation-text" id="situation-text"></div>
+            </div>
+        </div>
+
+        <div id="options-area" id="options-area"></div>
+    </div>
+
+    <!-- 反馈覆盖层 -->
+    <div id="feedback-overlay">
+        <div class="feedback-card">
+            <div class="feedback-emoji" id="feedback-emoji">🌟</div>
+            <div class="feedback-text" id="feedback-text">太棒了！</div>
+            <div class="feedback-sub" id="feedback-sub">你真是个有礼貌的小天使！</div>
+            <button class="feedback-btn" id="feedback-btn" onclick="nextQuestion()">继续 😊</button>
+        </div>
+    </div>
+
+    <script>
+    // ========== 游戏数据 ==========
+    const levels = [
+        {
+            name: "你好与再见",
+            emoji: "👋",
+            bgClass: "scene-bg-park",
+            questions: [
+                {
+                    situation: "早上见到老师，你应该说什么呢？",
+                    characters: [
+                        { emoji: "👧", cls: "char-a" },
+                        { emoji: "👩‍🏫", cls: "char-b" }
+                    ],
+                    decorItems: ["🌳", "🌸", "🦋", "🌺"],
+                    options: [
+                        { text: "👋 你好！", correct: true },
+                        { text: "给我糖吃", correct: false },
+                        { text: "走开！", correct: false },
+                        { text: "哼，不理你", correct: false }
+                    ],
+                    correctFeedback: "说"你好"是有礼貌的表现，老师会很喜欢哦！",
+                    wrongFeedback: "见到别人要主动打招呼说"你好"哦，这样大家都会喜欢你！"
+                },
+                {
+                    situation: "放学了，要跟老师说再见，你应该说什么？",
+                    characters: [
+                        { emoji: "👦", cls: "char-c" },
+                        { emoji: "👩‍🏫", cls: "char-b" }
+                    ],
+                    decorItems: ["🏫", "🌈", "☀️", "🎒"],
+                    options: [
+                        { text: "哼，转身就走", correct: false },
+                        { text: "👋 老师再见！", correct: true },
+                        { text: "老师，我想回家", correct: false },
+                        { text: "不理老师", correct: false }
+                    ],
+                    correctFeedback: "说"再见"表示你很有礼貌，老师明天会更期待见到你！",
+                    wrongFeedback: "离开时要跟老师说"再见"哦，这是礼貌的表现！"
+                },
+                {
+                    situation: "在公园遇到邻居奶奶，你应该怎么做？",
+                    characters: [
+                        { emoji: "👧", cls: "char-a" },
+                        { emoji: "👵", cls: "char-d" }
+                    ],
+                    decorItems: ["🌳", "🌸", "🐦", "🏡"],
+                    options: [
+                        { text: "假装没看到", correct: false },
+                        { text: "跑开躲起来", correct: false },
+                        { text: "微笑说奶奶好！", correct: true },
+                        { text: "大叫一声吓她", correct: false }
+                    ],
+                    correctFeedback: "主动跟长辈打招呼是最有礼貌的，奶奶会特别开心！",
+                    wrongFeedback: "见到认识的爷爷奶奶要主动打招呼微笑哦，这是有礼貌的好孩子！"
+                }
+            ]
+        },
+        {
+            name: "请与谢谢",
+            emoji: "🙏",
+            bgClass: "scene-bg-home",
+            questions: [
+                {
+                    situation: "想请妈妈帮忙拿高处的玩具，应该怎么说？",
+                    characters: [
+                        { emoji: "👦", cls: "char-c" },
+                        { emoji: "👩", cls: "char-a" }
+                    ],
+                    decorItems: ["🏠", "🧸", "📚", "🛋️"],
+                    options: [
+                        { text: "快给我拿！", correct: false },
+                        { text: "请你帮我拿一下", correct: true },
+                        { text: "你不拿我就哭", correct: false },
+                        { text: "哼，我自己来", correct: false }
+                    ],
+                    correctFeedback: "说"请"会让别人很愿意帮助你，妈妈会很高兴帮你！",
+                    wrongFeedback: "请别人帮忙时要说"请"，这样大家才会开心地帮助你哦！"
+                },
+                {
+                    situation: "小朋友送给你一颗糖，你应该说什么？",
+                    characters: [
+                        { emoji: "👧", cls: "char-a" },
+                        { emoji: "👦", cls: "char-b" }
+                    ],
+                    decorItems: ["🍬", "🎈", "🎉", "💝"],
+                    options: [
+                        { text: "拿过来就行了", correct: false },
+                        { text: "我不喜欢", correct: false },
+                        { text: "谢谢！你真好！", correct: true },
+                        { text: "再给我一个", correct: false }
+                    ],
+                    correctFeedback: "收到别人的礼物要说"谢谢"，这样小朋友会更愿意跟你分享！",
+                    wrongFeedback: "别人送你东西时一定要说"谢谢"哦，这是表示感谢的好习惯！"
+                },
+                {
+                    situation: "爸爸给你做了好吃的饭菜，你应该怎么做？",
+                    characters: [
+                        { emoji: "👧", cls: "char-a" },
+                        { emoji: "👨‍🍳", cls: "char-d" }
+                    ],
+                    decorItems: ["🍲", "🍚", "🥢", "❤️"],
+                    options: [
+                        { text: "不吃，太难吃了", correct: false },
+                        { text: "谢谢爸爸！好香！", correct: true },
+                        { text: "我要吃零食", correct: false },
+                        { text: "把碗推开", correct: false }
+                    ],
+                    correctFeedback: "感谢爸爸的辛苦做饭，爸爸会非常开心的！你真懂事！",
+                    wrongFeedback: "爸爸辛苦做饭给你吃，要说"谢谢爸爸"哦，这样爸爸会很高兴的！"
+                }
+            ]
+        },
+        {
+            name: "对不起与没关系",
+            emoji: "💝",
+            bgClass: "scene-bg-school",
+            questions: [
+                {
+                    situation: "不小心撞到了小朋友，你应该说什么？",
+                    characters: [
+                        { emoji: "👦", cls: "char-c" },
+                        { emoji: "👧", cls: "char-a" }
+                    ],
+                    decorItems: ["🏫", "🖍️", "📝", "📏"],
+                    options: [
+                        { text: "对不起，你没事吧？", correct: true },
+                        { text: "是你自己撞过来的", correct: false },
+                        { text: "假装没看见走掉", correct: false },
+                        { text: "哈哈，撞到了", correct: false }
+                    ],
+                    correctFeedback: "不小心碰到别人要说"对不起"，这样大家都会原谅你的！",
+                    wrongFeedback: "不小心碰到别人要说"对不起"哦，还要关心一下对方有没有受伤！"
+                },
+                {
+                    situation: "你不小心弄坏了小朋友的画，小朋友很伤心，怎么办？",
+                    characters: [
+                        { emoji: "👧", cls: "char-a" },
+                        { emoji: "👦", cls: "char-b" }
+                    ],
+                    decorItems: ["🎨", "🖼️", "✏️", "🌈"],
+                    options: [
+                        { text: "又不是故意的", correct: false },
+                        { text: "对不起，我帮你重新画", correct: true },
+                        { text: "谁让你放这里的", correct: false },
+                        { text: "画本来就不好看", correct: false }
+                    ],
+                    correctFeedback: "做错事要勇敢说"对不起"，还想办法弥补，你真棒！",
+                    wrongFeedback: "弄坏了别人的东西要说"对不起"，还可以帮忙修好或重新做哦！"
+                },
+                {
+                    situation: "别的小朋友跟你说"对不起"了，你应该怎么回答？",
+                    characters: [
+                        { emoji: "👦", cls: "char-c" },
+                        { emoji: "👧", cls: "char-d" }
+                    ],
+                    decorItems: ["🤝", "💝", "🌸", "😊"],
+                    options: [
+                        { text: "我再也不理你了", correct: false },
+                        { text: "没关系！", correct: true },
+                        { text: "你要赔我东西", correct: false },
+                        { text: "你还我！还我！", correct: false }
+                    ],
+                    correctFeedback: "别人说了对不起，我们可以说"没关系"，这样大家又能开开心心一起玩啦！",
+                    wrongFeedback: "别人已经道歉了，我们可以说"没关系"来原谅他们，大家都是好朋友！"
+                }
+            ]
+        },
+        {
+            name: "分享与关心",
+            emoji: "🤝",
+            bgClass: "scene-bg-playground",
+            questions: [
+                {
+                    situation: "你有好多贴纸，小朋友也想玩，你应该怎么做？",
+                    characters: [
+                        { emoji: "👧", cls: "char-a" },
+                        { emoji: "👦", cls: "char-b" }
+                    ],
+                    decorItems: ["⭐", "🌟", "🎪", "🎈"],
+                    options: [
+                        { text: "都是我的，不给", correct: false },
+                        { text: "好啊，我们一起玩！", correct: true },
+                        { text: "你去找别人要", correct: false },
+                        { text: "藏起来不让你看", correct: false }
+                    ],
+                    correctFeedback: "分享让你得到更多的快乐！一起玩比一个人玩有趣多了！",
+                    wrongFeedback: "跟小朋友分享玩具和贴纸，大家都能开心地一起玩哦！"
+                },
+                {
+                    situation: "看到小朋友摔倒了在哭，你应该怎么做？",
+                    characters: [
+                        { emoji: "👦", cls: "char-c" },
+                        { emoji: "👧", cls: "char-d" }
+                    ],
+                    decorItems: ["🌸", "🌈", "🎈", "💝"],
+                    options: [
+                        { text: "哈哈，好笨", correct: false },
+                        { text: "走过去不管", correct: false },
+                        { text: "你没事吧？我扶你起来", correct: true },
+                        { text: "叫别人去看", correct: false }
+                    ],
+                    correctFeedback: "关心帮助别人是最善良的表现，你真是个小天使！",
+                    wrongFeedback: "看到别人摔倒要关心地问"你没事吧"，帮助别人会让你更开心！"
+                },
+                {
+                    situation: "要借用小朋友的蜡笔，应该怎么说？",
+                    characters: [
+                        { emoji: "👧", cls: "char-a" },
+                        { emoji: "👦", cls: "char-b" }
+                    ],
+                    decorItems: ["🖍️", "🎨", "📄", "✨"],
+                    options: [
+                        { text: "直接拿过来用", correct: false },
+                        { text: "请问我可以借用一下吗？", correct: true },
+                        { text: "你不给我就不跟你玩了", correct: false },
+                        { text: "这个蜡笔不好看", correct: false }
+                    ],
+                    correctFeedback: "借东西要先礼貌地问，用完要记得还和说谢谢哦！",
+                    wrongFeedback: "借别人的东西要先礼貌地问"我可以借用一下吗？"，别人同意了才能拿哦！"
+                }
+            ]
+        }
+    ];
+
+    // ========== 游戏状态 ==========
+    let currentLevel = 0;
+    let currentQuestion = 0;
+    let stars = 0;
+    let answered = false;
+
+    // ========== 音效系统 ==========
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    function ensureAudio() {
+        if (!audioCtx) audioCtx = new AudioCtx();
+    }
+
+    function playSound(freq, duration, type = 'sine') {
+        ensureAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playCorrectSound() {
+        playSound(523.25, 0.15);
+        setTimeout(() => playSound(659.25, 0.15), 100);
+        setTimeout(() => playSound(783.99, 0.3), 200);
+    }
+
+    function playWrongSound() {
+        playSound(300, 0.2, 'triangle');
+        setTimeout(() => playSound(250, 0.3, 'triangle'), 150);
+    }
+
+    function playClickSound() {
+        playSound(800, 0.08, 'sine');
+    }
+
+    function playLevelCompleteSound() {
+        const notes = [523, 587, 659, 698, 784, 880, 988, 1047];
+        notes.forEach((n, i) => {
+            setTimeout(() => playSound(n, 0.2), i * 100);
+        });
+    }
+
+    // ========== 特效 ==========
+    function spawnStars(x, y, count = 8) {
+        const emojis = ['⭐', '🌟', '✨', '💫', '🎉'];
+        for (let i = 0; i < count; i++) {
+            const star = document.createElement('div');
+            star.className = 'flying-star';
+            star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            star.style.left = (x + (Math.random() - 0.5) * 150) + 'px';
+            star.style.top = (y + (Math.random() - 0.5) * 80) + 'px';
+            star.style.animationDelay = (Math.random() * 0.3) + 's';
+            document.body.appendChild(star);
+            setTimeout(() => star.remove(), 1500);
+        }
+    }
+
+    function spawnConfetti(count = 30) {
+        const colors = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#FF69B4', '#9B59B6'];
+        for (let i = 0; i < count; i++) {
+            const c = document.createElement('div');
+            c.className = 'confetti';
+            c.style.left = (Math.random() * window.innerWidth) + 'px';
+            c.style.top = '-20px';
+            c.style.background = colors[Math.floor(Math.random() * colors.length)];
+            c.style.animationDelay = (Math.random() * 0.8) + 's';
+            c.style.animationDuration = (1 + Math.random() * 1.5) + 's';
+            document.body.appendChild(c);
+            setTimeout(() => c.remove(), 3000);
+        }
+    }
+
+    // ========== 游戏逻辑 ==========
+    function startGame() {
+        playClickSound();
+        document.getElementById('start-screen').classList.add('hidden');
+        currentLevel = 0;
+        currentQuestion = 0;
+        stars = 0;
+        updateStarDisplay();
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        answered = false;
+        const level = levels[currentLevel];
+        const q = level.questions[currentQuestion];
+
+        // Update level badge
+        document.getElementById('level-badge').textContent = `${level.emoji} 第${currentLevel + 1}关 · ${level.name}`;
+
+        // Update progress dots
+        const dotsContainer = document.getElementById('progress-dots');
+        dotsContainer.innerHTML = '';
+        for (let i = 0; i < level.questions.length; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'progress-dot';
+            if (i < currentQuestion) dot.classList.add('done');
+            if (i === currentQuestion) dot.classList.add('current');
+            dotsContainer.appendChild(dot);
+        }
+
+        // Update scene background
+        const sceneBg = document.getElementById('scene-bg');
+        sceneBg.className = 'scene-bg ' + level.bgClass;
+
+        // Remove old decorations
+        sceneBg.innerHTML = '';
+        q.decorItems.forEach((item, i) => {
+            const deco = document.createElement('div');
+            deco.className = 'scene-deco';
+            deco.textContent = item;
+            deco.style.top = (10 + Math.random() * 30) + '%';
+            deco.style.left = (5 + (i / q.decorItems.length) * 85) + '%';
+            deco.style.animationDelay = (Math.random() * 2) + 's';
+            deco.style.fontSize = (25 + Math.random() * 20) + 'px';
+            sceneBg.appendChild(deco);
+        });
+
+        // Update characters
+        const charArea = document.getElementById('character-area');
+        charArea.innerHTML = '';
+        q.characters.forEach(char => {
+            const div = document.createElement('div');
+            div.className = `character ${char.cls}`;
+            div.textContent = char.emoji;
+            charArea.appendChild(div);
+        });
+
+        // Update situation text
+        const bubble = document.getElementById('speech-bubble');
+        bubble.style.animation = 'none';
+        bubble.offsetHeight; // trigger reflow
+        bubble.style.animation = 'popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+        document.getElementById('situation-text').textContent = q.situation;
+
+        // Update options
+        const optionsArea = document.getElementById('options-area');
+        optionsArea.innerHTML = '';
+        
+        // Shuffle options but keep correctness
+        const shuffled = q.options.map((opt, i) => ({...opt, originalIndex: i}));
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        shuffled.forEach((opt) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt.text;
+            btn.addEventListener('click', (e) => handleAnswer(e, opt.correct, btn));
+            optionsArea.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(event, isCorrect, btnElement) {
+        if (answered) return;
+        answered = true;
+        playClickSound();
+
+        const q = levels[currentLevel].questions[currentQuestion];
+
+        if (isCorrect) {
+            btnElement.classList.add('correct');
+            stars += 1;
+            updateStarDisplay();
+            playCorrectSound();
+
+            const rect = btnElement.getBoundingClientRect();
+            spawnStars(rect.left + rect.width / 2, rect.top, 10);
+
+            // Show positive feedback
+            setTimeout(() => {
+                showFeedback('🌟', '太棒了！', q.correctFeedback, true);
+            }, 600);
+        } else {
+            btnElement.classList.add('wrong');
+            playWrongSound();
+
+            // Show gentle correction
+            setTimeout(() => {
+                showFeedback('😊', '再想想看~', q.wrongFeedback, false);
+            }, 600);
+        }
+    }
+
+    function showFeedback(emoji, text, sub, isCorrect) {
+        document.getElementById('feedback-emoji').textContent = emoji;
+        document.getElementById('feedback-text').textContent = text;
+        document.getElementById('feedback-sub').textContent = sub;
+        
+        const overlay = document.getElementById('feedback-overlay');
+        overlay.classList.add('show');
+
+        // Re-trigger animation
+        const card = overlay.querySelector('.feedback-card');
+        card.style.animation = 'none';
+        card.offsetHeight;
+        card.style.animation = 'feedbackIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+
+        if (isCorrect) {
+            spawnConfetti(15);
+        }
+    }
+
+    function nextQuestion() {
+        playClickSound();
+        document.getElementById('feedback-overlay').classList.remove('show');
+        
+        const level = levels[currentLevel];
+        currentQuestion++;
+
+        if (currentQuestion >= level.questions.length) {
+            // Level complete
+            if (currentLevel >= levels.length - 1) {
+                // Game complete!
+                showGameComplete();
+            } else {
+                showLevelComplete();
+            }
+        } else {
+            setTimeout(loadQuestion, 200);
+        }
+    }
+
+    function showLevelComplete() {
+        playLevelCompleteSound();
+        spawnConfetti(40);
+        
+        document.getElementById('feedback-emoji').textContent = '🎊';
+        document.getElementById('feedback-text').textContent = `第${currentLevel + 1}关完成！`;
+        document.getElementById('feedback-sub').textContent = `${levels[currentLevel].name}你学会了！继续加油！`;
+        
+        const btn = document.getElementById('feedback-btn');
+        btn.textContent = '下一关 ✨';
+        btn.onclick = () => {
+            playClickSound();
+            document.getElementById('feedback-overlay').classList.remove('show');
+            currentLevel++;
+            currentQuestion = 0;
+            btn.textContent = '继续 😊';
+            btn.onclick = () => nextQuestion();
+            setTimeout(loadQuestion, 200);
+        };
+
+        document.getElementById('feedback-overlay').classList.add('show');
+    }
+
+    function showGameComplete() {
+        playLevelCompleteSound();
+        spawnConfetti(60);
+        
+        setTimeout(() => {
+            spawnConfetti(40);
+        }, 500);
+
+        document.getElementById('feedback-emoji').textContent = '🏆';
+        document.getElementById('feedback-text').textContent = '全部完成！';
+        document.getElementById('feedback-sub').textContent = `你获得了 ${stars} 颗星星！你是最有礼貌的小天使！😇`;
+        
+        const btn = document.getElementById('feedback-btn');
+        btn.textContent = '再玩一次 🎮';
+        btn.onclick = () => {
+            playClickSound();
+            document.getElementById('feedback-overlay').classList.remove('show');
+            document.getElementById('start-screen').classList.remove('hidden');
+            btn.textContent = '继续 😊';
+            btn.onclick = () => nextQuestion();
+        };
+
+        document.getElementById('feedback-overlay').classList.add('show');
+    }
+
+    function updateStarDisplay() {
+        document.getElementById('star-counter').textContent = `⭐ ${stars}`;
+    }
+
+    // ========== 防止页面滚动 ==========
+    document.addEventListener('touchmove', (e) => {
+        if (e.target.closest('#game-container')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    </script>
+</body>
+</html>
