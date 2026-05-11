@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D迷宫冒险 🏰</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+        }
+
+        #game-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* HUD */
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            pointer-events: none;
+        }
+
+        .hud-item {
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: white;
+            font-size: clamp(14px, 3.5vw, 20px);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            backdrop-filter: blur(8px);
+        }
+
+        #level-display { background: rgba(99, 102, 241, 0.7); }
+        #stars-display { background: rgba(245, 158, 11, 0.7); }
+
+        /* Direction Controls */
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: none;
+            width: clamp(200px, 50vw, 280px);
+            height: clamp(200px, 50vw, 280px);
+        }
+
+        .ctrl-btn {
+            position: absolute;
+            width: clamp(60px, 12vw, 80px);
+            height: clamp(60px, 12vw, 80px);
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.4);
+            font-size: clamp(28px, 6vw, 40px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .ctrl-btn:active {
+            transform: scale(0.9);
+        }
+
+        #btn-up {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        #btn-down {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        #btn-left {
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        #btn-right {
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        #btn-up:active { transform: translateX(-50%) scale(0.9); }
+        #btn-down:active { transform: translateX(-50%) scale(0.9); }
+        #btn-left:active { transform: translateY(-50%) scale(0.9); }
+        #btn-right:active { transform: translateY(-50%) scale(0.9); }
+
+        /* Start Screen */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+        }
+
+        .start-title {
+            font-size: clamp(36px, 8vw, 64px);
+            color: #fff;
+            text-shadow: 0 0 20px rgba(99,102,241,0.8), 0 0 40px rgba(99,102,241,0.5);
+            margin-bottom: 10px;
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .start-subtitle {
+            font-size: clamp(16px, 4vw, 24px);
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 20px;
+        }
+
+        .start-character {
+            font-size: clamp(60px, 15vw, 100px);
+            margin-bottom: 20px;
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            border-radius: 50px;
+            padding: 18px 60px;
+            font-size: clamp(20px, 5vw, 28px);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 30px rgba(99,102,241,0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: btnBounce 1.5s ease-in-out infinite;
+        }
+
+        .start-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 15px rgba(99,102,241,0.5);
+        }
+
+        @keyframes btnBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .start-hint {
+            margin-top: 20px;
+            font-size: clamp(12px, 3vw, 16px);
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Win Screen */
+        #win-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        .win-title {
+            font-size: clamp(32px, 7vw, 56px);
+            color: #fbbf24;
+            text-shadow: 0 0 20px rgba(251,191,36,0.8);
+            margin-bottom: 10px;
+            animation: winPulse 0.8s ease-in-out infinite;
+        }
+
+        @keyframes winPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .win-stars {
+            font-size: clamp(40px, 10vw, 70px);
+            margin: 10px 0 20px;
+            animation: starSpin 2s linear infinite;
+        }
+
+        @keyframes starSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .win-info {
+            font-size: clamp(16px, 4vw, 22px);
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .win-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 50px;
+            padding: 16px 50px;
+            font-size: clamp(18px, 4.5vw, 24px);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(16,185,129,0.5);
+            margin: 5px;
+        }
+
+        .win-btn:active {
+            transform: scale(0.95);
+        }
+
+        .win-btn-menu {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+        }
+
+        /* Hint arrow */
+        #hint-arrow {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            display: none;
+            font-size: 50px;
+            animation: hintBlink 1s ease-in-out infinite;
+            pointer-events: none;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
+        }
+
+        @keyframes hintBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            z-index: 99;
+            pointer-events: none;
+        }
+
+        /* Minimap */
+        #minimap {
+            position: fixed;
+            top: 60px;
+            right: 15px;
+            z-index: 10;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: none;
+        }
+
+        /* Arrow hint floating */
+        .path-hint {
+            position: fixed;
+            z-index: 8;
+            color: rgba(255,255,100,0.7);
+            font-size: 30px;
+            pointer-events: none;
+            animation: floatUp 1.5s ease-in-out infinite;
+        }
+
+        @keyframes floatUp {
+            0%, 100% { transform: translateY(0); opacity: 0.7; }
+            50% { transform: translateY(-10px); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-canvas"></div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-item" id="level-display">🏰 第 <span id="level-num">1</span> 关</div>
+        <div class="hud-item" id="stars-display">⭐ <span id="star-count">0</span></div>
+    </div>
+
+    <!-- Minimap -->
+    <canvas id="minimap" width="100" height="100"></canvas>
+
+    <!-- Direction Controls -->
+    <div id="controls">
+        <div class="ctrl-btn" id="btn-up">⬆️</div>
+        <div class="ctrl-btn" id="btn-down">⬇️</div>
+        <div class="ctrl-btn" id="btn-left">⬅️</div>
+        <div class="ctrl-btn" id="btn-right">➡️</div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <div class="start-character">🐱</div>
+        <div class="start-title">3D迷宫冒险</div>
+        <div class="start-subtitle">帮小猫找到回家的路！</div>
+        <button class="start-btn" id="start-btn">开始冒险 🚀</button>
+        <div class="start-hint">用方向键或滑动屏幕移动小猫</div>
+    </div>
+
+    <!-- Win Screen -->
+    <div id="win-screen">
+        <div class="win-title">🎉 太棒了！</div>
+        <div class="win-stars">🌟🌟🌟</div>
+        <div class="win-info" id="win-info">你收集了 3 颗星星！</div>
+        <button class="win-btn" id="next-btn">下一关 ➡️</button>
+        <button class="win-btn win-btn-menu" id="menu-btn">返回首页 🏠</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        // ============ AUDIO ============
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioCtx();
+        }
+
+        function playTone(freq, duration, type, vol) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type || 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol || 0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (duration || 0.2));
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + (duration || 0.2));
+        }
+
+        function playMoveSound() { playTone(440, 0.1, 'sine', 0.1); }
+        function playWallSound() { playTone(150, 0.15, 'square', 0.08); }
+        function playStarSound() {
+            playTone(523, 0.1, 'sine', 0.15);
+            setTimeout(() => playTone(659, 0.1, 'sine', 0.15), 80);
+            setTimeout(() => playTone(784, 0.15, 'sine', 0.15), 160);
+        }
+        function playWinSound() {
+            [523, 587, 659, 784, 880, 1047].forEach((f, i) => {
+                setTimeout(() => playTone(f, 0.2, 'sine', 0.12), i * 120);
+            });
+        }
+        function playBumpSound() { playTone(100, 0.2, 'sawtooth', 0.06); }
+
+        // ============ MAZE GENERATION ============
+        // Simple recursive backtracking maze generator
+        function generateMaze(cols, rows) {
+            const grid = [];
+            for (let y = 0; y < rows; y++) {
+                grid[y] = [];
+                for (let x = 0; x < cols; x++) {
+                    grid[y][x] = {
+                        x, y,
+                        walls: { top: true, right: true, bottom: true, left: true },
+                        visited: false
+                    };
+                }
+            }
+
+            const stack = [];
+            const start = grid[0][0];
+            start.visited = true;
+            stack.push(start);
+
+            while (stack.length > 0) {
+                const current = stack[stack.length - 1];
+                const neighbors = [];
+                const { x, y } = current;
+
+                if (y > 0 && !grid[y-1][x].visited) neighbors.push(grid[y-1][x]);
+                if (x < cols-1 && !grid[y][x+1].visited) neighbors.push(grid[y][x+1]);
+                if (y < rows-1 && !grid[y+1][x].visited) neighbors.push(grid[y+1][x]);
+                if (x > 0 && !grid[y][x-1].visited) neighbors.push(grid[y][x-1]);
+
+                if (neighbors.length > 0) {
+                    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                    // Remove walls between current and next
+                    const dx = next.x - current.x;
+                    const dy = next.y - current.y;
+                    if (dx === 1) { current.walls.right = false; next.walls.left = false; }
+                    if (dx === -1) { current.walls.left = false; next.walls.right = false; }
+                    if (dy === 1) { current.walls.bottom = false; next.walls.top = false; }
+                    if (dy === -1) { current.walls.top = false; next.walls.bottom = false; }
+
+                    next.visited = true;
+                    stack.push(next);
+                } else {
+                    stack.pop();
+                }
+            }
+
+            return grid;
+        }
+
+        // ============ GAME STATE ============
+        const LEVELS = [
+            { cols: 3, rows: 3, stars: 2, name: '简单' },
+            { cols: 4, rows: 3, stars: 3, name: '简单+' },
+            { cols: 4, rows: 4, stars: 3, name: '中等' },
+            { cols: 5, rows: 4, stars: 4, name: '中等+' },
+            { cols: 5, rows: 5, stars: 5, name: '挑战' },
+            { cols: 6, rows: 5, stars: 5, name: '挑战+' },
+        ];
+
+        let currentLevel = 0;
+        let mazeData = null;
+        let playerPos = { x: 0, y: 0 };
+        let goalPos = { x: 0, y: 0 };
+        let starPositions = [];
+        let starsCollected = 0;
+        let isAnimating = false;
+        let isPlaying = false;
+
+        // Three.js
+        let scene, camera, renderer;
+        let playerMesh, goalMesh;
+        let wallMeshes = [];
+        let starMeshes = [];
+        let groundMesh;
+        let cellSize = 3;
+        let wallHeight = 1.8;
+        let wallThickness = 0.25;
+
+        // Colors
+        const COLORS = {
+            wall: 0x6366f1,
+            wallTop: 0x818cf8,
+            ground: 0x1e1b4b,
+            groundAlt: 0x312e81,
+            player: 0xfbbf24,
+            goal: 0x10b981,
+            star: 0xfbbf24,
+            sky: 0x0f0c29,
+            fog: 0x1a1640,
+        };
+
+        // ============ THREE.JS SETUP ============
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(COLORS.sky);
+            scene.fog = new THREE.Fog(COLORS.fog, 15, 45);
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('game-canvas').appendChild(renderer.domElement);
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0x6366f1, 0.5);
+            scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 15, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 50;
+            dirLight.shadow.camera.left = -20;
+            dirLight.shadow.camera.right = 20;
+            dirLight.shadow.camera.top = 20;
+            dirLight.shadow.camera.bottom = -20;
+            scene.add(dirLight);
+
+            const pointLight = new THREE.PointLight(0xfbbf24, 0.6, 30);
+            pointLight.position.set(0, 5, 0);
+            scene.add(pointLight);
+
+            window.addEventListener('resize', onResize);
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ============ BUILD MAZE SCENE ============
+        function clearScene() {
+            wallMeshes.forEach(m => scene.remove(m));
+            starMeshes.forEach(m => scene.remove(m));
+            wallMeshes = [];
+            starMeshes = [];
+            if (playerMesh) scene.remove(playerMesh);
+            if (goalMesh) scene.remove(goalMesh);
+            if (groundMesh) scene.remove(groundMesh);
+        }
+
+        function buildMaze(level) {
+            clearScene();
+            const cfg = LEVELS[level];
+            mazeData = generateMaze(cfg.cols, cfg.rows);
+            cellSize = 3;
+
+            // Ground
+            const groundW = cfg.cols * cellSize + 2;
+            const groundH = cfg.rows * cellSize + 2;
+            const groundGeo = new THREE.PlaneGeometry(groundW, groundH);
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: COLORS.ground,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            groundMesh = new THREE.Mesh(groundGeo, groundMat);
+            groundMesh.rotation.x = -Math.PI / 2;
+            groundMesh.position.set((cfg.cols - 1) * cellSize / 2, -0.01, (cfg.rows - 1) * cellSize / 2);
+            groundMesh.receiveShadow = true;
+            scene.add(groundMesh);
+
+            // Checker floor
+            for (let y = 0; y < cfg.rows; y++) {
+                for (let x = 0; x < cfg.cols; x++) {
+                    if ((x + y) % 2 === 0) {
+                        const tileGeo = new THREE.PlaneGeometry(cellSize - 0.05, cellSize - 0.05);
+                        const tileMat = new THREE.MeshStandardMaterial({
+                            color: COLORS.groundAlt,
+                            roughness: 0.8
+                        });
+                        const tile = new THREE.Mesh(tileGeo, tileMat);
+                        tile.rotation.x = -Math.PI / 2;
+                        tile.position.set(x * cellSize, 0.01, y * cellSize);
+                        tile.receiveShadow = true;
+                        scene.add(tile);
+                        wallMeshes.push(tile);
+                    }
+                }
+            }
+
+            // Walls
+            const wallColorPalette = [0x6366f1, 0x8b5cf6, 0x7c3aed, 0x6d28d9, 0x5b21b6];
+            for (let y = 0; y < cfg.rows; y++) {
+                for (let x = 0; x < cfg.cols; x++) {
+                    const cell = mazeData[y][x];
+                    const cx = x * cellSize;
+                    const cz = y * cellSize;
+                    const colorIdx = (x + y) % wallColorPalette.length;
+
+                    const wallMat = new THREE.MeshStandardMaterial({
+                        color: wallColorPalette[colorIdx],
+                        roughness: 0.5,
+                        metalness: 0.2
+                    });
+
+                    if (cell.walls.top) {
+                        addWall(cx, cz - cellSize/2, cellSize, wallHeight, wallThickness, wallMat);
+                    }
+                    if (cell.walls.bottom) {
+                        addWall(cx, cz + cellSize/2, cellSize, wallHeight, wallThickness, wallMat);
+                    }
+                    if (cell.walls.left) {
+                        addWall(cx - cellSize/2, cz, wallThickness, wallHeight, cellSize, wallMat);
+                    }
+                    if (cell.walls.right) {
+                        addWall(cx + cellSize/2, cz, wallThickness, wallHeight, cellSize, wallMat);
+                    }
+                }
+            }
+
+            // Player - cute cat-like character (sphere with ears)
+            playerPos = { x: 0, y: 0 };
+            playerMesh = createPlayer();
+            playerMesh.position.set(0, 0.5, 0);
+            scene.add(playerMesh);
+
+            // Goal - glowing portal
+            goalPos = { x: cfg.cols - 1, y: cfg.rows - 1 };
+            goalMesh = createGoal();
+            goalMesh.position.set(goalPos.x * cellSize, 0.3, goalPos.y * cellSize);
+            scene.add(goalMesh);
+
+            // Stars
+            starPositions = [];
+            starsCollected = 0;
+            const path = findPath();
+            placeStarsOnPath(path, cfg.stars);
+
+            // Camera position
+            updateCamera(true);
+
+            // Update HUD
+            document.getElementById('level-num').textContent = level + 1;
+            document.getElementById('star-count').textContent = starsCollected;
+
+            // Draw minimap
+            drawMinimap();
+        }
+
+        function addWall(x, z, w, h, d, mat) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, h/2, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            wallMeshes.push(mesh);
+
+            // Rounded top cap
+            const capGeo = new THREE.BoxGeometry(w + 0.1, 0.1, d + 0.1);
+            const capMat = new THREE.MeshStandardMaterial({
+                color: COLORS.wallTop,
+                roughness: 0.3,
+                metalness: 0.4,
+                emissive: 0x818cf8,
+                emissiveIntensity: 0.15
+            });
+            const cap = new THREE.Mesh(capGeo, capMat);
+            cap.position.set(x, h + 0.05, z);
+            scene.add(cap);
+            wallMeshes.push(cap);
+        }
+
+        function createPlayer() {
+            const group = new THREE.Group();
+
+            // Body (sphere)
+            const bodyGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: 0xfbbf24,
+                roughness: 0.3,
+                metalness: 0.2,
+                emissive: 0xf59e0b,
+                emissiveIntensity: 0.15
+            });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0;
+            body.castShadow = true;
+            group.add(body);
+
+            // Eyes
+            const eyeGeo = new THREE.SphereGeometry(0.08, 8, 8);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b });
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.12, 0.1, 0.3);
+            group.add(leftEye);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.12, 0.1, 0.3);
+            group.add(rightEye);
+
+            // Ears (cones)
+            const earGeo = new THREE.ConeGeometry(0.12, 0.25, 8);
+            const earMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
+            const leftEar = new THREE.Mesh(earGeo, earMat);
+            leftEar.position.set(-0.2, 0.35, 0);
+            leftEar.rotation.z = -0.3;
+            group.add(leftEar);
+            const rightEar = new THREE.Mesh(earGeo, earMat);
+            rightEar.position.set(0.2, 0.35, 0);
+            rightEar.rotation.z = 0.3;
+            group.add(rightEar);
+
+            // Nose
+            const noseGeo = new THREE.SphereGeometry(0.05, 8, 8);
+            const noseMat = new THREE.MeshStandardMaterial({ color: 0xec4899 });
+            const nose = new THREE.Mesh(noseGeo, noseMat);
+            nose.position.set(0, 0.0, 0.35);
+            group.add(nose);
+
+            // Glow
+            const glowGeo = new THREE.SphereGeometry(0.5, 16, 16);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: 0xfbbf24,
+                transparent: true,
+                opacity: 0.15
+            });
+            const glow = new THREE.Mesh(glowGeo, glowMat);
+            group.add(glow);
+
+            return group;
+        }
+
+        function createGoal() {
+            const group = new THREE.Group();
+
+            // Base ring
+            const ringGeo = new THREE.TorusGeometry(0.4, 0.08, 8, 24);
+            const ringMat = new THREE.MeshStandardMaterial({
+                color: 0x10b981,
+                emissive: 0x10b981,
+                emissiveIntensity: 0.5,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.1;
+            group.add(ring);
+
+            // Inner glow
+            const innerGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.05, 24);
+            const innerMat = new THREE.MeshStandardMaterial({
+                color: 0x34d399,
+                emissive: 0x10b981,
+                emissiveIntensity: 0.8,
+                transparent: true,
+                opacity: 0.6
+            });
+            const inner = new THREE.Mesh(innerGeo, innerMat);
+            inner.position.y = 0.1;
+            group.add(inner);
+
+            // Flag / star above
+            const starGeo = new THREE.OctahedronGeometry(0.2);
+            const starMat = new THREE.MeshStandardMaterial({
+                color: 0xfbbf24,
+                emissive: 0xf59e0b,
+                emissiveIntensity: 0.5
+            });
+            const star = new THREE.Mesh(starGeo, starMat);
+            star.position.y = 1.2;
+            group.add(star);
+
+            // Pole
+            const poleGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.2, 8);
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.y = 0.6;
+            group.add(pole);
+
+            return group;
+        }
+
+        function placeStarsOnPath(path, count) {
+            if (!path || path.length < 3) return;
+            starMeshes.forEach(m => scene.remove(m));
+            starMeshes = [];
+
+            // Place stars on path cells (not start or end)
+            const candidates = path.slice(1, -1);
+            const shuffled = candidates.sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, Math.min(count, candidates.length));
+
+            selected.forEach(pos => {
+                const starGroup = new THREE.Group();
+                const starGeo = new THREE.OctahedronGeometry(0.2);
+                const starMat = new THREE.MeshStandardMaterial({
+                    color: 0xfbbf24,
+                    emissive: 0xf59e0b,
+                    emissiveIntensity: 0.4,
+                    metalness: 0.6,
+                    roughness: 0.2
+                });
+                const star = new THREE.Mesh(starGeo, starMat);
+                star.position.y = 0.7;
+                starGroup.add(star);
+
+                // Glow
+                const glowGeo = new THREE.SphereGeometry(0.3, 8, 8);
+                const glowMat = new THREE.MeshBasicMaterial({
+                    color: 0xfbbf24,
+                    transparent: true,
+                    opacity: 0.15
+                });
+                const glow = new THREE.Mesh(glowGeo, glowMat);
+                glow.position.y = 0.7;
+                starGroup.add(glow);
+
+                starGroup.position.set(pos.x * cellSize, 0, pos.y * cellSize);
+                starGroup.userData = { gx: pos.x, gy: pos.y };
+                scene.add(starGroup);
+                starMeshes.push(starGroup);
+                starPositions.push({ x: pos.x, y: pos.y, collected: false });
+            });
+        }
+
+        // BFS path finding
+        function findPath() {
+            if (!mazeData) return [];
+            const cfg = LEVELS[currentLevel];
+            const visited = new Set();
+            const queue = [{ x: 0, y: 0, path: [{ x: 0, y: 0 }] }];
+            visited.add('0,0');
+
+            while (queue.length > 0) {
+                const { x, y, path } = queue.shift();
+                if (x === goalPos.x && y === goalPos.y) return path;
+
+                const cell = mazeData[y][x];
+                const dirs = [
+                    { dx: 0, dy: -1, wall: 'top' },
+                    { dx: 1, dy: 0, wall: 'right' },
+                    { dx: 0, dy: 1, wall: 'bottom' },
+                    { dx: -1, dy: 0, wall: 'left' },
+                ];
+
+                for (const d of dirs) {
+                    const nx = x + d.dx;
+                    const ny = y + d.dy;
+                    const key = `${nx},${ny}`;
+                    if (nx >= 0 && nx < cfg.cols && ny >= 0 && ny < cfg.rows &&
+                        !visited.has(key) && !cell.walls[d.wall]) {
+                        visited.add(key);
+                        queue.push({ x: nx, y: ny, path: [...path, { x: nx, y: ny }] });
+                    }
+                }
+            }
+            return [];
+        }
+
+        // ============ CAMERA ============
+        function updateCamera(instant) {
+            if (!playerMesh) return;
+            const targetX = playerMesh.position.x;
+            const targetZ = playerMesh.position.z + 6;
+            const targetY = 7;
+
+            if (instant) {
+                camera.position.set(targetX, targetY, targetZ);
+            } else {
+                camera.position.x += (targetX - camera.position.x) * 0.1;
+                camera.position.y += (targetY - camera.position.y) * 0.1;
+                camera.position.z += (targetZ - camera.position.z) * 0.1;
+            }
+            camera.lookAt(playerMesh.position.x, 0, playerMesh.position.z);
+        }
+
+        // ============ MINIMAP ============
+        function drawMinimap() {
+            const canvas = document.getElementById('minimap');
+            const ctx = canvas.getContext('2d');
+            if (!mazeData) return;
+            const cfg = LEVELS[currentLevel];
+            const size = Math.min(120, window.innerWidth * 0.25);
+            canvas.width = size;
+            canvas.height = size;
+            canvas.style.display = 'block';
+
+            const cellW = (size - 4) / cfg.cols;
+            const cellH = (size - 4) / cfg.rows;
+
+            ctx.fillStyle = 'rgba(15,12,41,0.8)';
+            ctx.fillRect(0, 0, size, size);
+
+            // Draw cells
+            for (let y = 0; y < cfg.rows; y++) {
+                for (let x = 0; x < cfg.cols; x++) {
+                    const cell = mazeData[y][x];
+                    const cx = 2 + x * cellW;
+                    const cy = 2 + y * cellH;
+
+                    ctx.strokeStyle = '#818cf8';
+                    ctx.lineWidth = 1.5;
+
+                    if (cell.walls.top) {
+                        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + cellW, cy); ctx.stroke();
+                    }
+                    if (cell.walls.right) {
+                        ctx.beginPath(); ctx.moveTo(cx + cellW, cy); ctx.lineTo(cx + cellW, cy + cellH); ctx.stroke();
+                    }
+                    if (cell.walls.bottom) {
+                        ctx.beginPath(); ctx.moveTo(cx, cy + cellH); ctx.lineTo(cx + cellW, cy + cellH); ctx.stroke();
+                    }
+                    if (cell.walls.left) {
+                        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy + cellH); ctx.stroke();
+                    }
+                }
+            }
+
+            // Goal
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.arc(2 + goalPos.x * cellW + cellW/2, 2 + goalPos.y * cellH + cellH/2, cellW/3, 0, Math.PI*2);
+            ctx.fill();
+
+            // Stars
+            starPositions.forEach(s => {
+                if (!s.collected) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.beginPath();
+                    ctx.arc(2 + s.x * cellW + cellW/2, 2 + s.y * cellH + cellH/2, cellW/4, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            });
+
+            // Player
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(2 + playerPos.x * cellW + cellW/2, 2 + playerPos.y * cellH + cellH/2, cellW/3, 0, Math.PI*2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        // ============ MOVEMENT ============
+        function canMove(dx, dy) {
+            if (!mazeData) return false;
+            const nx = playerPos.x + dx;
+            const ny = playerPos.y + dy;
+            const cfg = LEVELS[currentLevel];
+
+            if (nx < 0 || nx >= cfg.cols || ny < 0 || ny >= cfg.rows) return false;
+
+            const cell = mazeData[playerPos.y][playerPos.x];
+            if (dx === 1 && cell.walls.right) return false;
+            if (dx === -1 && cell.walls.left) return false;
+            if (dy === 1 && cell.walls.bottom) return false;
+            if (dy === -1 && cell.walls.top) return false;
+
+            return true;
+        }
+
+        function movePlayer(dx, dy) {
+            if (isAnimating || !isPlaying) return;
+            if (!canMove(dx, dy)) {
+                playBumpSound();
+                // Bump animation
+                const origX = playerMesh.position.x;
+                const origZ = playerMesh.position.z;
+                playerMesh.position.x += dx * 0.15;
+                playerMesh.position.z += dy * 0.15;
+                setTimeout(() => {
+                    playerMesh.position.x = origX;
+                    playerMesh.position.z = origZ;
+                }, 100);
+                return;
+            }
+
+            isAnimating = true;
+            playMoveSound();
+
+            playerPos.x += dx;
+            playerPos.y += dy;
+
+            const targetX = playerPos.x * cellSize;
+            const targetZ = playerPos.y * cellSize;
+            const startX = playerMesh.position.x;
+            const startZ = playerMesh.position.z;
+            const duration = 200;
+            const startTime = Date.now();
+
+            function animateMove() {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease in-out
+
+                playerMesh.position.x = startX + (targetX - startX) * ease;
+                playerMesh.position.z = startZ + (targetZ - startZ) * ease;
+
+                // Face direction
+                if (dx !== 0 || dy !== 0) {
+                    const angle = Math.atan2(dx, dy);
+                    playerMesh.rotation.y = angle;
+                }
+
+                if (t < 1) {
+                    requestAnimationFrame(animateMove);
+                } else {
+                    isAnimating = false;
+                    checkStarCollect();
+                    checkWin();
+                    drawMinimap();
+                }
+            }
+            animateMove();
+        }
+
+        function checkStarCollect() {
+            starPositions.forEach((s, i) => {
+                if (!s.collected && s.x === playerPos.x && s.y === playerPos.y) {
+                    s.collected = true;
+                    starsCollected++;
+                    document.getElementById('star-count').textContent = starsCollected;
+                    playStarSound();
+
+                    // Animate star collection
+                    const mesh = starMeshes[i];
+                    if (mesh) {
+                        const startY = mesh.position.y;
+                        const startTime = Date.now();
+                        function animateStar() {
+                            const t = (Date.now() - startTime) / 400;
+                            if (t >= 1) {
+                                scene.remove(mesh);
+                                return;
+                            }
+                            mesh.position.y = startY + t * 2;
+                            mesh.scale.setScalar(1 - t);
+                            mesh.rotation.y += 0.2;
+                            requestAnimationFrame(animateStar);
+                        }
+                        animateStar();
+                    }
+                }
+            });
+        }
+
+        function checkWin() {
+            if (playerPos.x === goalPos.x && playerPos.y === goalPos.y) {
+                isPlaying = false;
+                playWinSound();
+                setTimeout(showWinScreen, 300);
+            }
+        }
+
+        // ============ UI ============
+        function showWinScreen() {
+            const cfg = LEVELS[currentLevel];
+            document.getElementById('win-screen').style.display = 'flex';
+            document.getElementById('win-info').textContent =
+                `你收集了 ${starsCollected}/${starPositions.length} 颗星星！`;
+            spawnConfetti();
+        }
+
+        function spawnConfetti() {
+            const colors = ['#fbbf24', '#10b981', '#6366f1', '#ef4444', '#f59e0b', '#ec4899'];
+            for (let i = 0; i < 30; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.cssText = `
+                    left: ${Math.random() * 100}vw;
+                    top: -20px;
+                    width: ${8 + Math.random() * 8}px;
+                    height: ${8 + Math.random() * 8}px;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                    animation: confettiFall ${2 + Math.random() * 2}s linear forwards;
+                    animation-delay: ${Math.random() * 0.5}s;
+                `;
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 4000);
+            }
+
+            // Add confetti animation if not exists
+            if (!document.getElementById('confetti-style')) {
+                const style = document.createElement('style');
+                style.id = 'confetti-style';
+                style.textContent = `
+                    @keyframes confettiFall {
+                        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        function startGame() {
+            initAudio();
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'flex';
+            document.getElementById('controls').style.display = 'block';
+            document.getElementById('win-screen').style.display = 'none';
+
+            currentLevel = 0;
+            buildMaze(currentLevel);
+            isPlaying = true;
+        }
+
+        function nextLevel() {
+            document.getElementById('win-screen').style.display = 'none';
+            currentLevel++;
+            if (currentLevel >= LEVELS.length) currentLevel = 0;
+            buildMaze(currentLevel);
+            isPlaying = true;
+        }
+
+        function goToMenu() {
+            document.getElementById('win-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('minimap').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'flex';
+            isPlaying = false;
+            clearScene();
+        }
+
+        // ============ CONTROLS ============
+        function setupControls() {
+            // Button controls
+            document.getElementById('btn-up').addEventListener('pointerdown', (e) => {
+                e.preventDefault(); movePlayer(0, -1);
+            });
+            document.getElementById('btn-down').addEventListener('pointerdown', (e) => {
+                e.preventDefault(); movePlayer(0, 1);
+            });
+            document.getElementById('btn-left').addEventListener('pointerdown', (e) => {
+                e.preventDefault(); movePlayer(-1, 0);
+            });
+            document.getElementById('btn-right').addEventListener('pointerdown', (e) => {
+                e.preventDefault(); movePlayer(1, 0);
+            });
+
+            // Keyboard
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'ArrowUp': case 'w': case 'W': movePlayer(0, -1); break;
+                    case 'ArrowDown': case 's': case 'S': movePlayer(0, 1); break;
+                    case 'ArrowLeft': case 'a': case 'A': movePlayer(-1, 0); break;
+                    case 'ArrowRight': case 'd': case 'D': movePlayer(1, 0); break;
+                }
+            });
+
+            // Swipe
+            let touchStart = null;
+            const canvas = document.getElementById('game-canvas');
+            canvas.addEventListener('touchstart', (e) => {
+                const t = e.touches[0];
+                touchStart = { x: t.clientX, y: t.clientY };
+            }, { passive: true });
+
+            canvas.addEventListener('touchend', (e) => {
+                if (!touchStart) return;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - touchStart.x;
+                const dy = t.clientY - touchStart.y;
+                const minSwipe = 30;
+
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > minSwipe) {
+                    movePlayer(dx > 0 ? 1 : -1, 0);
+                } else if (Math.abs(dy) > minSwipe) {
+                    movePlayer(0, dy > 0 ? 1 : -1);
+                }
+                touchStart = null;
+            }, { passive: true });
+
+            // UI buttons
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('next-btn').addEventListener('click', nextLevel);
+            document.getElementById('menu-btn').addEventListener('click', goToMenu);
+        }
+
+        // ============ ANIMATION LOOP ============
+        let animTime = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            animTime += 0.016;
+
+            if (!isPlaying && !playerMesh) {
+                renderer.render(scene, camera);
+                return;
+            }
+
+            // Player bob
+            if (playerMesh) {
+                playerMesh.children[0].position.y = Math.sin(animTime * 3) * 0.05;
+                // Player glow pulse
+                const glowChild = playerMesh.children[4];
+                if (glowChild) {
+                    glowChild.material.opacity = 0.1 + Math.sin(animTime * 4) * 0.05;
+                }
+            }
+
+            // Goal rotate & pulse
+            if (goalMesh) {
+                const ring = goalMesh.children[0];
+                const star = goalMesh.children[3];
+                if (ring) ring.rotation.z = animTime * 0.5;
+                if (star) {
+                    star.rotation.y = animTime * 2;
+                    star.position.y = 1.2 + Math.sin(animTime * 2) * 0.15;
+                }
+            }
+
+            // Stars rotate & bob
+            starMeshes.forEach((mesh, i) => {
+                if (mesh.parent) {
+                    mesh.children[0].rotation.y = animTime * 2 + i;
+                    mesh.children[0].position.y = 0.7 + Math.sin(animTime * 3 + i) * 0.1;
+                }
+            });
+
+            updateCamera(false);
+            renderer.render(scene, camera);
+        }
+
+        // ============ INIT ============
+        initThree();
+        setupControls();
+        animate();
+    })();
+    </script>
+</body>
+</html>

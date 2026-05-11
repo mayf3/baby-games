@@ -415,5 +415,20 @@
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)",
     "addedDate": "2026-05-11"
+  },
+  {
+    "id": "081-3d-maze-adventure",
+    "title": "3D迷宫冒险",
+    "emoji": "🏰",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "在魔法迷宫中冒险！帮助小猫找到回家的路，沿途收集闪亮星星。6个渐进关卡，从3×3到6×5迷宫，培养空间推理和方向感，3D立体视角搭配迷你地图，让宝宝学会认路",
+    "path": "games/081-3d-maze-adventure/index.html",
+    "difficulty": "中等",
+    "dimension": "3D",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-12"
   }
 ]
