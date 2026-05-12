@@ -430,5 +430,19 @@
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)",
     "addedDate": "2026-05-12"
+  },
+  {
+    "id": "082-self-care-master",
+    "title": "生活自理小能手",
+    "emoji": "🧒",
+    "type": "social-emotional",
+    "typeLabel": "社交情感类",
+    "age": "3-6岁",
+    "description": "学会自己的事情自己做！四个关卡：穿衣服（按顺序穿衣裤袜鞋）、刷牙（准备工具→挤牙膏→刷牙→漱口）、洗手（开水→打肥皂→搓手→擦干）、整理床铺（排序+叠被子），培养生活自理能力和好习惯",
+    "path": "games/082-self-care-master/index.html",
+    "difficulty": "简单",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-13"
   }
 ]
