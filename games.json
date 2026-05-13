@@ -444,5 +444,20 @@
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)",
     "addedDate": "2026-05-13"
+  },
+  {
+    "id": "084-3d-dino-world",
+    "title": "3D恐龙世界",
+    "emoji": "🦕",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "在3D恐龙世界里探索冒险！认识霸王龙、三角龙、剑龙、腕龙和翼龙，了解它们的名字和特点。三种玩法：自由探索（点击恐龙看介绍）、找恐龙（根据提示找到指定恐龙）、收集恐龙蛋（在场景中找到10颗发光的蛋），培养自然认知、观察力和3D空间探索能力",
+    "path": "games/084-3d-dino-world/index.html",
+    "difficulty": "简单",
+    "dimension": "3D",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (DeepSeek V4 Flash)",
+    "addedDate": "2026-05-14"
   }
 ]

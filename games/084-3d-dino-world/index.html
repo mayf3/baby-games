@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>3D恐龙世界 🦕</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { width:100%; height:100%; overflow:hidden; background:#87CEEB; font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; touch-action: none; }
+canvas { display:block; width:100%; height:100%; }
+
+/* Loading */
+#loading { position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(180deg,#87CEEB 0%,#E8F5E9 100%); transition:opacity 0.8s; }
+#loading.hidden { opacity:0; pointer-events:none; }
+#loading .logo { font-size:64px; animation:bounce 1.5s infinite; }
+#loading h1 { font-size:28px; color:#4CAF50; margin:16px 0 8px; text-shadow:0 2px 4px rgba(0,0,0,0.1); }
+#loading p { font-size:16px; color:#888; }
+#loading .bar-wrap { width:200px; height:6px; background:#ddd; border-radius:3px; margin:16px 0; overflow:hidden; }
+#loading .bar { height:100%; width:0; background:linear-gradient(90deg,#4CAF50,#8BC34A); border-radius:3px; transition:width 0.3s; animation:loadBar 2s forwards; }
+@keyframes loadBar { to { width:100%; } }
+@keyframes bounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-20px); } }
+
+/* Top UI */
+#hud { position:fixed; top:0; left:0; right:0; z-index:20; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
+#hud > * { pointer-events:auto; }
+#hud-left { display:flex; align-items:center; gap:8px; }
+#hud-title { font-size:16px; font-weight:700; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.4); background:rgba(0,0,0,0.25); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); padding:6px 14px; border-radius:20px; }
+#hud-stars { display:flex; align-items:center; gap:4px; font-size:16px; font-weight:700; color:#FFD700; text-shadow:0 2px 8px rgba(0,0,0,0.4); background:rgba(0,0,0,0.25); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); padding:6px 14px; border-radius:20px; }
+#hud-stars .icon { font-size:18px; }
+
+#game-mode-badge { position:fixed; top:60px; left:50%; transform:translateX(-50%); z-index:20; padding:8px 20px; border-radius:20px; font-size:15px; font-weight:700; color:#fff; background:rgba(76,175,80,0.85); backdrop-filter:blur(8px); box-shadow:0 4px 16px rgba(0,0,0,0.2); transition:opacity 0.4s; pointer-events:none; text-align:center; }
+
+/* Bottom toolbar */
+#toolbar { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:20; display:flex; gap:10px; background:rgba(255,255,255,0.92); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); padding:8px; border-radius:28px; box-shadow:0 4px 24px rgba(0,0,0,0.15); }
+.tool-btn { width:52px; height:52px; border:none; border-radius:26px; background:transparent; font-size:26px; cursor:pointer; transition:all 0.25s; display:flex; align-items:center; justify-content:center; color:#666; }
+.tool-btn.active { background:#4CAF50; color:#fff; transform:scale(1.08); box-shadow:0 4px 12px rgba(76,175,80,0.4); }
+.tool-btn:active { transform:scale(0.92); }
+
+/* Dino info card */
+#info-card { position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(120px); z-index:30; background:rgba(255,255,255,0.95); backdrop-filter:blur(16px); border-radius:24px; padding:24px 28px; min-width:280px; max-width:360px; box-shadow:0 8px 40px rgba(0,0,0,0.2); transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s; opacity:0; pointer-events:none; }
+#info-card.show { transform:translateX(-50%) translateY(0); opacity:1; pointer-events:auto; }
+#info-card .dino-emoji { font-size:56px; text-align:center; margin-bottom:8px; }
+#info-card .dino-name { font-size:22px; font-weight:800; text-align:center; color:#333; }
+#info-card .dino-fact { font-size:14px; color:#666; text-align:center; margin:8px 0 16px; line-height:1.5; }
+#info-card .dino-info { display:flex; justify-content:center; gap:24px; font-size:13px; color:#888; }
+#info-card .dino-info span { display:flex; align-items:center; gap:4px; }
+#info-card .close-btn { position:absolute; top:8px; right:12px; background:none; border:none; font-size:22px; color:#aaa; cursor:pointer; padding:4px; }
+
+/* Celebration overlay */
+#celebration { position:fixed; inset:0; z-index:50; pointer-events:none; }
+.celeb-particle { position:absolute; font-size:24px; animation:celebFly 2s ease-out forwards; }
+@keyframes celebFly {
+  0% { transform:translateY(0) rotate(0deg) scale(0); opacity:1; }
+  100% { transform:translateY(-300px) rotate(720deg) scale(1); opacity:0; }
+}
+
+/* Question prompt */
+#question-banner { position:fixed; top:100px; left:50%; transform:translateX(-50%); z-index:20; background:rgba(255,255,255,0.93); backdrop-filter:blur(12px); padding:14px 28px; border-radius:20px; box-shadow:0 4px 20px rgba(0,0,0,0.15); font-size:20px; font-weight:700; color:#333; transition:all 0.5s cubic-bezier(0.34,1.56,0.64,1); text-align:center; opacity:0; pointer-events:none; }
+#question-banner.show { opacity:1; pointer-events:auto; }
+#question-banner .hint { font-size:13px; font-weight:400; color:#888; margin-top:4px; }
+
+/* Score popup */
+.score-popup { position:fixed; z-index:60; font-size:32px; font-weight:900; color:#FFD700; text-shadow:0 2px 8px rgba(0,0,0,0.3); pointer-events:none; animation:scorePop 1s ease-out forwards; }
+@keyframes scorePop {
+  0% { transform:translateY(0) scale(0.5); opacity:1; }
+  50% { transform:translateY(-60px) scale(1.2); opacity:1; }
+  100% { transform:translateY(-120px) scale(1); opacity:0; }
+}
+
+/* Responsive */
+@media (max-width:480px) {
+  #hud-title { font-size:14px; padding:4px 12px; }
+  #hud-stars { font-size:14px; padding:4px 12px; }
+  #info-card { min-width:240px; max-width:300px; padding:18px 20px; }
+  #info-card .dino-emoji { font-size:44px; }
+  #info-card .dino-name { font-size:18px; }
+  #question-banner { font-size:17px; padding:10px 20px; top:90px; }
+  .tool-btn { width:46px; height:46px; font-size:22px; }
+  #game-mode-badge { font-size:13px; padding:6px 16px; top:55px; }
+}
+
+@media (max-height:600px) {
+  #info-card { bottom:85px; }
+  #info-card .dino-emoji { font-size:36px; }
+  #info-card .dino-name { font-size:16px; }
+  #info-card .dino-fact { font-size:12px; margin:4px 0 10px; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="logo">🦕</div>
+  <h1>3D恐龙世界</h1>
+  <p>探索侏罗纪的奇妙世界！</p>
+  <div class="bar-wrap"><div class="bar"></div></div>
+</div>
+
+<div id="hud">
+  <div id="hud-left">
+    <div id="hud-title">🦕 恐龙世界</div>
+  </div>
+  <div id="hud-stars">
+    <span class="icon">⭐</span>
+    <span id="star-count">0</span>
+  </div>
+</div>
+
+<div id="game-mode-badge">🌿 自由探索</div>
+<div id="question-banner"></div>
+
+<div id="info-card">
+  <button class="close-btn" id="card-close">✕</button>
+  <div class="dino-emoji" id="card-emoji">🦖</div>
+  <div class="dino-name" id="card-name">霸王龙</div>
+  <div class="dino-fact" id="card-fact">霸王龙是恐龙世界的霸主，有着大大的嘴巴和尖尖的牙齿！</div>
+  <div class="dino-info">
+    <span>🍖 <span id="card-diet">肉食</span></span>
+    <span>📐 <span id="card-size">很大</span></span>
+    <span>🌍 <span id="card-era">白垩纪</span></span>
+  </div>
+</div>
+
+<div id="toolbar">
+  <button class="tool-btn active" id="btn-explore" title="自由探索">🌿</button>
+  <button class="tool-btn" id="btn-find" title="找恐龙">🔍</button>
+  <button class="tool-btn" id="btn-eggs" title="找恐龙蛋">🥚</button>
+</div>
+
+<div id="celebration"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ===== GAME STATE =====
+const state = {
+  mode: 'explore', // explore | find | eggs
+  stars: parseInt(localStorage.getItem('dinoWorldStars') || '0'),
+  foundDinos: JSON.parse(localStorage.getItem('dinoWorldFound') || '[]'),
+  currentDino: null,
+  currentQuestion: null,
+  questionAnswered: false,
+  eggsCollected: JSON.parse(localStorage.getItem('dinoWorldEggs') || '[]'),
+  eggCount: 0,
+};
+
+// ===== DINO DATA =====
+const DINOS = [
+  { id:'trex', name:'霸王龙', emoji:'🦖', fact:'霸王龙有超级大的嘴巴和尖牙齿，是最厉害的肉食恐龙！', diet:'肉食', size:'很大', era:'白垩纪', color:0xE67E22, scale:1.0 },
+  { id:'tricera', name:'三角龙', emoji:'🦕', fact:'三角龙头上有三只角，像三个尖尖的冰淇淋甜筒！', diet:'草食', size:'中等', era:'白垩纪', color:0x27AE60, scale:0.85 },
+  { id:'stego', name:'剑龙', emoji:'🦎', fact:'剑龙背上有像三角形饼干一样的骨板，尾巴还有尖刺！', diet:'草食', size:'中等', era:'侏罗纪', color:0x8E44AD, scale:0.8 },
+  { id:'brachio', name:'腕龙', emoji:'🦒', fact:'腕龙有非常非常长的脖子，可以吃到最高的树叶！', diet:'草食', size:'巨大', era:'侏罗纪', color:0x3498DB, scale:1.3 },
+  { id:'ptera', name:'翼龙', emoji:'🦅', fact:'翼龙有大大翅膀，可以在天空自由自在地飞翔！', diet:'肉食', size:'中等', era:'白垩纪', color:0xF39C12, scale:0.7 },
+];
+
+// ===== SCENE SETUP =====
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.Fog(0x87CEEB, 40, 100);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 200);
+camera.position.set(15, 12, 20);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.maxPolarAngle = Math.PI / 2.3;
+controls.minDistance = 5;
+controls.maxDistance = 35;
+controls.enablePan = false;
+controls.autoRotate = false;
+controls.autoRotateSpeed = 0.5;
+
+// ===== LIGHTING =====
+const ambientLight = new THREE.AmbientLight(0x6688AA, 0.5);
+scene.add(ambientLight);
+
+const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x4CAF50, 0.8);
+scene.add(hemiLight);
+
+const sunLight = new THREE.DirectionalLight(0xFFEEBB, 1.8);
+sunLight.position.set(20, 30, 10);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 1024;
+sunLight.shadow.mapSize.height = 1024;
+sunLight.shadow.camera.near = 0.1;
+sunLight.shadow.camera.far = 60;
+sunLight.shadow.camera.left = -30;
+sunLight.shadow.camera.right = 30;
+sunLight.shadow.camera.top = 30;
+sunLight.shadow.camera.bottom = -30;
+scene.add(sunLight);
+
+// ===== TERRAIN =====
+function createTerrain() {
+  const group = new THREE.Group();
+
+  // Ground
+  const groundGeo = new THREE.PlaneGeometry(60, 60);
+  const groundMat = new THREE.MeshStandardMaterial({ color:0x6B8E23, roughness:0.9, metalness:0 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.receiveShadow = true;
+  ground.position.y = -0.05;
+  group.add(ground);
+
+  // Green grass circles
+  for (let i = 0; i < 40; i++) {
+    const r = 0.5 + Math.random() * 2;
+    const grass = new THREE.Mesh(
+      new THREE.CircleGeometry(r, 8),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0.27 + Math.random()*0.05, 0.5, 0.35 + Math.random()*0.15), side: THREE.DoubleSide, roughness:1 })
+    );
+    grass.rotation.x = -Math.PI/2;
+    grass.position.set((Math.random()-0.5)*50, 0, (Math.random()-0.5)*50);
+    group.add(grass);
+  }
+
+  // Small flowers
+  const flowerColors = [0xFF6B6B, 0xFFD93D, 0xFF9FF3, 0x74B9FF, 0xFFEAA7];
+  for (let i = 0; i < 30; i++) {
+    const fc = flowerColors[Math.floor(Math.random()*flowerColors.length)];
+    const flower = new THREE.Mesh(
+      new THREE.CircleGeometry(0.12, 5),
+      new THREE.MeshStandardMaterial({ color:fc, side:THREE.DoubleSide, roughness:0.8 })
+    );
+    flower.rotation.x = -Math.PI/2;
+    flower.position.set((Math.random()-0.5)*45, 0.01, (Math.random()-0.5)*45);
+    group.add(flower);
+  }
+
+  return group;
+}
+const terrain = createTerrain();
+scene.add(terrain);
+
+// ===== TREES =====
+function createTree(x, z, scale=1) {
+  const group = new THREE.Group();
+
+  // Trunk
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.15*scale, 0.25*scale, 1.5*scale, 6),
+    new THREE.MeshStandardMaterial({ color:0x8B6914, roughness:0.9 })
+  );
+  trunk.position.y = 0.75 * scale;
+  trunk.castShadow = true;
+  group.add(trunk);
+
+  // Foliage layers
+  const foliageMat = new THREE.MeshStandardMaterial({ color:0x2E8B57, roughness:0.8 });
+  for (let i = 0; i < 3; i++) {
+    const r = (1.2 - i * 0.3) * scale;
+    const h = (0.6 - i * 0.1) * scale;
+    const foliage = new THREE.Mesh(
+      new THREE.ConeGeometry(r, h, 6),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0.30 - i*0.03, 0.5, 0.30 + i*0.08), roughness:0.9 })
+    );
+    foliage.position.y = (1.5 + i * 0.5) * scale;
+    foliage.castShadow = true;
+    group.add(foliage);
+  }
+
+  group.position.set(x, 0, z);
+  const rot = Math.random() * Math.PI * 2;
+  group.rotation.y = rot;
+  const s = 0.8 + Math.random() * 0.4;
+  group.scale.set(s, s, s);
+  return group;
+}
+
+function createTrees() {
+  const positions = [];
+  for (let i = 0; i < 25; i++) {
+    let x, z, ok;
+    let attempts = 0;
+    do {
+      x = (Math.random() - 0.5) * 40;
+      z = (Math.random() - 0.5) * 40;
+      ok = true;
+      for (const p of positions) {
+        if (Math.hypot(x-p[0], z-p[1]) < 3) { ok = false; break; }
+      }
+      // Prevent trees on dino positions
+      for (const d of DINO_POSITIONS) {
+        if (Math.hypot(x-d.x, z-d.z) < 4) { ok = false; break; }
+      }
+      attempts++;
+    } while (!ok && attempts < 20);
+    if (ok) {
+      positions.push([x, z]);
+      const tree = createTree(x, z, 0.8 + Math.random()*0.6);
+      scene.add(tree);
+    }
+  }
+}
+
+// ===== ROCKS =====
+function createRocks() {
+  for (let i = 0; i < 12; i++) {
+    const size = 0.3 + Math.random() * 0.6;
+    const rock = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(size, 0),
+      new THREE.MeshStandardMaterial({ color:0x8B8682, roughness:0.9, metalness:0.1 })
+    );
+    rock.position.set((Math.random()-0.5)*35, size*0.5, (Math.random()-0.5)*35);
+    rock.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+    rock.scale.y = 0.6 + Math.random() * 0.4;
+    rock.castShadow = true;
+    rock.receiveShadow = true;
+    scene.add(rock);
+  }
+}
+
+// ===== VOLCANO (background) =====
+function createVolcano() {
+  const group = new THREE.Group();
+  const volcanoMat = new THREE.MeshStandardMaterial({ color:0x5D4037, roughness:0.8 });
+
+  const body = new THREE.Mesh(new THREE.ConeGeometry(3, 4, 8), volcanoMat);
+  body.position.y = 2;
+  body.castShadow = true;
+  group.add(body);
+
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 0.5, 8), volcanoMat);
+  top.position.y = 4.2;
+  group.add(top);
+
+  // Glow
+  const glowMat = new THREE.MeshStandardMaterial({
+    color:0xFF6B35,
+    emissive:0xFF4400,
+    emissiveIntensity:0.3,
+    transparent:true,
+    opacity:0.6
+  });
+  const glow = new THREE.Mesh(new THREE.CircleGeometry(0.6, 8), glowMat);
+  glow.position.set(0, 4.5, 0);
+  glow.rotation.x = -Math.PI/2;
+  group.add(glow);
+
+  group.position.set(-18, 0, -20);
+  return group;
+}
+
+// ===== DINO FACTORY =====
+function createDino(dinoData, pos) {
+  const color = dinoData.color;
+  const s = dinoData.scale;
+  const group = new THREE.Group();
+
+  // Create different dinos based on id
+  switch (dinoData.id) {
+    case 'trex':
+      // T-Rex body
+      const trexBody = new THREE.Mesh(new THREE.CylinderGeometry(0.7*s, 0.9*s, 1.2*s, 8), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      trexBody.position.y = 1.0*s;
+      trexBody.castShadow = true;
+      group.add(trexBody);
+      // Head
+      const trexHead = new THREE.Mesh(new THREE.BoxGeometry(0.7*s, 0.5*s, 0.8*s), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      trexHead.position.set(0, 1.6*s, 0.6*s);
+      trexHead.castShadow = true;
+      group.add(trexHead);
+      // Jaw
+      const trexJaw = new THREE.Mesh(new THREE.BoxGeometry(0.5*s, 0.2*s, 0.6*s), new THREE.MeshStandardMaterial({ color:0xE8D5B7, roughness:0.8 }));
+      trexJaw.position.set(0, 1.3*s, 0.7*s);
+      group.add(trexJaw);
+      // Teeth
+      for (let i = -2; i <= 2; i++) {
+        const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.04*s, 0.1*s, 4), new THREE.MeshStandardMaterial({ color:0xFFFFFF, roughness:0.3 }));
+        tooth.position.set(i*0.1*s, 1.35*s, 0.85*s);
+        group.add(tooth);
+      }
+      // Eyes
+      const trexEyeMat = new THREE.MeshStandardMaterial({ color:0xFFFFFF, roughness:0.2 });
+      const trexPupilMat = new THREE.MeshStandardMaterial({ color:0x222222, roughness:0.1 });
+      for (let side = -1; side <= 1; side+=2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.12*s, 8, 8), trexEyeMat);
+        eye.position.set(side*0.18*s, 1.7*s, 0.5*s);
+        group.add(eye);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.06*s, 8, 8), trexPupilMat);
+        pupil.position.set(side*0.18*s, 1.68*s, 0.58*s);
+        group.add(pupil);
+      }
+      // Small arms
+      for (let side = -1; side <= 1; side+=2) {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.04*s, 0.05*s, 0.2*s, 4), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+        arm.position.set(side*0.3*s, 1.1*s, 0.3*s);
+        arm.rotation.z = side * 0.5;
+        group.add(arm);
+      }
+      // Legs
+      for (let side = -1; side <= 1; side+=2) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12*s, 0.14*s, 0.4*s, 6), new THREE.MeshStandardMaterial({ color:0x8B6914, roughness:0.8 }));
+        leg.position.set(side*0.25*s, 0.2*s, 0.1*s);
+        group.add(leg);
+      }
+      // Tail
+      const trexTail = new THREE.Mesh(new THREE.ConeGeometry(0.15*s, 0.6*s, 6), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      trexTail.position.set(0, 0.9*s, -0.8*s);
+      trexTail.rotation.x = -0.3;
+      group.add(trexTail);
+      break;
+
+    case 'tricera':
+      // Body
+      const triBody = new THREE.Mesh(new THREE.CylinderGeometry(0.7*s, 0.9*s, 1.0*s, 8), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      triBody.position.y = 0.8*s;
+      triBody.castShadow = true;
+      group.add(triBody);
+      // Head
+      const triHead = new THREE.Mesh(new THREE.BoxGeometry(0.6*s, 0.4*s, 0.5*s), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      triHead.position.set(0, 1.2*s, 0.6*s);
+      triHead.castShadow = true;
+      group.add(triHead);
+      // Frill (neck shield)
+      const frillMat = new THREE.MeshStandardMaterial({ color:0x4CAF50, roughness:0.7, side:THREE.DoubleSide });
+      const frill = new THREE.Mesh(new THREE.CircleGeometry(0.4*s, 6), frillMat);
+      frill.position.set(0, 1.2*s, -0.1*s);
+      frill.rotation.y = Math.PI/6;
+      group.add(frill);
+      const frill2 = frill.clone();
+      frill2.rotation.y = -Math.PI/6;
+      group.add(frill2);
+      // Three horns
+      const hornMat = new THREE.MeshStandardMaterial({ color:0xDEB887, roughness:0.8 });
+      const hornPositions = [
+        [0, 1.35*s, 0.8*s, 0, 0, 0.3],
+        [-0.25*s, 1.3*s, 0.7*s, -0.3, 0, 0.2],
+        [0.25*s, 1.3*s, 0.7*s, 0.3, 0, 0.2]
+      ];
+      for (const [hx, hy, hz, rx, ry, hl] of hornPositions) {
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.04*s, hl*s, 4), hornMat);
+        horn.position.set(hx, hy, hz);
+        horn.rotation.z = rx;
+        group.add(horn);
+      }
+      // Eyes
+      for (let side = -1; side <= 1; side+=2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1*s, 8, 8), new THREE.MeshStandardMaterial({ color:0xFFFFFF, roughness:0.2 }));
+        eye.position.set(side*0.12*s, 1.28*s, 0.6*s);
+        group.add(eye);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.05*s, 8, 8), new THREE.MeshStandardMaterial({ color:0x222222 }));
+        pupil.position.set(side*0.12*s, 1.26*s, 0.64*s);
+        group.add(pupil);
+      }
+      // Legs
+      for (let side = -1; side <= 1; side+=2) {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1*s, 0.12*s, 0.35*s, 6), new THREE.MeshStandardMaterial({ color:0x8B6914 }));
+        leg.position.set(side*0.25*s, 0.17*s, 0.05*s);
+        group.add(leg);
+      }
+      break;
+
+    case 'stego':
+      // Body
+      const stegoBody = new THREE.Mesh(new THREE.CylinderGeometry(0.6*s, 0.8*s, 1.4*s, 8), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      stegoBody.position.y = 0.7*s;
+      stegoBody.scale.x = 1.2;
+      stegoBody.castShadow = true;
+      group.add(stegoBody);
+      // Head
+      const stegoHead = new THREE.Mesh(new THREE.BoxGeometry(0.3*s, 0.25*s, 0.35*s), new THREE.MeshStandardMaterial({ color:0x7B68EE, roughness:0.7 }));
+      stegoHead.position.set(0, 0.9*s, 0.9*s);
+      stegoHead.castShadow = true;
+      group.add(stegoHead);
+      // Plates on back (5 plates, alternating sizes)
+      const plateMat = new THREE.MeshStandardMaterial({ color:0x9B59B6, roughness:0.6, emissive:0x9B59B6, emissiveIntensity:0.1 });
+      for (let i = 0; i < 5; i++) {
+        const ph = (0.25 + Math.abs(i-2)*0.08) * s;
+        const pw = (0.15 + Math.abs(i-2)*0.04) * s;
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(pw, ph, 0.04*s), plateMat);
+        plate.position.set(0, 1.0*s + ph/2, -0.5*s + i*0.25*s);
+        plate.rotation.x = -0.2;
+        group.add(plate);
+      }
+      // Tail spikes
+      const spikeMat = new THREE.MeshStandardMaterial({ color:0xDEB887 });
+      for (let side = -1; side <= 1; side+=2) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.04*s, 0.2*s, 4), spikeMat);
+        spike.position.set(side*0.15*s, 0.7*s, -0.8*s);
+        spike.rotation.z = side * 0.4;
+        group.add(spike);
+      }
+      // Eyes
+      for (let side = -1; side <= 1; side+=2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.06*s, 8, 8), new THREE.MeshStandardMaterial({ color:0xFFFFFF }));
+        eye.position.set(side*0.08*s, 0.95*s, 0.95*s);
+        group.add(eye);
+        const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.03*s, 8, 8), new THREE.MeshStandardMaterial({ color:0x222222 }));
+        pupil.position.set(side*0.08*s, 0.93*s, 0.98*s);
+        group.add(pupil);
+      }
+      // Legs
+      for (let side = -1; side <= 1; side+=2) {
+        for (let front = -1; front <= 1; front+=2) {
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08*s, 0.1*s, 0.3*s, 6), new THREE.MeshStandardMaterial({ color:0x8B6914 }));
+          leg.position.set(side*0.25*s, 0.15*s, front*0.35*s);
+          group.add(leg);
+        }
+      }
+      break;
+
+    case 'brachio':
+      // Body
+      const brachioBody = new THREE.Mesh(new THREE.CylinderGeometry(0.7*s, 0.9*s, 1.2*s, 8), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      brachioBody.position.y = 1.8*s;
+      brachioBody.scale.x = 1.1;
+      brachioBody.castShadow = true;
+      group.add(brachioBody);
+      // Neck (tall cylinder)
+      const neckMat = new THREE.MeshStandardMaterial({ color, roughness:0.7 });
+      for (let i = 0; i < 6; i++) {
+        const segment = new THREE.Mesh(new THREE.CylinderGeometry((0.15 - i*0.015)*s, (0.18 - i*0.015)*s, 0.3*s, 6), neckMat);
+        segment.position.set(0.1*s, (2.0 + i*0.3)*s, 0.2*s);
+        segment.rotation.x = 0.15;
+        group.add(segment);
+      }
+      // Head
+      const brachioHead = new THREE.Mesh(new THREE.SphereGeometry(0.2*s, 8, 8), new THREE.MeshStandardMaterial({ color:0x5DADE2, roughness:0.7 }));
+      brachioHead.position.set(0.1*s, 3.9*s, 0.4*s);
+      brachioHead.scale.x = 1.5;
+      group.add(brachioHead);
+      // Eyes
+      for (let side = -1; side <= 1; side+=2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05*s, 8, 8), new THREE.MeshStandardMaterial({ color:0xFFFFFF }));
+        eye.position.set(side*0.08*s, 3.95*s, 0.45*s);
+        group.add(eye);
+      }
+      // Tail
+      const brachioTail = new THREE.Mesh(new THREE.ConeGeometry(0.1*s, 0.6*s, 6), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      brachioTail.position.set(0, 1.8*s, -0.8*s);
+      brachioTail.rotation.x = 0.3;
+      group.add(brachioTail);
+      // Legs
+      for (let side = -1; side <= 1; side+=2) {
+        for (let front = -1; front <= 1; front+=2) {
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.15*s, 0.18*s, 0.8*s, 6), new THREE.MeshStandardMaterial({ color:0x8B6914 }));
+          leg.position.set(side*0.3*s, 0.4*s, front*0.3*s);
+          group.add(leg);
+        }
+      }
+      break;
+
+    case 'ptera':
+      // Body
+      const pteraBody = new THREE.Mesh(new THREE.SphereGeometry(0.2*s, 8, 8), new THREE.MeshStandardMaterial({ color, roughness:0.7 }));
+      pteraBody.scale.set(1, 0.8, 1.5);
+      pteraBody.position.y = 0.3*s;
+      pteraBody.castShadow = true;
+      group.add(pteraBody);
+      // Wings
+      const wingMat = new THREE.MeshStandardMaterial({ color, roughness:0.7, side:THREE.DoubleSide });
+      for (let side = -1; side <= 1; side+=2) {
+        const wing = new THREE.Mesh(new THREE.PlaneGeometry(0.6*s, 0.3*s), wingMat);
+        wing.position.set(side*0.5*s, 0.3*s, 0);
+        wing.rotation.z = side * 0.3;
+        group.add(wing);
+      }
+      // Head
+      const pteraHead = new THREE.Mesh(new THREE.ConeGeometry(0.08*s, 0.25*s, 6), new THREE.MeshStandardMaterial({ color:0xE67E22, roughness:0.7 }));
+      pteraHead.position.set(0, 0.45*s, 0.35*s);
+      pteraHead.rotation.x = -0.3;
+      group.add(pteraHead);
+      // Eyes
+      for (let side = -1; side <= 1; side+=2) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04*s, 8, 8), new THREE.MeshStandardMaterial({ color:0xFFFFFF }));
+        eye.position.set(side*0.06*s, 0.4*s, 0.3*s);
+        group.add(eye);
+      }
+      // Tail
+      const pteraTail = new THREE.Mesh(new THREE.ConeGeometry(0.02*s, 0.15*s, 4), new THREE.MeshStandardMaterial({ color:0xE67E22 }));
+      pteraTail.position.set(0, 0.25*s, -0.3*s);
+      group.add(pteraTail);
+      break;
+  }
+
+  // Idle bob animation data
+  group.userData = {
+    dinoData,
+    baseY: pos.y,
+    phase: Math.random() * Math.PI * 2,
+    bobSpeed: 0.5 + Math.random() * 0.5,
+    bobAmount: 0.04 + Math.random() * 0.04,
+    rotationSpeed: 0.1 + Math.random() * 0.2,
+    isFlying: dinoData.id === 'ptera',
+    walkDir: Math.random() * Math.PI * 2,
+    walkRadius: 2 + Math.random() * 3,
+    centerX: pos.x,
+    centerZ: pos.z,
+  };
+
+  group.position.set(pos.x, pos.y, pos.z);
+  group.rotation.y = Math.random() * Math.PI * 2;
+  return group;
+}
+
+// ===== DINO PLACEMENT =====
+const DINO_POSITIONS = [
+  { x:-5, z:-4 },
+  { x:6, z:-3 },
+  { x:-3, z:6 },
+  { x:4, z:5 },
+  { x:0, z:-10 }, // Pterosaur starts higher
+];
+
+const dinoGroups = [];
+
+function createAllDinos() {
+  DINOS.forEach((dinoData, i) => {
+    const pos = DINO_POSITIONS[i];
+    const pos3d = { x:pos.x, y:dinoData.id === 'ptera' ? 6 + Math.random()*2 : 0, z:pos.z };
+    const dinoGroup = createDino(dinoData, pos3d);
+    scene.add(dinoGroup);
+    dinoGroups.push(dinoGroup);
+
+    // Name label (sprite)
+    const labelCanvas = document.createElement('canvas');
+    labelCanvas.width = 256;
+    labelCanvas.height = 80;
+    const ctx = labelCanvas.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.roundRect ? ctx.roundRect(10, 10, 236, 60, 20) : null;
+    ctx.beginPath();
+    ctx.moveTo(20, 20);
+    ctx.lineTo(236, 20);
+    ctx.quadraticCurveTo(246, 20, 246, 30);
+    ctx.lineTo(246, 70);
+    ctx.quadraticCurveTo(246, 80, 236, 80);
+    ctx.lineTo(20, 80);
+    ctx.quadraticCurveTo(10, 80, 10, 70);
+    ctx.lineTo(10, 30);
+    ctx.quadraticCurveTo(10, 20, 20, 20);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(dinoData.emoji + ' ' + dinoData.name, 128, 48);
+
+    const labelTexture = new THREE.CanvasTexture(labelCanvas);
+    labelTexture.needsUpdate = true;
+    const labelMat = new THREE.SpriteMaterial({ map:labelTexture, transparent:true, depthTest:false });
+    const label = new THREE.Sprite(labelMat);
+    const labelY = dinoData.id === 'ptera' ? 1.5 : 2.5 + dinoData.scale * 1.2;
+    label.position.set(0, labelY, 0);
+    label.scale.set(3, 1, 1);
+    dinoGroup.add(label);
+    dinoGroup.userData.label = label;
+
+    // Highlight ring (for find mode)
+    const ringMat = new THREE.MeshBasicMaterial({ color:0xFFD700, transparent:true, opacity:0, side:THREE.DoubleSide });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.7, 24), ringMat);
+    ring.rotation.x = -Math.PI/2;
+    ring.position.y = 0.05;
+    dinoGroup.add(ring);
+    dinoGroup.userData.ring = ring;
+  });
+}
+
+// ===== EGGS =====
+const eggGroup = new THREE.Group();
+const EGG_POSITIONS = [
+  { x:-2, z:-2 }, { x:8, z:1 }, { x:-6, z:5 }, { x:3, z:-6 }, { x:-8, z:-6 },
+  { x:7, z:-5 }, { x:-4, z:-8 }, { x:5, z:8 }, { x:-9, z:3 }, { x:0, z:9 },
+];
+const eggMeshes = [];
+
+function createEggs() {
+  for (let i = 0; i < EGG_POSITIONS.length; i++) {
+    const pos = EGG_POSITIONS[i];
+    const collected = state.eggsCollected.includes(i);
+    const egg = new THREE.Mesh(
+      new THREE.SphereGeometry(0.25, 8, 8),
+      new THREE.MeshStandardMaterial({
+        color: collected ? 0x888888 : 0xF5DEB3,
+        roughness: collected ? 0.9 : 0.4,
+        metalness: collected ? 0 : 0.2,
+        transparent: collected,
+        opacity: collected ? 0.3 : 1,
+      })
+    );
+    egg.scale.set(1, 1.2, 0.8);
+    egg.position.set(pos.x, 0.25, pos.z);
+    egg.castShadow = true;
+    eggGroup.add(egg);
+    eggMeshes.push(egg);
+
+    // Glow
+    if (!collected) {
+      const glowMat = new THREE.MeshBasicMaterial({
+        color:0xFFFF99,
+        transparent:true,
+        opacity:0.3,
+      });
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), glowMat);
+      glow.scale.set(1, 1.2, 0.8);
+      glow.position.set(pos.x, 0.25, pos.z);
+      eggGroup.add(glow);
+      egg.userData.glow = glow;
+    }
+  }
+  scene.add(eggGroup);
+}
+
+// ===== BUILD SCENE =====
+createTrees();
+createRocks();
+scene.add(createVolcano());
+createAllDinos();
+createEggs();
+
+// ===== RAYCASTER =====
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function getIntersects(clientX, clientY) {
+  pointer.x = (clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  return raycaster.intersectObjects(scene.children, true);
+}
+
+function findDinoGroup(object) {
+  let current = object;
+  while (current) {
+    if (dinoGroups.includes(current)) return current;
+    current = current.parent;
+  }
+  // Check if any child of a dino group was hit
+  for (const dg of dinoGroups) {
+    let obj = object;
+    while (obj) {
+      if (obj === dg) return dg;
+      obj = obj.parent;
+    }
+  }
+  return null;
+}
+
+// ===== HIT DETECTION FOR EGGS =====
+function findEgg(object) {
+  let obj = object;
+  while (obj) {
+    if (eggMeshes.includes(obj)) return obj;
+    obj = obj.parent;
+  }
+  return null;
+}
+
+// ===== UI ELEMENTS =====
+const starCount = document.getElementById('star-count');
+const modeBadge = document.getElementById('game-mode-badge');
+const questionBanner = document.getElementById('question-banner');
+const infoCard = document.getElementById('info-card');
+const cardEmoji = document.getElementById('card-emoji');
+const cardName = document.getElementById('card-name');
+const cardFact = document.getElementById('card-fact');
+const cardDiet = document.getElementById('card-diet');
+const cardSize = document.getElementById('card-size');
+const cardEra = document.getElementById('card-era');
+const cardClose = document.getElementById('card-close');
+const celebration = document.getElementById('celebration');
+
+starCount.textContent = state.stars;
+
+// ===== TOOLBAR =====
+document.getElementById('btn-explore').addEventListener('click', () => setMode('explore'));
+document.getElementById('btn-find').addEventListener('click', () => setMode('find'));
+document.getElementById('btn-eggs').addEventListener('click', () => setMode('eggs'));
+
+cardClose.addEventListener('click', hideInfoCard);
+
+function setMode(mode) {
+  state.mode = mode;
+  hideInfoCard();
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btnMap = { explore:'btn-explore', find:'btn-find', eggs:'btn-eggs' };
+  document.getElementById(btnMap[mode]).classList.add('active');
+
+  // Reset all dino highlights
+  dinoGroups.forEach(dg => {
+    if (dg.userData.ring) dg.userData.ring.material.opacity = 0;
+  });
+
+  if (mode === 'explore') {
+    modeBadge.textContent = '🌿 自由探索 — 点击恐龙认识它们！';
+    controls.autoRotate = true;
+    questionBanner.classList.remove('show');
+    state.currentQuestion = null;
+    state.questionAnswered = false;
+  } else if (mode === 'find') {
+    controls.autoRotate = false;
+    startFindGame();
+  } else if (mode === 'eggs') {
+    controls.autoRotate = true;
+    modeBadge.textContent = '🥚 找恐龙蛋 — 点击发光的恐龙蛋！';
+    questionBanner.classList.remove('show');
+  }
+}
+
+// ===== FIND GAME =====
+function startFindGame() {
+  const findable = DINOS.filter(d => !state.foundDinos.includes(d.id));
+  if (findable.length === 0) {
+    modeBadge.textContent = '🎉 哇！你已经认识了所有恐龙！';
+    questionBanner.classList.remove('show');
+    return;
+  }
+  const target = findable[Math.floor(Math.random() * findable.length)];
+  state.currentQuestion = target;
+  state.questionAnswered = false;
+  questionBanner.innerHTML = `🔍 找一找 <strong>${target.emoji} ${target.name}</strong> 在哪里？<div class="hint">点击你找到的恐龙！</div>`;
+  questionBanner.classList.add('show');
+  modeBadge.textContent = `🔍 找到 ${target.name}！`;
+}
+
+// ===== INFO CARD =====
+function showInfoCard(dinoData) {
+  cardEmoji.textContent = dinoData.emoji;
+  cardName.textContent = dinoData.name;
+  cardFact.textContent = dinoData.fact;
+  cardDiet.textContent = dinoData.diet;
+  cardSize.textContent = dinoData.size;
+  cardEra.textContent = dinoData.era;
+  infoCard.classList.add('show');
+}
+
+function hideInfoCard() {
+  infoCard.classList.remove('show');
+}
+
+// ===== CELEBRATION =====
+function showCelebration() {
+  const particles = ['⭐','🌟','✨','🎉','🎊','💫','🌈','🦕','🦖','🌸','💖'];
+  for (let i = 0; i < 20; i++) {
+    const el = document.createElement('div');
+    el.className = 'celeb-particle';
+    el.textContent = particles[Math.floor(Math.random() * particles.length)];
+    el.style.left = (10 + Math.random() * 80) + '%';
+    el.style.top = (50 + Math.random() * 40) + '%';
+    el.style.animationDelay = (Math.random() * 0.8) + 's';
+    el.style.fontSize = (18 + Math.random() * 20) + 'px';
+    celebration.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+  }
+}
+
+function showScorePopup(x, y, text) {
+  const el = document.createElement('div');
+  el.className = 'score-popup';
+  el.textContent = text;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
+
+function addStar(amount = 1) {
+  state.stars += amount;
+  starCount.textContent = state.stars;
+  localStorage.setItem('dinoWorldStars', state.stars.toString());
+}
+
+// ===== INTERACTION =====
+let isPointerDown = false;
+let pointerStartTime = 0;
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  isPointerDown = true;
+  pointerStartTime = Date.now();
+});
+
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!isPointerDown) return;
+  isPointerDown = false;
+  const dt = Date.now() - pointerStartTime;
+  if (dt > 300) return; // Was a drag, not a tap
+
+  handleTap(e.clientX, e.clientY);
+});
+
+function handleTap(clientX, clientY) {
+  if (infoCard.classList.contains('show')) return;
+  const intersects = getIntersects(clientX, clientY);
+
+  if (state.mode === 'eggs') {
+    for (const hit of intersects) {
+      const egg = findEgg(hit.object);
+      if (egg && egg.material.opacity > 0.5) {
+        const idx = eggMeshes.indexOf(egg);
+        if (idx >= 0 && !state.eggsCollected.includes(idx)) {
+          collectEgg(idx, clientX, clientY);
+          return;
+        }
+      }
+    }
+  }
+
+  for (const hit of intersects) {
+    const dinoGroup = findDinoGroup(hit.object);
+    if (dinoGroup) {
+      const data = dinoGroup.userData.dinoData;
+      if (state.mode === 'explore') {
+        showInfoCard(data);
+        // Mark as found
+        if (!state.foundDinos.includes(data.id)) {
+          state.foundDinos.push(data.id);
+          localStorage.setItem('dinoWorldFound', JSON.stringify(state.foundDinos));
+          addStar(2);
+          showScorePopup(clientX, clientY - 40, '⭐ +2');
+          if (state.foundDinos.length === DINOS.length) {
+            setTimeout(() => showCelebration(), 300);
+            modeBadge.textContent = '🎉 太棒了！你认识了所有恐龙！';
+          }
+        }
+      } else if (state.mode === 'find' && state.currentQuestion && !state.questionAnswered) {
+        if (data.id === state.currentQuestion.id) {
+          state.questionAnswered = true;
+          addStar(3);
+          showScorePopup(clientX, clientY - 40, '🎉 +3 ⭐');
+          showCelebration();
+          modeBadge.textContent = `✅ 答对了！这是 ${data.name}！`;
+          questionBanner.innerHTML = `✅ 太棒了！找到了 <strong>${data.emoji} ${data.name}</strong>！`;
+          // Show info
+          setTimeout(() => showInfoCard(data), 800);
+          // Next question after delay
+          setTimeout(() => {
+            if (state.mode === 'find') startFindGame();
+          }, 3000);
+          // Highlight ring
+          if (dinoGroup.userData.ring) {
+            dinoGroup.userData.ring.material.opacity = 0.8;
+            setTimeout(() => {
+              dinoGroup.userData.ring.material.opacity = 0;
+            }, 2000);
+          }
+        } else {
+          showScorePopup(clientX, clientY - 40, '❌ 再试试');
+          // Gentle shake feedback
+          modeBadge.textContent = `🤔 不对哦，再找找 ${state.currentQuestion.name} 在哪里？`;
+        }
+      }
+      return;
+    }
+  }
+}
+
+function collectEgg(idx, clientX, clientY) {
+  state.eggsCollected.push(idx);
+  state.eggCount++;
+  localStorage.setItem('dinoWorldEggs', JSON.stringify(state.eggsCollected));
+
+  const egg = eggMeshes[idx];
+  egg.material.color.setHex(0x888888);
+  egg.material.opacity = 0.3;
+  egg.material.transparent = true;
+  if (egg.userData.glow) {
+    egg.userData.glow.material.opacity = 0;
+  }
+
+  addStar(2);
+  showScorePopup(clientX, clientY - 40, '🥚 +2 ⭐');
+  showCelebration();
+
+  const total = EGG_POSITIONS.length;
+  const collected = state.eggsCollected.length;
+  modeBadge.textContent = `🥚 找到恐龙蛋！（${collected}/${total}）`;
+
+  if (collected >= total) {
+    setTimeout(() => {
+      modeBadge.textContent = '🎉 所有恐龙蛋都找到了！太厉害了！';
+      showCelebration();
+    }, 500);
+  }
+}
+
+// ===== ANIMATION LOOP =====
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  // Animate dinosaurs
+  dinoGroups.forEach((dg, i) => {
+    const ud = dg.userData;
+    // Bobbing
+    const bob = Math.sin(elapsed * ud.bobSpeed + ud.phase) * ud.bobAmount;
+    dg.position.y = ud.baseY + bob;
+
+    // Gentle idle rotation
+    dg.rotation.y += dt * ud.rotationSpeed * 0.05;
+
+    // Flying for pterosaur
+    if (ud.isFlying) {
+      const flyY = 5 + Math.sin(elapsed * 0.5 + i) * 2;
+      const flyX = ud.centerX + Math.sin(elapsed * 0.3 + i * 1.5) * 3;
+      const flyZ = ud.centerZ + Math.cos(elapsed * 0.3 + i * 1.5) * 3;
+      dg.position.x = flyX;
+      dg.position.z = flyZ;
+      dg.position.y = flyY + bob;
+      // Face direction of movement
+      const angle = Math.atan2(
+        Math.cos(elapsed * 0.3 + i * 1.5) * 3 * 0.3 * Math.cos(elapsed * 0.3 + i * 1.5),
+        -Math.sin(elapsed * 0.3 + i * 1.5) * 3 * 0.3 * Math.sin(elapsed * 0.3 + i * 1.5)
+      );
+      dg.rotation.y = angle + Math.PI/2;
+
+      if (ud.label) {
+        ud.label.position.set(0, 1.5 + Math.sin(elapsed * 0.5 + i) * 0.3, 0);
+      }
+    }
+
+    // Egg glow animation
+    eggMeshes.forEach((egg, idx) => {
+      if (!state.eggsCollected.includes(idx) && egg.userData.glow) {
+        egg.userData.glow.material.opacity = 0.2 + Math.sin(elapsed * 2 + idx) * 0.15;
+        egg.userData.glow.scale.setScalar(1 + Math.sin(elapsed * 2 + idx) * 0.05);
+      }
+    });
+
+    // Highlight ring pulse
+    if (ud.ring && ud.ring.material.opacity > 0) {
+      ud.ring.scale.setScalar(1 + Math.sin(elapsed * 4) * 0.1);
+    }
+  });
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ===== RESIZE =====
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ===== LOADING COMPLETE =====
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hidden');
+  controls.autoRotate = true;
+  animate();
+  modeBadge.textContent = '🌿 自由探索 — 点击恐龙认识它们！';
+}, 2000);
+
+// Click to dismiss card
+document.addEventListener('click', (e) => {
+  if (infoCard.classList.contains('show') && !infoCard.contains(e.target)) {
+    hideInfoCard();
+  }
+});
+
+console.log('🦕 3D Dino World loaded!');
+console.log(`Dinosaurs: ${DINOS.length}, Eggs: ${EGG_POSITIONS.length}`);
+</script>
+</body>
+</html>
