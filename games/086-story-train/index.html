@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>故事小火车 🚂</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+body { font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: linear-gradient(180deg, #87CEEB 0%, #B0E0FF 40%, #90EE90 40%, #228B22 100%); min-height: 100vh; overflow: hidden; }
+canvas { display: none; }
+
+/* 云朵动画 */
+.clouds { position: fixed; top: 0; left: 0; width: 100%; height: 40%; pointer-events: none; overflow: hidden; z-index: 0; }
+.cloud { position: absolute; background: white; border-radius: 50%; opacity: 0.8; animation: floatCloud linear infinite; }
+.cloud::before, .cloud::after { content: ''; position: absolute; background: white; border-radius: 50%; }
+
+@keyframes floatCloud { from { transform: translateX(100vw); } to { transform: translateX(-200px); } }
+
+/* 主容器 */
+#app { position: relative; z-index: 1; width: 100%; height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+/* 顶部栏 */
+.top-bar { width: 100%; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+.top-bar .title { font-size: 24px; font-weight: 800; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+.progress-dots { display: flex; gap: 6px; }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: all 0.3s; }
+.dot.active { background: #FFD700; transform: scale(1.3); }
+.dot.done { background: #4CAF50; }
+
+/* 场景区域 */
+.scene-area { flex: 1; width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 16px; position: relative; }
+
+/* 故事标题 */
+.story-title { font-size: 22px; font-weight: 800; color: #FF6B6B; text-align: center; margin-bottom: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+
+/* 故事画面 */
+.story-frame { width: 100%; max-width: 500px; aspect-ratio: 4/3; background: white; border-radius: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; position: relative; overflow: hidden; border: 4px solid #FFD700; }
+.story-scene { font-size: 80px; margin-bottom: 8px; transition: all 0.5s; }
+.story-scene.multiple-emoji { font-size: 50px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.story-text { font-size: 20px; font-weight: 700; color: #333; text-align: center; line-height: 1.6; }
+
+/* 火车轨道 */
+.track { width: 100%; height: 60px; position: relative; margin: 8px 0; }
+.rail { position: absolute; bottom: 10px; left: 0; right: 0; height: 6px; background: #8B4513; border-radius: 3px; }
+.rail::after { content: ''; position: absolute; top: -3px; left: 0; right: 0; height: 3px; background: #A0522D; }
+.sleepers { position: absolute; bottom: 4px; left: 0; right: 0; height: 18px; background: repeating-linear-gradient(90deg, transparent, transparent 28px, #8B4513 28px, #8B4513 34px); }
+
+/* 小火车 */
+.train { position: absolute; bottom: 16px; transition: left 1s cubic-bezier(0.25, 0.46, 0.45, 0.94); z-index: 2; display: flex; align-items: flex-end; }
+.train-emoji { font-size: 36px; }
+
+/* 选择区域 */
+.choices-area { width: 100%; max-width: 500px; margin-top: 10px; }
+.instruction { font-size: 16px; color: #fff; text-align: center; margin-bottom: 8px; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+.choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.choice-card { background: white; border-radius: 16px; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); cursor: pointer; transition: all 0.2s; border: 3px solid transparent; min-height: 100px; }
+.choice-card:hover { transform: scale(1.03); }
+.choice-card:active { transform: scale(0.97); }
+.choice-card .emoji { font-size: 42px; }
+.choice-card .label { font-size: 15px; font-weight: 700; color: #555; text-align: center; }
+.choice-card.correct { border-color: #4CAF50; background: #E8F5E9; animation: correctPulse 0.5s; }
+.choice-card.wrong { border-color: #FF5252; animation: shake 0.4s; }
+.choice-card.disabled { opacity: 0.5; pointer-events: none; }
+
+@keyframes correctPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+/* 星星飞舞 */
+.star-burst { position: fixed; pointer-events: none; z-index: 100; }
+.star-particle { position: absolute; font-size: 28px; animation: starFly 1s ease-out forwards; }
+@keyframes starFly { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.3); } }
+
+/* 开始画面 */
+.start-screen { position: fixed; inset: 0; z-index: 200; background: linear-gradient(135deg, #FF9A9E 0%, #FAD0C4 50%, #FFD1FF 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.start-screen .logo { font-size: 80px; animation: bounce 1s infinite; }
+.start-screen h1 { font-size: 36px; color: #FF6B6B; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+.start-screen .subtitle { font-size: 18px; color: #666; font-weight: 600; }
+.start-btn { background: linear-gradient(135deg, #FF6B6B, #FF8E53); color: white; border: none; padding: 16px 48px; border-radius: 50px; font-size: 24px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 20px rgba(255,107,107,0.4); transition: all 0.2s; margin-top: 10px; }
+.start-btn:hover { transform: scale(1.05); }
+.start-btn:active { transform: scale(0.95); }
+
+/* 关卡选择 */
+.level-select { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.level-btn { background: white; border: 3px solid #FFD700; border-radius: 16px; padding: 12px 20px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: all 0.2s; }
+.level-btn:hover { transform: scale(1.05); }
+.level-btn.locked { opacity: 0.5; pointer-events: none; }
+.level-btn .lvl-emoji { font-size: 32px; }
+.level-btn .lvl-name { font-size: 14px; font-weight: 700; color: #666; }
+
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+/* 完成画面 */
+.complete-screen { position: fixed; inset: 0; z-index: 200; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.complete-screen.show { display: flex; animation: fadeIn 0.5s; }
+.complete-screen .trophy { font-size: 80px; animation: bounce 1s infinite; }
+.complete-screen h2 { font-size: 32px; color: #FF6B6B; font-weight: 900; }
+.complete-screen .summary { font-size: 18px; color: #666; text-align: center; line-height: 1.8; font-weight: 600; }
+.next-btn { background: linear-gradient(135deg, #4CAF50, #66BB6A); color: white; border: none; padding: 14px 40px; border-radius: 50px; font-size: 22px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 20px rgba(76,175,80,0.4); transition: all 0.2s; }
+.next-btn:hover { transform: scale(1.05); }
+
+/* 故事重播 */
+.replay-bar { display: flex; gap: 8px; margin-top: 8px; }
+.replay-btn { background: linear-gradient(135deg, #9C27B0, #BA68C8); color: white; border: none; padding: 10px 28px; border-radius: 30px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.replay-btn:hover { transform: scale(1.05); }
+
+/* 故事回放 */
+.story-playback { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+.story-playback.show { display: flex; animation: fadeIn 0.5s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.playback-card { background: white; border-radius: 24px; padding: 24px; max-width: 460px; width: 100%; text-align: center; }
+.playback-card .pb-emoji { font-size: 64px; margin-bottom: 8px; }
+.playback-card .pb-text { font-size: 20px; font-weight: 700; color: #333; line-height: 1.6; margin-bottom: 16px; }
+.playback-nav { display: flex; gap: 12px; justify-content: center; margin-top: 12px; }
+.pb-btn { background: #FF6B6B; color: white; border: none; padding: 10px 24px; border-radius: 20px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.pb-close { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* 全故事画面 */
+.all-stories-screen { position: fixed; inset: 0; z-index: 200; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 20px; }
+.all-stories-screen.show { display: flex; animation: fadeIn 0.5s; }
+.all-stories-screen h2 { font-size: 32px; color: #fff; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+.stories-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 500px; }
+.story-badge { background: rgba(255,255,255,0.9); border-radius: 16px; padding: 12px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; }
+.story-badge:hover { transform: scale(1.05); }
+.story-badge .sb-emoji { font-size: 28px; }
+.story-badge .sb-name { font-size: 14px; font-weight: 700; color: #555; }
+
+/* 响应式 */
+@media (max-height: 700px) {
+  .story-scene { font-size: 56px; }
+  .story-scene.multiple-emoji { font-size: 38px; }
+  .story-text { font-size: 16px; }
+  .choice-card { min-height: 80px; padding: 10px; }
+  .choice-card .emoji { font-size: 32px; }
+  .story-title { font-size: 18px; }
+  .track { height: 44px; }
+  .train-emoji { font-size: 28px; }
+}
+@media (max-width: 380px) {
+  .choices-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .choice-card .emoji { font-size: 30px; }
+  .choice-card .label { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div class="clouds" id="clouds"></div>
+
+<div id="app">
+  <!-- 游戏区域动态渲染 -->
+</div>
+
+<!-- 开始画面 -->
+<div class="start-screen" id="startScreen">
+  <div class="logo">🚂</div>
+  <h1>故事小火车</h1>
+  <div class="subtitle">排一排，讲一个好听的故事！</div>
+  <div class="level-select" id="levelSelect"></div>
+</div>
+
+<!-- 关卡完成画面 -->
+<div class="complete-screen" id="completeScreen">
+  <div class="trophy">🎉</div>
+  <h2 id="completeTitle">太棒了！</h2>
+  <div class="summary" id="completeSummary"></div>
+  <div class="replay-bar">
+    <button class="replay-btn" onclick="replayStory()">📖 重播故事</button>
+    <button class="next-btn" id="nextBtn" onclick="nextLevel()">下一关 →</button>
+  </div>
+</div>
+
+<!-- 故事回放 -->
+<div class="story-playback" id="storyPlayback">
+  <button class="pb-close" onclick="closePlayback()">✕</button>
+  <div class="playback-card" id="playbackCard">
+    <div class="pb-emoji" id="pbEmoji"></div>
+    <div class="pb-text" id="pbText"></div>
+    <div class="playback-nav">
+      <button class="pb-btn" id="pbPrev" onclick="playbackNav(-1)">◀ 上一页</button>
+      <button class="pb-btn" id="pbNext" onclick="playbackNav(1)">下一页 ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- 全故事画面 -->
+<div class="all-stories-screen" id="allStoriesScreen">
+  <h2>📚 我的故事集</h2>
+  <div class="stories-grid" id="storiesGrid"></div>
+  <button class="next-btn" onclick="closeAllStories()" style="margin-top: 12px; background: linear-gradient(135deg, #FF6B6B, #FF8E53);">返回</button>
+</div>
+
+<script>
+// ===== 音效系统 =====
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+function playSound(type) {
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  gain.gain.value = 0.15;
+
+  if (type === 'click') {
+    osc.type = 'sine'; osc.frequency.value = 800;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+  } else if (type === 'correct') {
+    osc.type = 'sine'; osc.frequency.value = 523;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    osc.start();
+    setTimeout(() => { osc.frequency.value = 659; }, 100);
+    setTimeout(() => { osc.frequency.value = 784; }, 200);
+    osc.stop(audioCtx.currentTime + 0.35);
+  } else if (type === 'wrong') {
+    osc.type = 'sawtooth'; osc.frequency.value = 200;
+    gain.gain.value = 0.08;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+  } else if (type === 'complete') {
+    const notes = [523, 587, 659, 698, 784, 880, 988, 1047];
+    notes.forEach((freq, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.value = 0.1;
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.12 + 0.15);
+      o.start(audioCtx.currentTime + i * 0.12);
+      o.stop(audioCtx.currentTime + i * 0.12 + 0.15);
+    });
+  } else if (type === 'train') {
+    osc.type = 'triangle'; osc.frequency.value = 440;
+    gain.gain.value = 0.12;
+    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+  }
+}
+
+// ===== 故事数据 =====
+const STORIES = {
+  // 关卡1: 小兔子的早晨 (3步排序)
+  1: {
+    name: '小兔子的早晨',
+    emoji: '🐰',
+    steps: [
+      { emoji: '🌅', text: '太阳公公升起来了，小兔子起床啦！', scene: '🌅🐰' },
+      { emoji: '🪥', text: '小兔子认真地刷牙洗脸，干干净净！', scene: '🪥🐰' },
+      { emoji: '🎒', text: '小兔子背上书包，开开心心去幼儿园！', scene: '🎒🐰🏫' }
+    ],
+    wrongOptions: [
+      { emoji: '🌙', text: '天黑了，小兔子睡觉了', scene: '🌙🐰💤' },
+      { emoji: '🍰', text: '小兔子吃了一块大蛋糕', scene: '🐰🍰' },
+      { emoji: '🏀', text: '小兔子在操场上玩球', scene: '🐰🏀' },
+    ]
+  },
+  // 关卡2: 种花 (4步排序)
+  2: {
+    name: '种一朵花',
+    emoji: '🌻',
+    steps: [
+      { emoji: '🕳️', text: '在地上挖一个小坑', scene: '🧑🕳️' },
+      { emoji: '🌱', text: '把种子放进坑里，盖上泥土', scene: '🧑🌱' },
+      { emoji: '💧', text: '给种子浇浇水，等它长大', scene: '🧑💧🌱' },
+      { emoji: '🌻', text: '哇！开出了一朵美丽的小花！', scene: '🌻🧑✨' }
+    ],
+    wrongOptions: [
+      { emoji: '🍎', text: '树上长出了大苹果', scene: '🍎🌳' },
+      { emoji: '🧹', text: '用扫把把地扫干净', scene: '🧑🧹' },
+      { emoji: '✂️', text: '用剪刀把花剪下来', scene: '🧑✂️💐' },
+      { emoji: '🏃', text: '在花园里跑来跑去', scene: '🧑🏃' },
+    ]
+  },
+  // 关卡3: 小猫钓鱼 (5步排序)
+  3: {
+    name: '小猫钓鱼',
+    emoji: '🐱',
+    steps: [
+      { emoji: '🎣', text: '小猫拿着鱼竿来到河边', scene: '🐱🎣🌊' },
+      { emoji: '🪱', text: '在鱼钩上挂好蚯蚓鱼饵', scene: '🐱🪱🎣' },
+      { emoji: '⏳', text: '耐心地等啊等，鱼浮子动啦！', scene: '🐱⏳🌊' },
+      { emoji: '🐟', text: '用力一拉，钓到了一条大鱼！', scene: '🐱🐟✨' },
+      { emoji: '🍲', text: '回家煮了香喷喷的鱼汤！', scene: '🐱🍲😋' }
+    ],
+    wrongOptions: [
+      { emoji: '🦋', text: '追着蝴蝶跑来跑去', scene: '🐱🦋' },
+      { emoji: '💤', text: '躺在草地上睡着了', scene: '🐱💤' },
+      { emoji: '🎈', text: '买了一个红气球', scene: '🐱🎈' },
+      { emoji: '🌈', text: '天上出现了彩虹', scene: '🌈' },
+      { emoji: '🐸', text: '一只青蛙跳到头上', scene: '🐱🐸' },
+    ]
+  },
+  // 关卡4: 做蛋糕 (4步排序)
+  4: {
+    name: '一起做蛋糕',
+    emoji: '🎂',
+    steps: [
+      { emoji: '🥣', text: '准备好面粉、鸡蛋和糖', scene: '🥣🥚🧂' },
+      { emoji: '🥄', text: '把所有材料搅一搅，拌一拌', scene: '🧑‍🍳🥄🥣' },
+      { emoji: '🔥', text: '放进烤箱里，等它烤得香喷喷', scene: '🔥🧁' },
+      { emoji: '🎂', text: '蛋糕做好啦！插上蜡烛，生日快乐！', scene: '🎂🎉🕯️' }
+    ],
+    wrongOptions: [
+      { emoji: '🍕', text: '做了一块大披萨', scene: '🍕' },
+      { emoji: '🎨', text: '用颜料画画', scene: '🎨🖼️' },
+      { emoji: '🎾', text: '出去打网球', scene: '🧑🎾' },
+      { emoji: '🧹', text: '打扫厨房卫生', scene: '🧑🧹' },
+    ]
+  },
+  // 关卡5: 小蝌蚪找妈妈 (5步排序)
+  5: {
+    name: '小蝌蚪找妈妈',
+    emoji: '🐸',
+    steps: [
+      { emoji: '🥚', text: '水里的小卵孵化了，小蝌蚪游出来啦', scene: '🥚→🏊' },
+      { emoji: '🐟', text: '小蝌蚪长出了后腿，游得更快了', scene: '🐸🏊💨' },
+      { emoji: '🦵', text: '又长出了前腿，越来越像青蛙了', scene: '🐸🏊' },
+      { emoji: '🐸', text: '尾巴不见了，变成了一只小青蛙！', scene: '🐸✨' },
+      { emoji: '❤️', text: '小青蛙找到了妈妈，开心地抱在一起', scene: '🐸❤️🐸' }
+    ],
+    wrongOptions: [
+      { emoji: '🦋', text: '变成了一只蝴蝶', scene: '🦋' },
+      { emoji: '🐢', text: '遇到了一只乌龟', scene: '🐸🐢' },
+      { emoji: '🌺', text: '坐在荷叶上唱歌', scene: '🐸🌺' },
+      { emoji: '☀️', text: '在太阳底下晒太阳', scene: '🐸☀️' },
+      { emoji: '🎪', text: '去马戏团表演', scene: '🐸🎪' },
+    ]
+  },
+  // 关卡6: 下雨天 (3步排序+创作)
+  6: {
+    name: '下雨天的故事',
+    emoji: '🌧️',
+    steps: [
+      { emoji: '☁️', text: '天空飘来了乌云，开始下雨了', scene: '☁️🌧️' },
+      { emoji: '☂️', text: '小熊撑起小伞，踩水花好好玩', scene: '🐻☂️💧' },
+      { emoji: '🌈', text: '雨停了，天上挂起了漂亮的彩虹！', scene: '🌈✨🐻' }
+    ],
+    wrongOptions: [
+      { emoji: '☀️', text: '太阳火辣辣地晒着', scene: '☀️🔥' },
+      { emoji: '❄️', text: '天空下起了大雪', scene: '❄️⛄' },
+      { emoji: '🏖️', text: '去海边玩沙子', scene: '🏖️🏰' },
+    ]
+  }
+};
+
+// ===== 游戏状态 =====
+let state = {
+  currentLevel: 1,
+  currentStep: 0,
+  maxLevel: 6,
+  unlockedLevel: parseInt(localStorage.getItem('storyTrain_unlocked') || '1'),
+  completedStories: JSON.parse(localStorage.getItem('storyTrain_completed') || '[]'),
+  trainPosition: 5, // percent
+  storyPlaybackStep: 0,
+  currentStorySteps: [],
+};
+
+// ===== 初始化云朵 =====
+function initClouds() {
+  const container = document.getElementById('clouds');
+  for (let i = 0; i < 5; i++) {
+    const cloud = document.createElement('div');
+    cloud.className = 'cloud';
+    const size = 40 + Math.random() * 60;
+    cloud.style.cssText = `
+      width: ${size}px; height: ${size * 0.5}px;
+      top: ${5 + Math.random() * 25}%;
+      animation-duration: ${15 + Math.random() * 20}s;
+      animation-delay: ${-Math.random() * 20}s;
+    `;
+    container.appendChild(cloud);
+  }
+}
+
+// ===== 开始画面 =====
+function renderStartScreen() {
+  const levelSelect = document.getElementById('levelSelect');
+  levelSelect.innerHTML = '';
+  for (let i = 1; i <= state.maxLevel; i++) {
+    const story = STORIES[i];
+    const locked = i > state.unlockedLevel;
+    const done = state.completedStories.includes(i);
+    levelSelect.innerHTML += `
+      <button class="level-btn ${locked ? 'locked' : ''} ${done ? 'done' : ''}"
+              onclick="startLevel(${i})" ${locked ? 'disabled' : ''}>
+        <span class="lvl-emoji">${done ? '⭐' : story.emoji}</span>
+        <span class="lvl-name">${story.name}</span>
+      </button>
+    `;
+  }
+  // 所有故事查看按钮
+  if (state.completedStories.length > 0) {
+    levelSelect.innerHTML += `
+      <button class="level-btn" onclick="showAllStories()">
+        <span class="lvl-emoji">📚</span>
+        <span class="lvl-name">我的故事集</span>
+      </button>
+    `;
+  }
+  document.getElementById('startScreen').style.display = 'flex';
+}
+
+// ===== 开始关卡 =====
+function startLevel(level) {
+  state.currentLevel = level;
+  state.currentStep = 0;
+  state.trainPosition = 5;
+  state.currentStorySteps = [];
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('completeScreen').classList.remove('show');
+  playSound('train');
+  renderGame();
+}
+
+// ===== 渲染游戏 =====
+function renderGame() {
+  const story = STORIES[state.currentLevel];
+  const totalSteps = story.steps.length;
+  const app = document.getElementById('app');
+
+  // 进度点
+  let dotsHtml = '';
+  for (let i = 0; i < totalSteps; i++) {
+    const cls = i < state.currentStep ? 'done' : (i === state.currentStep ? 'active' : '');
+    dotsHtml += `<div class="dot ${cls}"></div>`;
+  }
+
+  // 计算火车位置
+  const trainLeft = 5 + (state.currentStep / totalSteps) * 80;
+
+  // 当前画面展示（已完成的步骤 + 当前问题）
+  let currentSceneEmoji = '';
+  let currentSceneText = '';
+  if (state.currentStep > 0) {
+    const prevStep = state.currentStorySteps[state.currentStep - 1];
+    currentSceneEmoji = prevStep.scene || prevStep.emoji;
+    currentSceneText = prevStep.text;
+  }
+
+  if (state.currentStep >= totalSteps) {
+    // 所有序列完成
+    renderComplete();
+    return;
+  }
+
+  // 生成选项：正确答案 + 干扰项
+  const correctStep = story.steps[state.currentStep];
+  const allWrong = [...story.wrongOptions];
+  // 随机选择干扰项（选2-3个）
+  const numWrong = Math.min(3, allWrong.length);
+  const shuffledWrong = allWrong.sort(() => Math.random() - 0.5).slice(0, numWrong);
+  const choices = [correctStep, ...shuffledWrong].sort(() => Math.random() - 0.5);
+
+  let choicesHtml = choices.map((c, idx) => `
+    <div class="choice-card" data-correct="${c === correctStep}" onclick="makeChoice(this, ${c === correctStep}, ${state.currentStep})">
+      <span class="emoji">${c.emoji}</span>
+      <span class="label">${c.text}</span>
+    </div>
+  `).join('');
+
+  app.innerHTML = `
+    <div class="top-bar">
+      <span class="title">🚂 ${story.name}</span>
+      <div class="progress-dots">${dotsHtml}</div>
+    </div>
+    <div class="scene-area">
+      ${state.currentStep === 0 ? `
+        <div class="story-title">故事的开始...</div>
+        <div class="story-frame">
+          <div class="story-scene multiple-emoji">🎬❓🤔</div>
+          <div class="story-text">接下来会发生什么呢？</div>
+        </div>
+      ` : `
+        <div class="story-title">第${state.currentStep}页</div>
+        <div class="story-frame">
+          <div class="story-scene multiple-emoji">${currentSceneEmoji}</div>
+          <div class="story-text">${currentSceneText}</div>
+        </div>
+      `}
+    </div>
+    <div class="track">
+      <div class="sleepers"></div>
+      <div class="rail"></div>
+      <div class="train" style="left: ${trainLeft}%"><span class="train-emoji">🚂</span></div>
+    </div>
+    <div class="choices-area">
+      <div class="instruction">👆 选择接下来发生的事</div>
+      <div class="choices-grid">${choicesHtml}</div>
+    </div>
+  `;
+}
+
+// ===== 选择答案 =====
+function makeChoice(el, isCorrect, stepIdx) {
+  if (el.classList.contains('disabled')) return;
+
+  // 禁用所有选项
+  document.querySelectorAll('.choice-card').forEach(c => c.classList.add('disabled'));
+
+  if (isCorrect) {
+    el.classList.add('correct');
+    playSound('correct');
+    const story = STORIES[state.currentLevel];
+    state.currentStorySteps.push(story.steps[stepIdx]);
+    state.currentStep++;
+    state.trainPosition = 5 + (state.currentStep / story.steps.length) * 80;
+
+    // 星星特效
+    createStarBurst(el);
+
+    // 延迟进入下一步
+    setTimeout(() => renderGame(), 1000);
+  } else {
+    el.classList.add('wrong');
+    playSound('wrong');
+    // 移除 disabled 允许重试
+    setTimeout(() => {
+      el.classList.remove('wrong', 'disabled');
+      document.querySelectorAll('.choice-card:not(.wrong)').forEach(c => c.classList.remove('disabled'));
+    }, 600);
+  }
+}
+
+// ===== 星星飞舞 =====
+function createStarBurst(el) {
+  const rect = el.getBoundingClientRect();
+  const burst = document.createElement('div');
+  burst.className = 'star-burst';
+  burst.style.left = rect.left + rect.width / 2 + 'px';
+  burst.style.top = rect.top + rect.height / 2 + 'px';
+  const emojis = ['⭐', '✨', '🌟', '💫', '🎉'];
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('span');
+    p.className = 'star-particle';
+    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    const angle = (Math.PI * 2 / 8) * i;
+    const dist = 60 + Math.random() * 60;
+    p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+    burst.appendChild(p);
+  }
+  document.body.appendChild(burst);
+  setTimeout(() => burst.remove(), 1200);
+}
+
+// ===== 关卡完成 =====
+function renderComplete() {
+  playSound('complete');
+
+  const story = STORIES[state.currentLevel];
+  const isLast = state.currentLevel >= state.maxLevel;
+
+  // 记录完成
+  if (!state.completedStories.includes(state.currentLevel)) {
+    state.completedStories.push(state.currentLevel);
+    localStorage.setItem('storyTrain_completed', JSON.stringify(state.completedStories));
+  }
+
+  // 解锁下一关
+  if (state.currentLevel + 1 > state.unlockedLevel && state.currentLevel < state.maxLevel) {
+    state.unlockedLevel = state.currentLevel + 1;
+    localStorage.setItem('storyTrain_unlocked', state.unlockedLevel);
+  }
+
+  // 构建故事摘要
+  let summary = '';
+  state.currentStorySteps.forEach((s, i) => {
+    summary += `${i + 1}. ${s.emoji} ${s.text}\n`;
+  });
+
+  document.getElementById('completeTitle').textContent =
+    state.currentLevel === state.maxLevel ? '🏆 全部完成！你真厉害！' : '🎉 故事讲完啦！';
+  document.getElementById('completeSummary').innerText = summary;
+  document.getElementById('nextBtn').textContent = isLast ? '🏠 回首页' : '下一关 →';
+  document.getElementById('nextBtn').style.display = '';
+  document.getElementById('completeScreen').classList.add('show');
+
+  // 彩带特效
+  for (let i = 0; i < 20; i++) {
+    setTimeout(() => {
+      const confetti = document.createElement('div');
+      confetti.style.cssText = `
+        position: fixed;
+        top: -20px;
+        left: ${Math.random() * 100}vw;
+        font-size: ${20 + Math.random() * 20}px;
+        z-index: 250;
+        pointer-events: none;
+        animation: confettiFall ${2 + Math.random() * 2}s linear forwards;
+      `;
+      confetti.textContent = ['🎉', '🎊', '⭐', '✨', '🌟', '💫'][Math.floor(Math.random() * 6)];
+      document.body.appendChild(confetti);
+      setTimeout(() => confetti.remove(), 4000);
+    }, i * 100);
+  }
+
+  // 注入彩带动画
+  if (!document.getElementById('confettiStyle')) {
+    const style = document.createElement('style');
+    style.id = 'confettiStyle';
+    style.textContent = `@keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }`;
+    document.head.appendChild(style);
+  }
+}
+
+// ===== 下一关 =====
+function nextLevel() {
+  document.getElementById('completeScreen').classList.remove('show');
+  if (state.currentLevel >= state.maxLevel) {
+    renderStartScreen();
+  } else {
+    startLevel(state.currentLevel + 1);
+  }
+}
+
+// ===== 重播故事 =====
+function replayStory() {
+  state.storyPlaybackStep = 0;
+  renderPlayback();
+}
+
+function renderPlayback() {
+  const screen = document.getElementById('storyPlayback');
+  const total = state.currentStorySteps.length;
+  const step = state.currentStorySteps[state.storyPlaybackStep];
+
+  document.getElementById('pbEmoji').textContent = step.emoji;
+  document.getElementById('pbText').textContent = `第${state.storyPlaybackStep + 1}页：${step.text}`;
+  document.getElementById('pbPrev').style.visibility = state.storyPlaybackStep === 0 ? 'hidden' : 'visible';
+  document.getElementById('pbNext').textContent = state.storyPlaybackStep === total - 1 ? '✕ 关闭' : '下一页 ▶';
+
+  screen.classList.add('show');
+  playSound('train');
+}
+
+function playbackNav(dir) {
+  const total = state.currentStorySteps.length;
+  if (dir === 1 && state.storyPlaybackStep === total - 1) {
+    closePlayback();
+    return;
+  }
+  state.storyPlaybackStep = Math.max(0, Math.min(total - 1, state.storyPlaybackStep + dir));
+  renderPlayback();
+}
+
+function closePlayback() {
+  document.getElementById('storyPlayback').classList.remove('show');
+}
+
+// ===== 全故事集 =====
+function showAllStories() {
+  const grid = document.getElementById('storiesGrid');
+  grid.innerHTML = '';
+  state.completedStories.forEach(lvl => {
+    const story = STORIES[lvl];
+    grid.innerHTML += `
+      <div class="story-badge" onclick="replayStoryFromCollection(${lvl})">
+        <span class="sb-emoji">${story.emoji}</span>
+        <span class="sb-name">${story.name}</span>
+      </div>
+    `;
+  });
+  document.getElementById('allStoriesScreen').classList.add('show');
+}
+
+function closeAllStories() {
+  document.getElementById('allStoriesScreen').classList.remove('show');
+}
+
+function replayStoryFromCollection(level) {
+  // 重建故事步骤
+  state.currentLevel = level;
+  state.currentStorySteps = STORIES[level].steps.slice();
+  closeAllStories();
+  document.getElementById('startScreen').style.display = 'none';
+  state.storyPlaybackStep = 0;
+  renderPlayback();
+}
+
+// ===== 启动 =====
+initClouds();
+renderStartScreen();
+</script>
+</body>
+</html>

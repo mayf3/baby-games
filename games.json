@@ -459,5 +459,19 @@
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (DeepSeek V4 Flash)",
     "addedDate": "2026-05-14"
+  },
+  {
+    "id": "086-story-train",
+    "title": "故事小火车",
+    "emoji": "🚂",
+    "type": "language",
+    "typeLabel": "语言类",
+    "age": "3-6岁",
+    "description": "把故事的图片按正确顺序排好，像翻绘本一样看完整的故事！6个经典小故事：小兔子早晨、种花、小猫钓鱼、做蛋糕、小蝌蚪找妈妈、下雨天，培养故事排序能力、逻辑思维和语言表达能力",
+    "path": "games/086-story-train/index.html",
+    "difficulty": "简单",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-15"
   }
 ]
