@@ -473,5 +473,20 @@
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)",
     "addedDate": "2026-05-15"
+  },
+  {
+    "id": "089-3d-ocean-explorer",
+    "title": "3D海洋探索",
+    "emoji": "🐠",
+    "type": "cognitive",
+    "typeLabel": "认知类",
+    "age": "3-6岁",
+    "description": "在美丽的3D海底世界里探索！认识小丑鱼、海龟、水母、章鱼、海星、鲸鱼、海马、螃蟹8种海洋动物，了解它们的特点。三种玩法：自由探索（点击动物看介绍）、找海洋动物（根据提示找到正确的动物）、收集贝壳（在海底找到10颗发光的贝壳），培养自然认知、观察力和3D空间探索能力",
+    "path": "games/089-3d-ocean-explorer/index.html",
+    "difficulty": "简单",
+    "dimension": "3D",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-16"
   }
 ]

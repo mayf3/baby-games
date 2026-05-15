@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>3D海洋探索 🐠</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#006994;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;touch-action:none;user-select:none}
+canvas{display:block;width:100%;height:100%}
+
+/* Loading */
+#loading{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#0077B6 0%,#023E8A 100%);transition:opacity .8s}
+#loading.hidden{opacity:0;pointer-events:none}
+#loading .logo{font-size:64px;animation:float 2s ease-in-out infinite}
+#loading h1{font-size:28px;color:#90E0EF;margin:16px 0 8px;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+#loading p{font-size:16px;color:#CAF0F8;opacity:.7}
+#loading .bar-wrap{width:200px;height:6px;background:rgba(255,255,255,.15);border-radius:3px;margin:20px 0;overflow:hidden}
+#loading .bar{height:100%;width:0;background:linear-gradient(90deg,#00B4D8,#90E0EF);border-radius:3px;animation:loadBar 2s forwards}
+@keyframes loadBar{to{width:100%}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;z-index:20;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+#hud>*{pointer-events:auto}
+#hud-left{display:flex;align-items:center;gap:8px}
+#hud-title{font-size:16px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.4);background:rgba(0,0,0,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:6px 14px;border-radius:20px}
+#hud-stars{display:flex;align-items:center;gap:4px;font-size:16px;font-weight:700;color:#FFD700;text-shadow:0 2px 8px rgba(0,0,0,.4);background:rgba(0,0,0,.3);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:6px 14px;border-radius:20px}
+#hud-stars .icon{font-size:18px}
+#hud-right{display:flex;gap:8px}
+.hud-btn{width:40px;height:40px;border:none;border-radius:20px;background:rgba(0,0,0,.3);backdrop-filter:blur(8px);font-size:20px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.hud-btn:active{transform:scale(.9)}
+
+/* Mode badge */
+#mode-badge{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:20;padding:8px 20px;border-radius:20px;font-size:15px;font-weight:700;color:#fff;background:rgba(0,180,216,.85);backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.2);transition:all .4s;pointer-events:none;text-align:center;opacity:0}
+#mode-badge.show{opacity:1}
+
+/* Bottom toolbar */
+#toolbar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;display:flex;gap:10px;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:8px;border-radius:28px;box-shadow:0 4px 24px rgba(0,0,0,.2)}
+.tool-btn{width:54px;height:54px;border:none;border-radius:27px;background:transparent;font-size:28px;cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;color:#666;position:relative}
+.tool-btn.active{background:#0077B6;color:#fff;transform:scale(1.08);box-shadow:0 4px 12px rgba(0,119,182,.4)}
+.tool-btn:active{transform:scale(.9)}
+.tool-btn .label{position:absolute;bottom:-18px;font-size:10px;color:#888;white-space:nowrap;font-weight:600}
+
+/* Info card */
+#info-card{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(120px);z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-radius:24px;padding:24px 28px;min-width:280px;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.25);transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .4s;opacity:0;pointer-events:none}
+#info-card.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
+#info-card .animal-emoji{font-size:56px;text-align:center;margin-bottom:8px}
+#info-card .animal-name{font-size:22px;font-weight:800;text-align:center;color:#0077B6}
+#info-card .animal-fact{font-size:14px;color:#555;text-align:center;margin:8px 0 16px;line-height:1.6}
+#info-card .animal-tags{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+#info-card .tag{background:#E0F7FA;color:#0077B6;font-size:12px;padding:4px 10px;border-radius:12px;font-weight:600}
+#info-card .close-btn{position:absolute;top:8px;right:12px;background:none;border:none;font-size:22px;color:#aaa;cursor:pointer;padding:4px}
+
+/* Question banner */
+#question-banner{position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);padding:14px 28px;border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.2);font-size:20px;font-weight:700;color:#023E8A;transition:all .5s cubic-bezier(.34,1.56,.64,1);text-align:center;opacity:0;pointer-events:none}
+#question-banner.show{opacity:1;pointer-events:auto}
+#question-banner .hint{font-size:13px;font-weight:400;color:#888;margin-top:4px}
+
+/* Score popup */
+.score-popup{position:fixed;z-index:60;font-size:32px;font-weight:900;color:#FFD700;text-shadow:0 2px 8px rgba(0,0,0,.3);pointer-events:none;animation:scorePop 1s ease-out forwards}
+@keyframes scorePop{0%{transform:translateY(0) scale(.5);opacity:1}50%{transform:translateY(-60px) scale(1.2);opacity:1}100%{transform:translateY(-120px) scale(1);opacity:0}}
+
+/* Celebration */
+#celebration{position:fixed;inset:0;z-index:50;pointer-events:none}
+.celeb-particle{position:absolute;font-size:24px;animation:celebFly 2s ease-out forwards}
+@keyframes celebFly{0%{transform:translateY(0) rotate(0) scale(0);opacity:1}100%{transform:translateY(-300px) rotate(720deg) scale(1);opacity:0}}
+
+/* Start screen */
+#start-screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#0096C7 0%,#023E8A 100%);transition:opacity .6s}
+#start-screen.hidden{opacity:0;pointer-events:none}
+#start-screen .title-emoji{font-size:80px;animation:float 2s ease-in-out infinite}
+#start-screen h1{font-size:36px;color:#90E0EF;margin:16px 0 8px;text-shadow:0 3px 12px rgba(0,0,0,.3)}
+#start-screen p{font-size:16px;color:#CAF0F8;margin-bottom:32px;opacity:.8}
+#start-screen .start-btn{background:linear-gradient(135deg,#00B4D8,#0077B6);color:#fff;border:none;padding:16px 48px;font-size:22px;font-weight:700;border-radius:30px;cursor:pointer;box-shadow:0 6px 24px rgba(0,119,182,.4);transition:all .3s}
+#start-screen .start-btn:active{transform:scale(.95)}
+
+/* Responsive */
+@media(max-width:480px){
+  #hud-title{font-size:13px;padding:4px 10px}
+  #hud-stars{font-size:13px;padding:4px 10px}
+  #info-card{min-width:240px;max-width:300px;padding:16px 18px}
+  #info-card .animal-emoji{font-size:44px}
+  #info-card .animal-name{font-size:18px}
+  #question-banner{font-size:17px;padding:10px 18px;top:85px}
+  .tool-btn{width:48px;height:48px;font-size:24px}
+  #mode-badge{font-size:13px;padding:6px 16px;top:52px}
+  #start-screen h1{font-size:28px}
+  #start-screen .title-emoji{font-size:60px}
+  #start-screen .start-btn{font-size:18px;padding:14px 36px}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="logo">🐠</div>
+  <h1>3D海洋探索</h1>
+  <p>正在准备海底世界...</p>
+  <div class="bar-wrap"><div class="bar"></div></div>
+</div>
+
+<!-- Start screen -->
+<div id="start-screen" class="hidden">
+  <div class="title-emoji">🐠🐙🐢</div>
+  <h1>3D海洋探索</h1>
+  <p>和海底的小伙伴们一起玩耍吧！</p>
+  <button class="start-btn" onclick="startGame()">开始探索 🌊</button>
+</div>
+
+<!-- HUD -->
+<div id="hud" style="display:none">
+  <div id="hud-left">
+    <div id="hud-title">🐠 3D海洋探索</div>
+    <div id="hud-stars"><span class="icon">⭐</span> <span id="star-count">0</span></div>
+  </div>
+  <div id="hud-right">
+    <button class="hud-btn" onclick="resetCamera()" title="重置视角">🔄</button>
+  </div>
+</div>
+
+<!-- Mode badge -->
+<div id="mode-badge">自由探索</div>
+
+<!-- Question banner -->
+<div id="question-banner">
+  <div id="q-text">找到小丑鱼！</div>
+  <div class="hint">点击正确的海洋动物</div>
+</div>
+
+<!-- Info card -->
+<div id="info-card">
+  <button class="close-btn" onclick="hideInfoCard()">✕</button>
+  <div class="animal-emoji" id="ic-emoji">🐠</div>
+  <div class="animal-name" id="ic-name">小丑鱼</div>
+  <div class="animal-fact" id="ic-fact">身体橙白相间，喜欢在海葵里安家</div>
+  <div class="animal-tags" id="ic-tags"></div>
+</div>
+
+<!-- Toolbar -->
+<div id="toolbar" style="display:none">
+  <button class="tool-btn active" data-mode="explore" onclick="setMode('explore')">
+    🔍<span class="label">探索</span>
+  </button>
+  <button class="tool-btn" data-mode="find" onclick="setMode('find')">
+    🎯<span class="label">寻找</span>
+  </button>
+  <button class="tool-btn" data-mode="collect" onclick="setMode('collect')">
+    🐚<span class="label">收集</span>
+  </button>
+</div>
+
+<!-- Celebration -->
+<div id="celebration"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ========== Audio ==========
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function initAudio(){if(!audioCtx)audioCtx=new AudioCtx()}
+function playSound(freq,dur=.15,type='sine',vol=.25){
+  if(!audioCtx)return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type;o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+dur);
+  o.connect(g);g.connect(audioCtx.destination);
+  o.start();o.stop(audioCtx.currentTime+dur);
+}
+function playClick(){playSound(880,.1)}
+function playSuccess(){playSound(523,.1);setTimeout(()=>playSound(659,.1),100);setTimeout(()=>playSound(784,.15),200)}
+function playWrong(){playSound(220,.2,'triangle',.15)}
+function playCelebrate(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>playSound(f,.2,'sine',.2),i*120))}
+
+// ========== State ==========
+let scene,camera,renderer,raycaster,mouse;
+let creatures=[],shells=[],corals=[],bubbles=[];
+let currentMode='explore';
+let stars=0,findIdx=0,findRound=0,collectCount=0;
+const MAX_FIND_ROUNDS=6,MAX_COLLECT=10;
+let selectedCreature=null;
+let clock=new THREE.Clock();
+let cameraAngle=0,cameraRadius=16,cameraHeight=10;
+let isDragging=false,prevTouchX=0;
+let bubbleTimer=0;
+
+// ========== Creature Data ==========
+const creatureData=[
+  {name:'小丑鱼',emoji:'🐠',color:0xFF6B35,fact:'身体橙白相间，喜欢在海葵里安家，和海葵是好朋友！',tags:['鱼类','珊瑚礁'],size:.6,shape:'fish',y:2},
+  {name:'海龟',emoji:'🐢',color:0x2E8B57,fact:'海龟可以活很久很久，它们会在海里慢慢地游泳，有时还会到沙滩上产卵。',tags:['爬行类','长寿'],size:1.2,shape:'turtle',y:3},
+  {name:'水母',emoji:'🪼',color:0xBB86FC,fact:'水母像一把透明的小伞，在海里飘来飘去，有的还会发光呢！',tags:['浮游','发光'],size:.8,shape:'jellyfish',y:5},
+  {name:'章鱼',emoji:'🐙',color:0xE91E63,fact:'章鱼有八条手臂，非常聪明！它还能变色来保护自己呢。',tags:['软体类','变色'],size:1.0,shape:'octopus',y:2.5},
+  {name:'海星',emoji:'⭐',color:0xFF9800,fact:'海星有五只手臂，如果手臂断了还能再长出来，好神奇！',tags:['棘皮类','再生'],size:.7,shape:'starfish',y:.5},
+  {name:'鲸鱼',emoji:'🐋',color:0x1A237E,fact:'鲸鱼是世界上最大的动物！它呼吸时会喷出高高的水柱。',tags:['哺乳类','最大'],size:2.0,shape:'whale',y:6},
+  {name:'海马',emoji:'🌊',color:0xFFC107,fact:'海马爸爸会生宝宝哦！它游泳的样子一摇一摆，特别可爱。',tags:['鱼类','独特'],size:.5,shape:'seahorse',y:3.5},
+  {name:'螃蟹',emoji:'🦀',color:0xF44336,fact:'螃蟹横着走路，有两个大钳子，喜欢在沙滩上爬来爬去。',tags:['甲壳类','横走'],size:.7,shape:'crab',y:.3},
+];
+
+// ========== Init ==========
+function init(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x006994);
+  scene.fog=new THREE.FogExp2(0x004466,.012);
+
+  camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,.1,100);
+  camera.position.set(0,cameraHeight,cameraRadius);
+  camera.lookAt(0,2,0);
+
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  document.body.insertBefore(renderer.domElement,document.body.firstChild);
+
+  raycaster=new THREE.Raycaster();
+  mouse=new THREE.Vector2();
+
+  // Lights
+  const ambLight=new THREE.AmbientLight(0x4488aa,.6);
+  scene.add(ambLight);
+  const dirLight=new THREE.DirectionalLight(0x88ccff,.8);
+  dirLight.position.set(5,15,10);
+  dirLight.castShadow=true;
+  dirLight.shadow.camera.far=50;
+  dirLight.shadow.mapSize.set(1024,1024);
+  scene.add(dirLight);
+  const pointLight=new THREE.PointLight(0x00bfff,1,30);
+  pointLight.position.set(0,8,0);
+  scene.add(pointLight);
+
+  createOceanFloor();
+  createCorals();
+  createCreatures();
+  createCaustics();
+
+  // Events
+  renderer.domElement.addEventListener('pointerdown',onPointerDown);
+  renderer.domElement.addEventListener('pointermove',onPointerMove);
+  renderer.domElement.addEventListener('pointerup',onPointerUp);
+  window.addEventListener('resize',onResize);
+
+  // Touch drag for camera rotation
+  renderer.domElement.addEventListener('touchstart',onTouchStart,{passive:false});
+  renderer.domElement.addEventListener('touchmove',onTouchMove,{passive:false});
+  renderer.domElement.addEventListener('touchend',onTouchEnd);
+
+  // Hide loading, show start
+  setTimeout(()=>{
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+  },2200);
+
+  animate();
+}
+
+// ========== Ocean Floor ==========
+function createOceanFloor(){
+  // Sandy floor
+  const floorGeo=new THREE.PlaneGeometry(50,50,32,32);
+  const floorMat=new THREE.MeshPhongMaterial({color:0x2d5a3d,shininess:10});
+  // Add some vertex displacement for terrain
+  const pos=floorGeo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    pos.setZ(i,Math.random()*.3);
+  }
+  floorGeo.computeVertexNormals();
+  const floor=new THREE.Mesh(floorGeo,floorMat);
+  floor.rotation.x=-Math.PI/2;
+  floor.position.y=-1;
+  floor.receiveShadow=true;
+  scene.add(floor);
+
+  // Rocks
+  for(let i=0;i<12;i++){
+    const rGeo=new THREE.DodecahedronGeometry(.5+Math.random()*.8,1);
+    const rMat=new THREE.MeshPhongMaterial({color:new THREE.Color().setHSL(.08,.2,.25+Math.random()*.15)});
+    const rock=new THREE.Mesh(rGeo,rMat);
+    rock.position.set((Math.random()-.5)*24,-.3+Math.random()*.3,(Math.random()-.5)*24);
+    rock.rotation.set(Math.random()*2,Math.random()*2,Math.random()*2);
+    rock.castShadow=true;
+    scene.add(rock);
+  }
+}
+
+// ========== Corals & Seaweed ==========
+function createCorals(){
+  const coralColors=[0xFF6B6B,0xFF8E72,0xFFA07A,0xE040FB,0xFFAB40,0x69F0AE,0x40C4FF];
+  for(let i=0;i<18;i++){
+    const g=new THREE.Group();
+    const hue=Math.random();
+    const col=new THREE.Color().setHSL(hue,.7,.5);
+    const mat=new THREE.MeshPhongMaterial({color:col,shininess:30});
+
+    // Branch coral
+    const branches=2+Math.floor(Math.random()*4);
+    for(let b=0;b<branches;b++){
+      const h=.5+Math.random()*2;
+      const r=.1+Math.random()*.2;
+      const geo=new THREE.CylinderGeometry(r*.3,r,h,6);
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.position.set((Math.random()-.5)*.6,h/2,(Math.random()-.5)*.6);
+      mesh.rotation.set((Math.random()-.5)*.4,(Math.random())*Math.PI,(Math.random()-.5)*.4);
+      g.add(mesh);
+      // Top sphere
+      const topGeo=new THREE.SphereGeometry(r*.6,6,6);
+      const topMesh=new THREE.Mesh(topGeo,mat);
+      topMesh.position.set(mesh.position.x,h+mesh.position.y*.2,mesh.position.z);
+      g.add(topMesh);
+    }
+    g.position.set((Math.random()-.5)*20,0,(Math.random()-.5)*20);
+    scene.add(g);
+    corals.push(g);
+  }
+
+  // Seaweed
+  for(let i=0;i<14;i++){
+    const g=new THREE.Group();
+    const swMat=new THREE.MeshPhongMaterial({color:0x2E7D32,side:THREE.DoubleSide});
+    for(let s=0;s<3;s++){
+      const h=1+Math.random()*2.5;
+      const geo=new THREE.PlaneGeometry(.3,h,1,4);
+      const mesh=new THREE.Mesh(geo,swMat);
+      mesh.position.set((Math.random()-.5)*.4,h/2,(Math.random()-.5)*.4);
+      mesh.rotation.y=Math.random()*Math.PI;
+      g.add(mesh);
+    }
+    g.position.set((Math.random()-.5)*22,0,(Math.random()-.5)*22);
+    g.userData.swaySpeed=.5+Math.random();
+    g.userData.swayAmount=.1+Math.random()*.15;
+    scene.add(g);
+    corals.push(g);
+  }
+}
+
+// ========== Caustics (light beams) ==========
+function createCaustics(){
+  for(let i=0;i<5;i++){
+    const geo=new THREE.PlaneGeometry(2,15);
+    const mat=new THREE.MeshBasicMaterial({color:0x88ddff,transparent:true,opacity:.04,side:THREE.DoubleSide});
+    const beam=new THREE.Mesh(geo,mat);
+    beam.position.set((Math.random()-.5)*20,7,(Math.random()-.5)*20);
+    beam.rotation.set(-.1+Math.random()*.2,Math.random()*Math.PI,0);
+    scene.add(beam);
+  }
+}
+
+// ========== Creatures ==========
+function createCreatureMesh(data,index){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshPhongMaterial({color:data.color,shininess:40});
+  const mat2=new THREE.MeshPhongMaterial({color:data.color,shininess:30});
+
+  switch(data.shape){
+    case 'fish':{
+      // Body
+      const body=new THREE.Mesh(new THREE.SphereGeometry(.4,10,8),mat);
+      body.scale.set(1.5,1,1);
+      g.add(body);
+      // Tail
+      const tailGeo=new THREE.ConeGeometry(.25,.5,4);
+      const tail=new THREE.Mesh(tailGeo,mat2);
+      tail.position.x=-.7;tail.rotation.z=Math.PI/2;
+      g.add(tail);
+      // White stripes
+      const stripeMat=new THREE.MeshBasicMaterial({color:0xffffff});
+      for(let s=0;s<2;s++){
+        const stripe=new THREE.Mesh(new THREE.BoxGeometry(.06,.5,.45),stripeMat);
+        stripe.position.set(-.1+s*.35,0,0);
+        g.add(stripe);
+      }
+      // Eye
+      const eyeMat=new THREE.MeshBasicMaterial({color:0xffffff});
+      const pupilMat=new THREE.MeshBasicMaterial({color:0x000000});
+      const eye=new THREE.Mesh(new THREE.SphereGeometry(.08,6,6),eyeMat);
+      eye.position.set(.35,.1,.25);
+      g.add(eye);
+      const pupil=new THREE.Mesh(new THREE.SphereGeometry(.05,6,6),pupilMat);
+      pupil.position.set(.4,.1,.3);
+      g.add(pupil);
+      break;
+    }
+    case 'turtle':{
+      // Shell
+      const shellMat=new THREE.MeshPhongMaterial({color:0x2E7D32,shininess:50});
+      const shell=new THREE.Mesh(new THREE.SphereGeometry(.5,10,8),shellMat);
+      shell.scale.set(1.2,.6,1);
+      g.add(shell);
+      // Head
+      const head=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),mat);
+      head.position.set(.6,.1,0);
+      g.add(head);
+      // Eyes
+      const eyeMat2=new THREE.MeshBasicMaterial({color:0x000000});
+      [.12,-.12].forEach(z=>{
+        const e=new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),eyeMat2);
+        e.position.set(.72,.18,z);
+        g.add(e);
+      });
+      // Flippers
+      const flipMat=new THREE.MeshPhongMaterial({color:0x388E3C});
+      [[.3,0,.45],[.3,0,-.45],[-.3,0,.45],[-.3,0,-.45]].forEach(([x,y,z])=>{
+        const flip=new THREE.Mesh(new THREE.BoxGeometry(.35,.08,.2),flipMat);
+        flip.position.set(x,y,z);flip.rotation.z=z>0?-.4:.4;
+        g.add(flip);
+      });
+      break;
+    }
+    case 'jellyfish':{
+      // Bell
+      const bellMat=new THREE.MeshPhongMaterial({color:0xBB86FC,transparent:true,opacity:.7,shininess:60});
+      const bell=new THREE.Mesh(new THREE.SphereGeometry(.4,10,8,0,Math.PI*2,0,Math.PI/2),bellMat);
+      g.add(bell);
+      // Tentacles
+      const tenMat=new THREE.MeshPhongMaterial({color:0xCE93D8,transparent:true,opacity:.5});
+      for(let t=0;t<6;t++){
+        const angle=(t/6)*Math.PI*2;
+        const ten=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,1+Math.random()*.5,4),tenMat);
+        ten.position.set(Math.cos(angle)*.2,-.5,Math.sin(angle)*.2);
+        g.add(ten);
+      }
+      break;
+    }
+    case 'octopus':{
+      // Head
+      const head=new THREE.Mesh(new THREE.SphereGeometry(.35,10,8),mat);
+      head.scale.set(1,1.2,1);
+      g.add(head);
+      // Eyes
+      const eyeW=new THREE.MeshBasicMaterial({color:0xffffff});
+      const eyeB=new THREE.MeshBasicMaterial({color:0x000000});
+      [.15,-.15].forEach(z=>{
+        const ew=new THREE.Mesh(new THREE.SphereGeometry(.08,6,6),eyeW);
+        ew.position.set(.25,.1,z);g.add(ew);
+        const eb=new THREE.Mesh(new THREE.SphereGeometry(.05,6,6),eyeB);
+        eb.position.set(.3,.1,z);g.add(eb);
+      });
+      // Tentacles
+      for(let t=0;t<8;t++){
+        const angle=(t/8)*Math.PI*2;
+        const ten=new THREE.Mesh(new THREE.CylinderGeometry(.04,.02,.8,5),mat2);
+        ten.position.set(Math.cos(angle)*.2,-.5,Math.sin(angle)*.2);
+        ten.rotation.set(Math.cos(angle)*.3,0,Math.sin(angle)*.3);
+        g.add(ten);
+      }
+      break;
+    }
+    case 'starfish':{
+      const armMat=new THREE.MeshPhongMaterial({color:0xFF9800,shininess:30});
+      // Central disk
+      const center=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),armMat);
+      center.scale.y=.5;g.add(center);
+      // 5 arms
+      for(let a=0;a<5;a++){
+        const ang=(a/5)*Math.PI*2-Math.PI/2;
+        const arm=new THREE.Mesh(new THREE.CylinderGeometry(.06,.1,.5,5),armMat);
+        arm.position.set(Math.cos(ang)*.3,0,Math.sin(ang)*.3);
+        arm.rotation.set(0,0,Math.PI/2);
+        arm.rotation.y=-ang;
+        arm.scale.y=.5;
+        g.add(arm);
+      }
+      break;
+    }
+    case 'whale':{
+      // Body
+      const body=new THREE.Mesh(new THREE.SphereGeometry(.8,10,8),mat);
+      body.scale.set(2,1,1);
+      g.add(body);
+      // Belly
+      const bellyMat=new THREE.MeshPhongMaterial({color:0x90CAF9});
+      const belly=new THREE.Mesh(new THREE.SphereGeometry(.7,10,8),bellyMat);
+      belly.scale.set(1.8,.6,.8);belly.position.y=-.15;
+      g.add(belly);
+      // Tail
+      const tailGeo=new THREE.BoxGeometry(.15,.6,.5);
+      const tail=new THREE.Mesh(tailGeo,mat);
+      tail.position.set(-1.5,.1,0);tail.rotation.z=.3;
+      g.add(tail);
+      // Eye
+      const eyeM=new THREE.MeshBasicMaterial({color:0xffffff});
+      const eye=new THREE.Mesh(new THREE.SphereGeometry(.08,6,6),eyeM);
+      eye.position.set(.9,.15,.55);g.add(eye);
+      const pupilM=new THREE.MeshBasicMaterial({color:0x000000});
+      const pupil=new THREE.Mesh(new THREE.SphereGeometry(.05,6,6),pupilM);
+      pupil.position.set(.95,.15,.6);g.add(pupil);
+      // Mouth
+      const smileM=new THREE.MeshBasicMaterial({color:0x1565C0});
+      const smile=new THREE.Mesh(new THREE.TorusGeometry(.15,.02,4,8,Math.PI),smileM);
+      smile.position.set(.7,-.05,.7);smile.rotation.x=.5;
+      g.add(smile);
+      break;
+    }
+    case 'seahorse':{
+      // Body
+      const body=new THREE.Mesh(new THREE.SphereGeometry(.15,8,6),mat);
+      body.scale.set(1,2.5,1);body.position.y=.2;
+      g.add(body);
+      // Head
+      const head=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),mat);
+      head.position.set(.08,.5,0);
+      g.add(head);
+      // Snout
+      const snout=new THREE.Mesh(new THREE.CylinderGeometry(.03,.02,.15,4),mat);
+      snout.position.set(.2,.48,0);snout.rotation.z=Math.PI/2;
+      g.add(snout);
+      // Eye
+      const eyeM3=new THREE.MeshBasicMaterial({color:0x000000});
+      const eye3=new THREE.Mesh(new THREE.SphereGeometry(.03,6,6),eyeM3);
+      eye3.position.set(.15,.53,.08);g.add(eye3);
+      // Curled tail
+      const tailMat=new THREE.MeshPhongMaterial({color:0xFFB300});
+      const tail2=new THREE.Mesh(new THREE.TorusGeometry(.1,.03,4,8,Math.PI),tailMat);
+      tail2.position.set(0,-.3,0);tail2.rotation.x=Math.PI/2;
+      g.add(tail2);
+      break;
+    }
+    case 'crab':{
+      // Body
+      const body=new THREE.Mesh(new THREE.SphereGeometry(.3,8,6),mat);
+      body.scale.set(1.3,.5,1);
+      g.add(body);
+      // Eyes on stalks
+      const stalkMat=new THREE.MeshPhongMaterial({color:0xD32F2F});
+      [.15,-.15].forEach(z=>{
+        const stalk=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.2,4),stalkMat);
+        stalk.position.set(0,.25,z);
+        g.add(stalk);
+        const eyeB=new THREE.Mesh(new THREE.SphereGeometry(.05,6,6),new THREE.MeshBasicMaterial({color:0x000000}));
+        eyeB.position.set(0,.35,z);
+        g.add(eyeB);
+      });
+      // Claws
+      const clawMat=new THREE.MeshPhongMaterial({color:0xE53935});
+      [.5,-.5].forEach(z=>{
+        const claw=new THREE.Mesh(new THREE.SphereGeometry(.12,6,6),clawMat);
+        claw.scale.set(1.5,.8,.8);claw.position.set(.2,.05,z);
+        g.add(claw);
+      });
+      // Legs
+      for(let l=0;l<3;l++){
+        [.35,-.35].forEach(z=>{
+          const leg=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.3,3),clawMat);
+          leg.position.set(-.1+l*.12,-.15,z>0?z+l*.05:z-l*.05);
+          leg.rotation.z=.5*(z>0?1:-1);
+          g.add(leg);
+        });
+      }
+      break;
+    }
+  }
+
+  // All meshes in group are clickable
+  g.traverse(c=>{if(c.isMesh){c.userData.creatureIndex=index;}});
+  return g;
+}
+
+function createCreatures(){
+  const spread=16;
+  creatureData.forEach((data,i)=>{
+    const mesh=createCreatureMesh(data,i);
+    const angle=(i/creatureData.length)*Math.PI*2;
+    const r=3+Math.random()*5;
+    mesh.position.set(Math.cos(angle)*r,data.y,Math.sin(angle)*r);
+    mesh.userData.basePos=mesh.position.clone();
+    mesh.userData.index=i;
+    mesh.userData.swimSpeed=.3+Math.random()*.5;
+    mesh.userData.swimRadius=.5+Math.random()*1;
+    mesh.userData.swimPhase=Math.random()*Math.PI*2;
+    mesh.userData.bobSpeed=1+Math.random();
+    mesh.userData.bobAmount=.2+Math.random()*.3;
+    mesh.scale.setScalar(data.size);
+    scene.add(mesh);
+    creatures.push(mesh);
+  });
+}
+
+// ========== Shells (collect mode) ==========
+function spawnShells(){
+  shells.forEach(s=>scene.remove(s));
+  shells=[];
+  const shellColors=[0xFF69B4,0xFFD700,0x00CED1,0xFF6347,0x9ACD32,0xDA70D6,0x40E0D0,0xFFA07A,0x87CEEB,0xFFB6C1];
+  for(let i=0;i<MAX_COLLECT;i++){
+    const g=new THREE.Group();
+    // Shell shape
+    const shellMat=new THREE.MeshPhongMaterial({color:shellColors[i],shininess:80});
+    const body=new THREE.Mesh(new THREE.SphereGeometry(.2,8,6),shellMat);
+    body.scale.set(1,.6,1.2);
+    g.add(body);
+    // Spiral on top
+    const spiral=new THREE.Mesh(new THREE.TorusGeometry(.1,.03,4,8,Math.PI*1.5),shellMat);
+    spiral.position.y=.1;
+    g.add(spiral);
+
+    // Glow
+    const glowMat=new THREE.MeshBasicMaterial({color:shellColors[i],transparent:true,opacity:.3});
+    const glow=new THREE.Mesh(new THREE.SphereGeometry(.35,8,6),glowMat);
+    g.add(glow);
+
+    const angle=Math.random()*Math.PI*2;
+    const r=3+Math.random()*7;
+    g.position.set(Math.cos(angle)*r,Math.random()*3+.3,Math.sin(angle)*r);
+    g.userData.shellIndex=i;
+    g.traverse(c=>{if(c.isMesh)c.userData.isShell=true;});
+    scene.add(g);
+    shells.push(g);
+  }
+  collectCount=0;
+}
+
+// ========== Bubbles ==========
+function spawnBubble(){
+  const geo=new THREE.SphereGeometry(.05+Math.random()*.1,6,6);
+  const mat=new THREE.MeshPhongMaterial({color:0xaaeeff,transparent:true,opacity:.3,shininess:100});
+  const bubble=new THREE.Mesh(geo,mat);
+  bubble.position.set((Math.random()-.5)*20,0,(Math.random()-.5)*20);
+  bubble.userData.speed=.5+Math.random()*1;
+  bubble.userData.wobble=Math.random()*Math.PI*2;
+  scene.add(bubble);
+  bubbles.push(bubble);
+}
+
+// ========== Interaction ==========
+function onPointerDown(e){
+  if(e.target!==renderer.domElement)return;
+  initAudio();
+  isDragging=false;
+  const rect=renderer.domElement.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+
+  raycaster.setFromCamera(mouse,camera);
+  // Check creatures
+  const allMeshes=[];
+  creatures.forEach(c=>c.traverse(m=>{if(m.isMesh)allMeshes.push(m)}));
+  shells.forEach(s=>s.traverse(m=>{if(m.isMesh)allMeshes.push(m)}));
+  const hits=raycaster.intersectObjects(allMeshes);
+
+  if(hits.length>0){
+    const hit=hits[0].object;
+    if(hit.userData.isShell && currentMode==='collect'){
+      handleShellClick(hit);
+    } else if(hit.userData.creatureIndex!==undefined){
+      handleCreatureClick(hit.userData.creatureIndex);
+    }
+  }
+}
+
+function onPointerMove(){isDragging=true}
+function onPointerUp(){}
+
+let touchStartX=0,touchStartY=0,touchMoved=false;
+function onTouchStart(e){
+  if(e.touches.length===1){
+    touchStartX=e.touches[0].clientX;
+    touchStartY=e.touches[0].clientY;
+    touchMoved=false;
+  }
+}
+function onTouchMove(e){
+  e.preventDefault();
+  if(e.touches.length===1){
+    const dx=e.touches[0].clientX-touchStartX;
+    if(Math.abs(dx)>10)touchMoved=true;
+    cameraAngle-=dx*.005;
+    touchStartX=e.touches[0].clientX;
+    touchStartY=e.touches[0].clientY;
+  }
+}
+function onTouchEnd(e){
+  // If no significant movement, treat as tap
+  if(!touchMoved&&e.changedTouches.length>0){
+    const touch=e.changedTouches[0];
+    const rect=renderer.domElement.getBoundingClientRect();
+    mouse.x=((touch.clientX-rect.left)/rect.width)*2-1;
+    mouse.y=-((touch.clientY-rect.top)/rect.height)*2+1;
+
+    raycaster.setFromCamera(mouse,camera);
+    const allMeshes=[];
+    creatures.forEach(c=>c.traverse(m=>{if(m.isMesh)allMeshes.push(m)}));
+    shells.forEach(s=>s.traverse(m=>{if(m.isMesh)allMeshes.push(m)}));
+    const hits=raycaster.intersectObjects(allMeshes);
+
+    if(hits.length>0){
+      const hit=hits[0].object;
+      if(hit.userData.isShell && currentMode==='collect'){
+        handleShellClick(hit);
+      } else if(hit.userData.creatureIndex!==undefined){
+        handleCreatureClick(hit.userData.creatureIndex);
+      }
+    }
+  }
+}
+
+function handleCreatureClick(idx){
+  initAudio();
+  if(currentMode==='explore'){
+    playClick();
+    showInfoCard(idx);
+    highlightCreature(idx);
+  } else if(currentMode==='find'){
+    if(idx===findIdx){
+      playSuccess();
+      addStars(2);
+      showScorePopup('✅ 太棒了！+2⭐');
+      highlightCreature(idx);
+      findRound++;
+      if(findRound>=MAX_FIND_ROUNDS){
+        setTimeout(()=>{
+          playCelebrate();
+          showCelebration();
+          setMode('explore');
+        },1000);
+      } else {
+        setTimeout(()=>nextFindTarget(),1500);
+      }
+    } else {
+      playWrong();
+      showScorePopup('再试试看！');
+      wiggleCreature(idx);
+    }
+  }
+}
+
+function handleShellClick(mesh){
+  playSuccess();
+  // Find shell group
+  let shellGroup=mesh;
+  while(shellGroup.parent&&!shellGroup.userData.isShell){
+    if(shellGroup.parent===scene)break;
+    shellGroup=shellGroup.parent;
+  }
+  // Find by position match
+  let targetShell=null;
+  for(const s of shells){
+    const d=s.position.distanceTo(mesh.getWorldPosition(new THREE.Vector3()));
+    if(d<2){targetShell=s;break;}
+  }
+  if(!targetShell){
+    // Try traversing up
+    let p=mesh;
+    while(p.parent){
+      if(shells.includes(p)){targetShell=p;break;}
+      p=p.parent;
+    }
+  }
+  if(targetShell){
+    scene.remove(targetShell);
+    shells=shells.filter(s=>s!==targetShell);
+    collectCount++;
+    addStars(1);
+    showScorePopup(`🐚 ${collectCount}/${MAX_COLLECT}`);
+    if(collectCount>=MAX_COLLECT){
+      setTimeout(()=>{
+        playCelebrate();
+        showCelebration();
+        showScorePopup('🎉 全部收集完成！');
+        setTimeout(()=>setMode('explore'),2000);
+      },500);
+    }
+  }
+}
+
+function highlightCreature(idx){
+  const c=creatures[idx];
+  const origScale=c.scale.x;
+  c.scale.setScalar(origScale*1.3);
+  setTimeout(()=>c.scale.setScalar(origScale),300);
+}
+
+function wiggleCreature(idx){
+  const c=creatures[idx];
+  const orig=c.rotation.y;
+  c.rotation.y+=.3;
+  setTimeout(()=>c.rotation.y=orig-.3,100);
+  setTimeout(()=>c.rotation.y=orig,200);
+}
+
+// ========== Info Card ==========
+function showInfoCard(idx){
+  const data=creatureData[idx];
+  document.getElementById('ic-emoji').textContent=data.emoji;
+  document.getElementById('ic-name').textContent=data.name;
+  document.getElementById('ic-fact').textContent=data.fact;
+  const tagsEl=document.getElementById('ic-tags');
+  tagsEl.innerHTML=data.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+  document.getElementById('info-card').classList.add('show');
+  selectedCreature=idx;
+}
+
+function hideInfoCard(){
+  document.getElementById('info-card').classList.remove('show');
+  selectedCreature=null;
+}
+
+// ========== Find Mode ==========
+function nextFindTarget(){
+  findIdx=Math.floor(Math.random()*creatureData.length);
+  const data=creatureData[findIdx];
+  document.getElementById('q-text').textContent=`找到 ${data.emoji} ${data.name}！`;
+  document.getElementById('question-banner').classList.add('show');
+}
+
+// ========== Modes ==========
+function setMode(mode){
+  currentMode=mode;
+  hideInfoCard();
+
+  document.querySelectorAll('.tool-btn').forEach(b=>{
+    b.classList.toggle('active',b.dataset.mode===mode);
+  });
+
+  const badge=document.getElementById('mode-badge');
+  const qBanner=document.getElementById('question-banner');
+
+  // Remove old shells if switching away
+  if(mode!=='collect'){
+    shells.forEach(s=>scene.remove(s));
+    shells=[];
+  }
+
+  switch(mode){
+    case 'explore':
+      badge.textContent='🔍 自由探索';
+      badge.style.background='rgba(0,119,182,.85)';
+      qBanner.classList.remove('show');
+      break;
+    case 'find':
+      badge.textContent='🎯 寻找海洋动物';
+      badge.style.background='rgba(233,30,99,.85)';
+      findRound=0;
+      nextFindTarget();
+      break;
+    case 'collect':
+      badge.textContent='🐚 收集贝壳';
+      badge.style.background='rgba(255,152,0,.85)';
+      qBanner.classList.remove('show');
+      spawnShells();
+      break;
+  }
+
+  badge.classList.add('show');
+  setTimeout(()=>badge.classList.remove('show'),2000);
+}
+
+// ========== Score ==========
+function addStars(n){
+  stars+=n;
+  document.getElementById('star-count').textContent=stars;
+}
+
+function showScorePopup(text){
+  const el=document.createElement('div');
+  el.className='score-popup';
+  el.textContent=text;
+  el.style.left=Math.random()*60+20+'%';
+  el.style.top='40%';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1200);
+}
+
+function showCelebration(){
+  const container=document.getElementById('celebration');
+  const emojis=['🎉','⭐','🌟','✨','🎊','🐚','🐠','💫','🪸','💙'];
+  for(let i=0;i<25;i++){
+    const p=document.createElement('div');
+    p.className='celeb-particle';
+    p.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    p.style.left=Math.random()*100+'%';
+    p.style.top=50+Math.random()*40+'%';
+    p.style.animationDelay=Math.random()*.5+'s';
+    container.appendChild(p);
+  }
+  setTimeout(()=>container.innerHTML='',2500);
+}
+
+// ========== Camera ==========
+function resetCamera(){
+  cameraAngle=0;
+  cameraHeight=10;
+  cameraRadius=16;
+}
+
+function updateCamera(){
+  camera.position.x=Math.sin(cameraAngle)*cameraRadius;
+  camera.position.z=Math.cos(cameraAngle)*cameraRadius;
+  camera.position.y=cameraHeight;
+  camera.lookAt(0,2.5,0);
+}
+
+// ========== Animation ==========
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta();
+  const t=clock.getElapsedTime();
+
+  // Auto rotate slowly
+  cameraAngle+=dt*.05;
+  updateCamera();
+
+  // Animate creatures
+  creatures.forEach((c,i)=>{
+    const d=c.userData;
+    const base=d.basePos;
+    // Swim around
+    c.position.x=base.x+Math.sin(t*d.swimSpeed+d.swimPhase)*d.swimRadius;
+    c.position.z=base.z+Math.cos(t*d.swimSpeed+d.swimPhase)*d.swimRadius;
+    c.position.y=base.y+Math.sin(t*d.bobSpeed)*d.bobAmount;
+    // Face direction of movement
+    c.rotation.y=Math.sin(t*d.swimSpeed+d.swimPhase)*.3;
+    // Individual animations
+    const data=creatureData[i];
+    if(data.shape==='jellyfish'){
+      c.scale.y=d.size*(1+Math.sin(t*2)*.1);
+      c.children.forEach((ch,ci)=>{
+        if(ci>0) ch.rotation.x=Math.sin(t*1.5+ci)*.2;
+      });
+    }
+    if(data.shape==='fish'){
+      // Tail wag
+      if(c.children[1])c.children[1].rotation.y=Math.sin(t*8)*.3;
+    }
+    if(data.shape==='crab'){
+      c.position.y=base.y+Math.max(0,Math.sin(t*d.bobSpeed)*d.bobAmount);
+    }
+  });
+
+  // Animate seaweed
+  corals.forEach(c=>{
+    if(c.userData.swaySpeed){
+      c.rotation.x=Math.sin(t*c.userData.swaySpeed)*c.userData.swayAmount;
+      c.rotation.z=Math.cos(t*c.userData.swaySpeed*.7)*c.userData.swayAmount*.5;
+    }
+  });
+
+  // Animate shells
+  shells.forEach(s=>{
+    s.rotation.y=t*1.5;
+    s.position.y+=Math.sin(t*3+s.userData.shellIndex)*.002;
+    // Glow pulse
+    const glow=s.children[2];
+    if(glow&&glow.material){
+      glow.material.opacity=.2+Math.sin(t*3+s.userData.shellIndex)*.15;
+    }
+  });
+
+  // Bubbles
+  bubbleTimer+=dt;
+  if(bubbleTimer>.5){
+    bubbleTimer=0;
+    if(bubbles.length<30)spawnBubble();
+  }
+  for(let i=bubbles.length-1;i>=0;i--){
+    const b=bubbles[i];
+    b.position.y+=b.userData.speed*dt;
+    b.position.x+=Math.sin(t+b.userData.wobble)*.01;
+    if(b.position.y>12){
+      scene.remove(b);
+      bubbles.splice(i,1);
+    }
+  }
+
+  renderer.render(scene,camera);
+}
+
+// ========== Start ==========
+function startGame(){
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('toolbar').style.display='flex';
+  const badge=document.getElementById('mode-badge');
+  badge.textContent='🔍 自由探索';
+  badge.classList.add('show');
+  setTimeout(()=>badge.classList.remove('show'),2500);
+  playSuccess();
+}
+
+function onResize(){
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+}
+
+// Boot
+init();
+</script>
+</body>
+</html>
