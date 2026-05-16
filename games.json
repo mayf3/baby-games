@@ -488,5 +488,19 @@
     "aiGenerated": true,
     "aiTool": "Daily Game Dev (GLM-5.1)",
     "addedDate": "2026-05-16"
+  },
+  {
+    "id": "085-picture-book",
+    "title": "绘本听读",
+    "emoji": "📖",
+    "type": "language",
+    "typeLabel": "语言类",
+    "age": "3-6岁",
+    "description": "翻阅精美的互动绘本，听有趣的故事！6个经典小故事：小兔子的早晨、种花记、小猫钓鱼、一起做蛋糕、下雨天、小蝌蚪找妈妈，每本读完还有趣味小测验，培养阅读兴趣、语言理解和故事记忆能力，支持语音朗读",
+    "path": "games/085-picture-book/index.html",
+    "difficulty": "简单",
+    "aiGenerated": true,
+    "aiTool": "Daily Game Dev (GLM-5.1)",
+    "addedDate": "2026-05-17"
   }
 ]

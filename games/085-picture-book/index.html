@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>绘本听读 📖</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#1a1a2e}
+#app{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+
+/* Loading */
+#loading{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#667eea,#764ba2);transition:opacity .6s}
+#loading.hidden{opacity:0;pointer-events:none}
+#loading .logo{font-size:64px;animation:bounce 1.5s infinite}
+#loading h1{font-size:28px;color:#fff;margin:16px 0 8px;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+#loading p{font-size:16px;color:rgba(255,255,255,.7)}
+
+/* Start screen */
+#start-screen{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#FF9A9E 0%,#FAD0C4 50%,#FFD1FF 100%);transition:opacity .6s}
+#start-screen.hidden{opacity:0;pointer-events:none}
+#start-screen .hero{font-size:80px;animation:bounce 2s infinite;margin-bottom:16px}
+#start-screen h1{font-size:36px;color:#e17055;text-shadow:0 2px 4px rgba(0,0,0,.1)}
+#start-screen p{font-size:18px;color:#888;margin:8px 0 32px}
+#start-screen .start-btn{background:linear-gradient(135deg,#e17055,#d63031);color:#fff;border:none;padding:16px 48px;font-size:22px;font-weight:700;border-radius:30px;cursor:pointer;box-shadow:0 6px 24px rgba(214,48,49,.3);transition:transform .2s}
+#start-screen .start-btn:active{transform:scale(.95)}
+
+/* Book select */
+#book-select{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;padding:20px;background:linear-gradient(135deg,#a29bfe,#6c5ce7);transition:opacity .5s;overflow-y:auto}
+#book-select.hidden{opacity:0;pointer-events:none}
+#book-select h1{font-size:28px;color:#fff;margin:20px 0 8px;text-shadow:0 2px 8px rgba(0,0,0,.2)}
+#book-select .sub{font-size:15px;color:rgba(255,255,255,.8);margin-bottom:24px}
+.book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;max-width:700px;width:100%;padding:0 8px}
+.book-card{background:rgba(255,255,255,.95);border-radius:20px;padding:20px 16px;cursor:pointer;transition:all .3s;box-shadow:0 4px 16px rgba(0,0,0,.15);text-align:center;position:relative;overflow:hidden}
+.book-card:active{transform:scale(.95)}
+.book-card .book-emoji{font-size:48px;display:block;margin-bottom:10px}
+.book-card .book-title{font-size:16px;font-weight:700;color:#333}
+.book-card .book-desc{font-size:12px;color:#888;margin-top:4px}
+.book-card .badge{position:absolute;top:10px;right:10px;background:#ffeaa7;color:#d63031;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700}
+.book-card .new-badge{background:#55efc4;color:#00b894}
+.book-back{background:rgba(255,255,255,.2);border:none;color:#fff;font-size:16px;padding:10px 24px;border-radius:20px;cursor:pointer;margin-bottom:16px;transition:all .2s}
+.book-back:active{transform:scale(.95)}
+
+/* Reader */
+#reader{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;background:#fff;transition:opacity .4s}
+#reader.hidden{opacity:0;pointer-events:none}
+
+/* Reader header */
+#reader-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(0,0,0,.03);z-index:10}
+#reader-header .back-btn{background:none;border:none;font-size:24px;cursor:pointer;padding:8px;border-radius:50%;transition:background .2s}
+#reader-header .back-btn:active{background:rgba(0,0,0,.1)}
+#reader-header .book-title-bar{font-size:16px;font-weight:700;color:#333;flex:1;text-align:center}
+#reader-header .audio-btn{background:none;border:none;font-size:22px;cursor:pointer;padding:8px;border-radius:50%;transition:all .2s}
+#reader-header .audio-btn:active{transform:scale(.9)}
+#reader-header .audio-btn.playing{background:rgba(108,92,231,.15)}
+
+/* Page area */
+#page-area{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.page{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;transition:all .5s cubic-bezier(.25,.46,.45,.94);opacity:0;transform:translateX(100%)}
+.page.active{opacity:1;transform:translateX(0)}
+.page.prev{opacity:0;transform:translateX(-100%)}
+.page-illustration{width:100%;max-width:400px;aspect-ratio:4/3;border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.page-emoji{font-size:100px;position:relative;z-index:2;filter:drop-shadow(0 4px 8px rgba(0,0,0,.1))}
+.page-bg-decor{position:absolute;inset:0;opacity:.15;font-size:80px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;overflow:hidden}
+.page-text{font-size:22px;font-weight:700;color:#2d3436;text-align:center;line-height:1.6;max-width:400px;padding:0 16px;min-height:80px}
+.page-text .highlight{color:#e17055}
+
+/* Nav dots */
+#page-dots{display:flex;gap:8px;justify-content:center;padding:8px 0}
+.dot{width:10px;height:10px;border-radius:5px;background:#ddd;transition:all .3s}
+.dot.active{background:#6c5ce7;width:24px}
+
+/* Nav buttons */
+#nav-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 20px;gap:16px}
+.nav-btn{flex:1;max-width:180px;padding:14px;border:none;border-radius:25px;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.nav-btn:active{transform:scale(.95)}
+.nav-btn.prev-btn{background:#f1f2f6;color:#636e72}
+.nav-btn.next-btn{background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;box-shadow:0 4px 16px rgba(108,92,231,.3)}
+.nav-btn:disabled{opacity:.3;cursor:default;transform:none}
+
+/* Mini game overlay */
+#mini-game{position:fixed;inset:0;z-index:85;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;transition:opacity .4s}
+#mini-game.hidden{opacity:0;pointer-events:none}
+.mini-game-card{background:#fff;border-radius:24px;padding:28px;max-width:360px;width:90%;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,.3);animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+.mini-game-card h2{font-size:22px;color:#6c5ce7;margin-bottom:16px}
+.mini-game-card .q-emoji{font-size:64px;margin-bottom:12px}
+.mini-game-card .q-text{font-size:18px;color:#2d3436;margin-bottom:20px;line-height:1.5}
+.mini-game-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mg-option{padding:14px;border:3px solid #eee;border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;background:#fff}
+.mg-option:active{transform:scale(.95)}
+.mg-option.correct{border-color:#00b894;background:#d4edda;animation:pulse .5s}
+.mg-option.wrong{border-color:#d63031;background:#ffe6e6;animation:shake .4s}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.mini-game-result{font-size:20px;margin-top:16px;font-weight:700}
+.mini-game-result .stars{color:#ffd700}
+
+/* Celebration */
+#celebration{position:fixed;inset:0;z-index:95;pointer-events:none}
+.celeb-particle{position:absolute;font-size:28px;animation:celebFly 2.5s ease-out forwards}
+@keyframes celebFly{0%{transform:translateY(0) rotate(0) scale(0);opacity:1}100%{transform:translateY(-400px) rotate(720deg) scale(1.2);opacity:0}}
+
+/* Score popup */
+.score-popup{position:fixed;z-index:60;font-size:28px;font-weight:900;pointer-events:none;animation:scorePop 1.2s ease-out forwards}
+@keyframes scorePop{0%{transform:translateY(0) scale(.5);opacity:1}50%{transform:translateY(-60px) scale(1.2);opacity:1}100%{transform:translateY(-120px) scale(1);opacity:0}}
+
+/* End screen */
+#end-screen{position:fixed;inset:0;z-index:88;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#ffeaa7,#fdcb6e);transition:opacity .5s}
+#end-screen.hidden{opacity:0;pointer-events:none}
+#end-screen .big-emoji{font-size:80px;animation:bounce 1.5s infinite}
+#end-screen h1{font-size:32px;color:#2d3436;margin:16px 0}
+#end-screen .score{font-size:24px;color:#6c5ce7;font-weight:700;margin-bottom:24px}
+#end-screen .btn-row{display:flex;gap:12px}
+#end-screen .btn{padding:14px 32px;border:none;border-radius:25px;font-size:18px;font-weight:700;cursor:pointer;transition:transform .2s}
+#end-screen .btn:active{transform:scale(.95)}
+#end-screen .btn-primary{background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;box-shadow:0 4px 16px rgba(108,92,231,.3)}
+#end-screen .btn-secondary{background:#fff;color:#6c5ce7}
+
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+
+/* Auto-play indicator */
+.auto-indicator{position:fixed;top:60px;right:16px;z-index:15;background:rgba(108,92,231,.9);color:#fff;font-size:12px;padding:4px 12px;border-radius:12px;opacity:0;transition:opacity .3s}
+.auto-indicator.show{opacity:1}
+
+/* Responsive */
+@media(max-width:480px){
+  .page-emoji{font-size:72px}
+  .page-text{font-size:18px}
+  .page-illustration{border-radius:16px}
+  .book-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .book-card .book-emoji{font-size:36px}
+  .book-card .book-title{font-size:14px}
+  #start-screen h1{font-size:28px}
+  #start-screen .hero{font-size:60px}
+  .mini-game-card{padding:20px}
+  .mini-game-card .q-emoji{font-size:48px}
+  .mini-game-card .q-text{font-size:15px}
+}
+@media(max-width:360px){
+  .page-text{font-size:16px}
+  .nav-btn{padding:12px;font-size:14px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- Loading -->
+<div id="loading">
+  <div class="logo">📖</div>
+  <h1>绘本听读</h1>
+  <p>正在准备故事书...</p>
+</div>
+
+<!-- Start screen -->
+<div id="start-screen" class="hidden">
+  <div class="hero">📖</div>
+  <h1>绘本听读</h1>
+  <p>和绘本里的故事交朋友！</p>
+  <button class="start-btn" onclick="enterBookSelect()">选一本书吧 📚</button>
+</div>
+
+<!-- Book select -->
+<div id="book-select" class="hidden">
+  <button class="book-back" onclick="backToStart()">← 返回</button>
+  <h1>📚 选择绘本</h1>
+  <div class="sub">选一本你喜欢的故事吧</div>
+  <div class="book-grid" id="book-grid"></div>
+</div>
+
+<!-- Reader -->
+<div id="reader" class="hidden">
+  <div id="reader-header">
+    <button class="back-btn" onclick="backToSelect()">←</button>
+    <div class="book-title-bar" id="reader-title">绘本名称</div>
+    <button class="audio-btn" id="audio-btn" onclick="toggleAudio()">🔊</button>
+  </div>
+  <div id="page-area"></div>
+  <div id="page-dots"></div>
+  <div id="nav-bar">
+    <button class="nav-btn prev-btn" id="prev-btn" onclick="prevPage()">← 上一页</button>
+    <button class="nav-btn next-btn" id="next-btn" onclick="nextPage()">下一页 →</button>
+  </div>
+</div>
+
+<!-- Mini game -->
+<div id="mini-game" class="hidden"></div>
+
+<!-- End screen -->
+<div id="end-screen" class="hidden"></div>
+
+<!-- Celebration -->
+<div id="celebration"></div>
+</div>
+
+<!-- Auto-play indicator -->
+<div class="auto-indicator" id="auto-indicator">🔊 自动播放中</div>
+
+<script>
+// ========== Audio ==========
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+function initAudio(){ if(!audioCtx) audioCtx = new AudioCtx(); }
+
+function playSound(freq, dur=.15, type='sine', vol=.2){
+  if(!audioCtx) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime+dur);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime+dur);
+}
+function playClick(){ playSound(660,.08); }
+function playPageTurn(){ playSound(440,.12); setTimeout(()=>playSound(554,.12),80); setTimeout(()=>playSound(660,.15),160); }
+function playSuccess(){ playSound(523,.1); setTimeout(()=>playSound(659,.1),100); setTimeout(()=>playSound(784,.15),200); }
+function playWrong(){ playSound(220,.2,'triangle',.12); }
+function playCelebrate(){ [523,587,659,784,880,1047].forEach((f,i)=>setTimeout(()=>playSound(f,.2,'sine',.15),i*100)); }
+
+// Speech synthesis for reading aloud
+let speechEnabled = false;
+let currentUtterance = null;
+
+function speakText(text){
+  if(!speechEnabled) return;
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 0.8;
+  u.pitch = 1.2;
+  const voices = window.speechSynthesis.getVoices();
+  const zhVoice = voices.find(v => v.lang.startsWith('zh'));
+  if(zhVoice) u.voice = zhVoice;
+  currentUtterance = u;
+  window.speechSynthesis.speak(u);
+  document.getElementById('audio-btn').classList.add('playing');
+  document.getElementById('auto-indicator').classList.add('show');
+  u.onend = () => {
+    document.getElementById('audio-btn').classList.remove('playing');
+    document.getElementById('auto-indicator').classList.remove('show');
+  };
+}
+
+function toggleAudio(){
+  initAudio();
+  playClick();
+  speechEnabled = !speechEnabled;
+  const btn = document.getElementById('audio-btn');
+  btn.textContent = speechEnabled ? '🔊' : '🔇';
+  btn.style.opacity = speechEnabled ? '1' : '.5';
+  if(speechEnabled){
+    speakText(currentPageText());
+  } else {
+    window.speechSynthesis.cancel();
+    btn.classList.remove('playing');
+    document.getElementById('auto-indicator').classList.remove('show');
+  }
+}
+
+function currentPageText(){
+  if(!currentBook || currentPage < 0) return '';
+  const page = currentBook.pages[currentPage];
+  return page ? page.text : '';
+}
+
+// ========== Books Data ==========
+const books = [
+  {
+    id: 'bunny-morning',
+    title: '小兔子的早晨',
+    emoji: '🐰',
+    desc: '起床、穿衣、吃早餐',
+    color: '#ffeaa7',
+    bgColors: ['#fdcb6e','#ffeaa7','#fab1a0'],
+    pages: [
+      { text: '☀️ 清晨，太阳公公升起来了', emoji: '☀️', bg: '#fff3cd', decors: '🌤️⛅🌈' },
+      { text: '🐰 小兔子揉揉眼睛，从暖暖的被窝里坐起来', emoji: '🐰', bg: '#fff3cd', decors: '🛏️💤🌙' },
+      { text: '👕 小兔子穿上了蓝色的衣服', emoji: '👕', bg: '#dfe6e9', decors: '👗🧣🧤' },
+      { text: '🪥 接着刷牙洗脸，白白的牙齿真干净', emoji: '🪥', bg: '#dfe6e9', decors: '💧🧼🪥✨' },
+      { text: '🥣 早餐吃什么呢？一碗热乎乎的粥！', emoji: '🥣', bg: '#ffeaa7', decors: '🍞🥛🍎🥚' },
+      { text: '🎒 准备好啦！小兔子开心地去上学了！', emoji: '🎒', bg: '#dcedc8', decors: '🌸🌺🦋🌼' },
+    ],
+    questions: [
+      { emoji: '❓', text: '小兔子先做了什么？', options: ['穿衣服','吃早餐'], answer: 0 },
+      { emoji: '❓', text: '小兔子的衣服是什么颜色？', options: ['红色','蓝色'], answer: 1 },
+    ]
+  },
+  {
+    id: 'grow-flower',
+    title: '种花记',
+    emoji: '🌻',
+    desc: '播种、浇水、开花',
+    color: '#55efc4',
+    bgColors: ['#00b894','#55efc4','#81ecec'],
+    pages: [
+      { text: '🌱 春天来了，小红拿到了一颗小种子', emoji: '🌱', bg: '#c8e6c9', decors: '🌤️🌸🐝' },
+      { text: '🕳️ 小红把种子轻轻地种在了泥土里', emoji: '🕳️', bg: '#d7ccc8', decors: '🪴🌍✋' },
+      { text: '💧 每天都给小种子浇浇水', emoji: '💧', bg: '#bbdefb', decors: '💦🌧️☀️' },
+      { text: '🌿 过了几天，长出了小小的绿芽！', emoji: '🌿', bg: '#c8e6c9', decors: '🌱☀️🌧️' },
+      { text: '🌸 又过了好多天，长出了花苞苞', emoji: '🌸', bg: '#f8bbd0', decors: '🌺🦋🌞' },
+      { text: '🌻 终于，一朵漂亮的向日葵开花啦！', emoji: '🌻', bg: '#fff9c4', decors: '🐝🦋🌈⭐' },
+    ],
+    questions: [
+      { emoji: '❓', text: '种花需要做什么？', options: ['浇水','不用管'], answer: 0 },
+      { emoji: '❓', text: '向日葵是什么颜色的？', options: ['红色','黄色'], answer: 1 },
+    ]
+  },
+  {
+    id: 'cat-fishing',
+    title: '小猫钓鱼',
+    emoji: '🐱',
+    desc: '耐心等待才能钓到鱼',
+    color: '#74b9ff',
+    bgColors: ['#0984e3','#74b9ff','#a29bfe'],
+    pages: [
+      { text: '🐱 小猫拿着钓鱼竿来到河边', emoji: '🐱', bg: '#e3f2fd', decors: '🌳🌊🎣' },
+      { text: '🦋 一只蝴蝶飞过来了，小猫去追蝴蝶', emoji: '🦋', bg: '#e8f5e9', decors: '🌸🦋🌈' },
+      { text: '🐸 一只青蛙跳过来了，小猫去追青蛙', emoji: '🐸', bg: '#e0f7fa', decors: '🌿🦗💦' },
+      { text: '😤 小猫什么也没钓到，好着急！', emoji: '😤', bg: '#fff3e0', decors: '💨❓❗' },
+      { text: '😺 猫妈妈说：做事要专心哦！', emoji: '😺', bg: '#fce4ec', decors: '💡❤️✨' },
+      { text: '🐟 小猫专心钓鱼，终于钓到一条大鱼！', emoji: '🐟', bg: '#e8eaf6', decors: '🎉⭐🌟🎊' },
+    ],
+    questions: [
+      { emoji: '❓', text: '小猫为什么没钓到鱼？', options: ['不专心','没有鱼竿'], answer: 0 },
+      { emoji: '❓', text: '后来小猫钓到鱼了吗？', options: ['没有','钓到了'], answer: 1 },
+    ]
+  },
+  {
+    id: 'make-cake',
+    title: '一起做蛋糕',
+    emoji: '🎂',
+    desc: '做蛋糕的步骤',
+    color: '#fab1a0',
+    bgColors: ['#e17055','#fab1a0','#ffeaa7'],
+    pages: [
+      { text: '🎂 今天是小熊的生日，大家要做蛋糕！', emoji: '🎂', bg: '#fff3e0', decors: '🎉🎈🎊🎁' },
+      { text: '🥚 先打两个鸡蛋在碗里', emoji: '🥚', bg: '#fff9c4', decors: '🥣✋💫' },
+      { text: '🧈 再加入面粉和糖，搅一搅', emoji: '🧈', bg: '#ffe0b2', decors: '🥄🫙🌀' },
+      { text: '🔥 放进烤箱里，等一等...', emoji: '🔥', bg: '#ffccbc', decors: '⏰👀👃' },
+      { text: '🎨 蛋糕烤好啦！涂上奶油装饰一下', emoji: '🎨', bg: '#f8bbd0', decors: '🍓🍫🍬🌸' },
+      { text: '🎉 好吃的蛋糕做好了，大家一起来分享！', emoji: '🎉', bg: '#e8f5e9', decors: '🐻🐰🐱🐭' },
+    ],
+    questions: [
+      { emoji: '❓', text: '做蛋糕第一步是什么？', options: ['打鸡蛋','吃蛋糕'], answer: 0 },
+      { emoji: '❓', text: '蛋糕要在哪里烤？', options: ['冰箱','烤箱'], answer: 1 },
+    ]
+  },
+  {
+    id: 'rainy-day',
+    title: '下雨天',
+    emoji: '🌧️',
+    desc: '下雨天的乐趣',
+    color: '#81ecec',
+    bgColors: ['#00cec9','#81ecec','#74b9ff'],
+    pages: [
+      { text: '☁️ 天上飘来了好多乌云', emoji: '☁️', bg: '#eceff1', decors: '🌫️🌬️☁️' },
+      { text: '🌧️ 哗啦啦，下起了大雨！', emoji: '🌧️', bg: '#cfd8dc', decors: '💧💦🌧️' },
+      { text: '☂️ 小鸭子打起了小伞出门了', emoji: '☂️', bg: '#b3e5fc', decors: '🦆👢💧' },
+      { text: '🐸 青蛙在雨里开心地唱歌', emoji: '🐸', bg: '#c8e6c9', decors: '🎵🎤🎶🌿' },
+      { text: '🌈 雨停了，天上出现了一道彩虹！', emoji: '🌈', bg: '#e1f5fe', decors: '☀️🌈✨⭐' },
+      { text: '🌻 花儿喝饱了水，开得更美了', emoji: '🌻', bg: '#f1f8e9', decors: '🌸🌺🦋🐝' },
+    ],
+    questions: [
+      { emoji: '❓', text: '下雨要带什么？', options: ['太阳镜','雨伞'], answer: 1 },
+      { emoji: '❓', text: '雨后天上会有什么？', options: ['月亮','彩虹'], answer: 1 },
+    ]
+  },
+  {
+    id: 'find-mom',
+    title: '小蝌蚪找妈妈',
+    emoji: '🐸',
+    desc: '经典童话故事',
+    color: '#a29bfe',
+    bgColors: ['#6c5ce7','#a29bfe','#74b9ff'],
+    pages: [
+      { text: '🫧 池塘里有一群小蝌蚪，黑黑的身子大大的头', emoji: '🫧', bg: '#e3f2fd', decors: '🌊🌿💧' },
+      { text: '🐟 小蝌蚪看到了金鱼阿姨，"你是我的妈妈吗？"', emoji: '🐟', bg: '#fff9c4', decors: '❓🤔💬' },
+      { text: '🦀 金鱼说："不是哦，你妈妈有四条腿"', emoji: '🦀', bg: '#ffe0b2', decors: '🦵🦵🦵🦵' },
+      { text: '🐢 小蝌蚪看到了乌龟，"妈妈！"', emoji: '🐢', bg: '#c8e6c9', decors: '❓🏃💚' },
+      { text: '🐢 乌龟说："不是哦，你妈妈白肚皮"', emoji: '🐢', bg: '#e0f7fa', decors: '⬜🤍🫧' },
+      { text: '🐸 终于找到了！青蛙妈妈在荷叶上等着呢！"宝贝！"', emoji: '🐸', bg: '#dcedc8', decors: '❤️🥰🎉✨' },
+    ],
+    questions: [
+      { emoji: '❓', text: '小蝌蚪的妈妈是谁？', options: ['金鱼','青蛙'], answer: 1 },
+      { emoji: '❓', text: '青蛙妈妈有什么特征？', options: ['四条腿白肚皮','大大的尾巴'], answer: 0 },
+    ]
+  },
+];
+
+// ========== State ==========
+let currentBook = null;
+let currentPage = 0;
+let totalPages = 0;
+let stars = 0;
+let questionAnswered = false;
+let miniGameActive = false;
+
+// ========== Boot ==========
+function init(){
+  // Preload voices
+  if('speechSynthesis' in window){
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = ()=> window.speechSynthesis.getVoices();
+  }
+  setTimeout(()=>{
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+    playSuccess();
+  }, 1800);
+}
+
+// ========== Navigation ==========
+function enterBookSelect(){
+  initAudio();
+  playClick();
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('book-select').classList.remove('hidden');
+  renderBookGrid();
+}
+
+function backToStart(){
+  playClick();
+  document.getElementById('book-select').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+}
+
+function backToSelect(){
+  playClick();
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  document.getElementById('reader').classList.add('hidden');
+  document.getElementById('book-select').classList.remove('hidden');
+  currentBook = null;
+}
+
+function renderBookGrid(){
+  const grid = document.getElementById('book-grid');
+  grid.innerHTML = '';
+  books.forEach((book, i) => {
+    const card = document.createElement('div');
+    card.className = 'book-card';
+    card.style.borderBottom = `4px solid ${book.color}`;
+    card.innerHTML = `
+      <span class="book-emoji">${book.emoji}</span>
+      <div class="book-title">${book.title}</div>
+      <div class="book-desc">${book.desc}</div>
+      <div class="badge">${book.pages.length}页</div>
+    `;
+    card.onclick = () => openBook(i);
+    grid.appendChild(card);
+  });
+}
+
+// ========== Reader ==========
+function openBook(idx){
+  initAudio();
+  playPageTurn();
+  currentBook = books[idx];
+  currentPage = 0;
+  totalPages = currentBook.pages.length;
+  questionAnswered = false;
+
+  document.getElementById('book-select').classList.add('hidden');
+  document.getElementById('reader').classList.remove('hidden');
+  document.getElementById('reader-title').textContent = currentBook.title;
+
+  renderPages();
+  renderDots();
+  updateNavButtons();
+  updateActivePage();
+
+  // Auto-speak first page
+  setTimeout(()=>{
+    if(speechEnabled) speakText(currentPageText());
+  }, 600);
+}
+
+function renderPages(){
+  const area = document.getElementById('page-area');
+  area.innerHTML = '';
+  currentBook.pages.forEach((page, i) => {
+    const div = document.createElement('div');
+    div.className = 'page';
+    div.id = `page-${i}`;
+    div.innerHTML = `
+      <div class="page-illustration" style="background:${page.bg}">
+        <div class="page-bg-decor">${page.decors.split('').filter(c=>c.trim()).map(c=>`<span>${c}</span>`).join('')}</div>
+        <div class="page-emoji">${page.emoji}</div>
+      </div>
+      <div class="page-text">${highlightText(page.text)}</div>
+    `;
+    // Touch/click to interact
+    div.querySelector('.page-illustration').addEventListener('click', (e) => {
+      initAudio();
+      playClick();
+      const emoji = page.emoji;
+      showScorePopup(emoji);
+      // Bounce animation
+      const el = div.querySelector('.page-emoji');
+      el.style.transition = 'transform .3s';
+      el.style.transform = 'scale(1.3)';
+      setTimeout(()=> el.style.transform = 'scale(1)', 300);
+    });
+    area.appendChild(div);
+  });
+}
+
+function highlightText(text){
+  // Highlight text within 【】markers, or just color emoji parts
+  return text.replace(/【(.+?)】/g, '<span class="highlight">$1</span>');
+}
+
+function renderDots(){
+  const dots = document.getElementById('page-dots');
+  dots.innerHTML = '';
+  for(let i=0; i<totalPages; i++){
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0?' active':'');
+    d.onclick = () => goToPage(i);
+    dots.appendChild(d);
+  }
+}
+
+function updateDots(){
+  document.querySelectorAll('.dot').forEach((d,i)=>{
+    d.classList.toggle('active', i===currentPage);
+  });
+}
+
+function updateNavButtons(){
+  document.getElementById('prev-btn').disabled = currentPage === 0;
+  const nextBtn = document.getElementById('next-btn');
+  if(currentPage === totalPages - 1){
+    nextBtn.textContent = '做小测验 🎯';
+  } else {
+    nextBtn.textContent = '下一页 →';
+  }
+}
+
+function updateActivePage(){
+  document.querySelectorAll('.page').forEach((p,i)=>{
+    p.classList.remove('active','prev');
+    if(i === currentPage) p.classList.add('active');
+    else if(i < currentPage) p.classList.add('prev');
+  });
+  updateDots();
+  updateNavButtons();
+}
+
+function goToPage(idx){
+  if(idx < 0 || idx >= totalPages || idx === currentPage) return;
+  initAudio();
+  playPageTurn();
+  currentPage = idx;
+  updateActivePage();
+  if(speechEnabled) speakText(currentPageText());
+}
+
+function prevPage(){
+  if(currentPage > 0) goToPage(currentPage - 1);
+}
+
+function nextPage(){
+  if(currentPage < totalPages - 1){
+    goToPage(currentPage + 1);
+  } else {
+    // Last page - show mini game
+    showMiniGame();
+  }
+}
+
+// ========== Mini Game ==========
+function showMiniGame(){
+  if(!currentBook || currentBook.questions.length === 0){
+    showEndScreen();
+    return;
+  }
+  miniGameActive = true;
+  const questions = currentBook.questions;
+  let qIdx = 0;
+  let correct = 0;
+
+  function renderQ(){
+    const q = questions[qIdx];
+    const el = document.getElementById('mini-game');
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="mini-game-card">
+        <h2>🎯 小测验 (${qIdx+1}/${questions.length})</h2>
+        <div class="q-emoji">${q.emoji}</div>
+        <div class="q-text">${q.text}</div>
+        <div class="mini-game-options" id="mg-options">
+          ${q.options.map((opt,i)=>`
+            <div class="mg-option" data-idx="${i}" onclick="checkAnswer(${i},${q.answer})">${opt}</div>
+          `).join('')}
+        </div>
+        <div class="mini-game-result" id="mg-result"></div>
+      </div>
+    `;
+  }
+
+  window.checkAnswer = function(selected, answer){
+    if(document.querySelector('.mg-option.correct,.mg-option.wrong')) return;
+    const opts = document.querySelectorAll('.mg-option');
+    opts.forEach((o,i)=>{
+      if(i === answer) o.classList.add('correct');
+      else if(i === selected && selected !== answer) o.classList.add('wrong');
+    });
+    const resultEl = document.getElementById('mg-result');
+    if(selected === answer){
+      playSuccess();
+      correct++;
+      stars += 3;
+      resultEl.innerHTML = '✅ 太棒了！+3⭐';
+    } else {
+      playWrong();
+      resultEl.innerHTML = '😊 没关系，记住啦！';
+    }
+    setTimeout(()=>{
+      qIdx++;
+      if(qIdx < questions.length){
+        renderQ();
+      } else {
+        // All questions done
+        document.getElementById('mini-game').classList.add('hidden');
+        showEndScreen(correct, questions.length);
+      }
+    }, 1500);
+  };
+
+  renderQ();
+}
+
+function showEndScreen(correct, total){
+  miniGameActive = false;
+  playCelebrate();
+  showCelebration();
+
+  const endEl = document.getElementById('end-screen');
+  endEl.classList.remove('hidden');
+
+  const allCorrect = correct !== undefined && correct === total;
+  endEl.innerHTML = `
+    <div class="big-emoji">${allCorrect ? '🏆' : '📖'}</div>
+    <h1>${allCorrect ? '全部答对啦！' : '故事读完啦！'}</h1>
+    <div class="score">⭐ 获得 ${stars} 颗星星</div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="replayBook()">再读一遍</button>
+      <button class="btn btn-primary" onclick="chooseAnother()">换一本</button>
+    </div>
+  `;
+}
+
+function replayBook(){
+  playClick();
+  document.getElementById('end-screen').classList.add('hidden');
+  currentPage = 0;
+  updateActivePage();
+}
+
+function chooseAnother(){
+  playClick();
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  document.getElementById('end-screen').classList.add('hidden');
+  document.getElementById('reader').classList.add('hidden');
+  document.getElementById('book-select').classList.remove('hidden');
+  currentBook = null;
+  stars = 0;
+}
+
+// ========== Score Popup ==========
+function showScorePopup(text){
+  const el = document.createElement('div');
+  el.className = 'score-popup';
+  el.textContent = text;
+  el.style.left = (20 + Math.random()*60) + '%';
+  el.style.top = '35%';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1200);
+}
+
+// ========== Celebration ==========
+function showCelebration(){
+  const container = document.getElementById('celebration');
+  const emojis = ['🎉','⭐','🌟','✨','🎊','📖','📚','💫','🌈','❤️'];
+  for(let i=0;i<30;i++){
+    const p = document.createElement('div');
+    p.className = 'celeb-particle';
+    p.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    p.style.left = Math.random()*100 + '%';
+    p.style.top = 40 + Math.random()*40 + '%';
+    p.style.animationDelay = Math.random()*.5 + 's';
+    container.appendChild(p);
+  }
+  setTimeout(()=>container.innerHTML='', 3000);
+}
+
+// ========== Swipe support ==========
+let touchStartX = 0, touchStartY = 0;
+document.addEventListener('touchstart', e=>{
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, {passive:true});
+document.addEventListener('touchend', e=>{
+  if(miniGameActive) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)){
+    if(dx < 0) nextPage();
+    else prevPage();
+  }
+});
+
+// ========== Keyboard support ==========
+document.addEventListener('keydown', e=>{
+  if(e.key === 'ArrowRight' || e.key === ' ') nextPage();
+  else if(e.key === 'ArrowLeft') prevPage();
+});
+
+// Boot
+init();
+</script>
+</body>
+</html>
